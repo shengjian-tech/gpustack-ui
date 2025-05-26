@@ -64,6 +64,7 @@ const LineChart: React.FC<ChartProps> = (props) => {
 
   const dataOptions = useMemo((): any => {
     const data = _.map(seriesData, (item: any) => {
+      console.log('---item---', item)
       return {
         ...item,
         ...lineItemConfig,
@@ -81,6 +82,7 @@ const LineChart: React.FC<ChartProps> = (props) => {
     return {
       ...options,
       animation: false,
+      smooth: true,
       title: {
         ...titleConfig,
         text: title

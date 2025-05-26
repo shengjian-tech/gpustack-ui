@@ -83,6 +83,20 @@ import Instances from './instances';
 import ModelTag from './model-tag';
 import UpdateModel from './update-modal';
 import ViewLogsModal from './view-logs-modal';
+import styled from 'styled-components';
+
+const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.seal-table-container {
+    padding:0 30px
+  }
+`;
 interface ModelsProps {
   handleSearch: () => void;
   handleNameChange: (e: any) => void;
@@ -729,7 +743,8 @@ const Models: React.FC<ModelsProps> = ({
 
   return (
     <>
-      <PageContainer
+      <Wrapper>
+        <PageContainer
         className="models-page-container"
         ghost
         header={{
@@ -740,7 +755,7 @@ const Models: React.FC<ModelsProps> = ({
           breadcrumb: {}
         }}
         extra={[]}
-      >
+        >
         <PageTools
           marginBottom={22}
           left={
@@ -834,7 +849,8 @@ const Models: React.FC<ModelsProps> = ({
             onChange: handlePageChange
           }}
         ></SealTable>
-      </PageContainer>
+        </PageContainer>
+      </Wrapper>
       <UpdateModel
         open={openAddModal}
         action={PageAction.EDIT}

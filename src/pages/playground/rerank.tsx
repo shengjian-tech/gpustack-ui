@@ -11,6 +11,20 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { queryModelsList } from './apis';
 import GroundReranker from './components/ground-reranker';
 import './style/play-ground.less';
+import styled from 'styled-components';
+
+const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.seal-table-container {
+    padding:0 30px
+  }
+`;
 
 const PlaygroundRerank: React.FC = () => {
   const intl = useIntl();
@@ -98,28 +112,30 @@ const PlaygroundRerank: React.FC = () => {
   );
 
   return (
-    <PageContainer
-      ghost
-      header={{
-        title: intl.formatMessage({ id: 'menu.playground.rerank' }),
-        style: {
-          paddingInline: 'var(--layout-content-header-inlinepadding)'
-        },
-        breadcrumb: {}
-      }}
-      extra={renderExtra()}
-      className={classNames('playground-container chat')}
-    >
-      <div className="play-ground">
-        <div className="chat">
-          <GroundReranker
-            ref={groundRerankerRef}
-            modelList={rerankerModelList}
-            loaded={loaded}
-          ></GroundReranker>
+    <Wrapper>
+      <PageContainer
+        ghost
+        header={{
+          title: intl.formatMessage({ id: 'menu.playground.rerank' }),
+          style: {
+            paddingInline: 'var(--layout-content-header-inlinepadding)'
+          },
+          breadcrumb: {}
+        }}
+        extra={renderExtra()}
+        className={classNames('playground-container chat')}
+      >
+        <div className="play-ground">
+          <div className="chat">
+            <GroundReranker
+              ref={groundRerankerRef}
+              modelList={rerankerModelList}
+              loaded={loaded}
+            ></GroundReranker>
+          </div>
         </div>
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </Wrapper>
   );
 };
 

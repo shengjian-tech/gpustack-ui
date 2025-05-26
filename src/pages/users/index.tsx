@@ -31,6 +31,20 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { createUser, deleteUser, queryUsersList, updateUser } from './apis';
 import AddModal from './components/add-modal';
 import { FormData, ListItem } from './config/types';
+import styled from 'styled-components';
+
+const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.ant-table-container {
+    padding:0 30px
+  }
+`;
 const { Column } = Table;
 
 const ActionList = [
@@ -152,6 +166,7 @@ const Users: React.FC = () => {
 
   return (
     <>
+      <Wrapper>
       <PageContainer
         ghost
         header={{
@@ -312,7 +327,8 @@ const Users: React.FC = () => {
             />
           </Table>
         </ConfigProvider>
-      </PageContainer>
+        </PageContainer>
+      </Wrapper>
       <AddModal
         open={openAddModal}
         action={action}

@@ -291,7 +291,7 @@ body {
 
   .ant-layout {
     min-height: 100vh;
-    background: var(--ant-color-bg-container);
+    background: var(--ant-layout-color-bg-body);
   }
 
   .ant-pro-layout-bg-list {
@@ -301,7 +301,7 @@ body {
   .ant-pro-layout-container {
     overflow-x: auto;
     min-height: 100vh;
-    background-color: var(--ant-color-bg-container);
+    background-color: var(--ant-layout-color-bg-body);
   }
 
   .ant-pro-sider {
@@ -795,4 +795,56 @@ body {
 
 .ant-progress-line {
   font-size: var(--font-size-small);
+}
+
+// 修改样式
+.ant-pro-top-nav-header-wide,.ant-pro-grid-content-wide,.ant-page-header-wide{
+  max-width: 1400px;
+}
+.ant-pro-top-nav-header-main{
+  padding-inline-start: 0px;
+}
+.ant-pro-top-nav-header-menu ul.ant-menu{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ant-pro-top-nav-header-menu ul.ant-menu li.ant-menu-item-selected{
+  background-color: rgba(0,0,0,0.05) !important;
+  color: #0005EB !important;
+}
+.ant-tabs-tab-active .ant-tabs-tab-btn{
+  color: #0005EB !important;
+}
+.system-box___Amgct .ant-tabs-tab-active .ant-tabs-tab-btn{
+  color: #000000 !important;
+}
+.ant-btn-primary{
+  background-color: #0005EB!important;
+  color: white !important;
+}
+.ant-pro-layout .ant-layout-header.ant-pro-layout-header{
+  border-block-end: unset;
+}
+.ant-dropdown-menu .ant-dropdown-menu-item a{
+  color: #000000;
+}
+.ant-pro-layout .ant-pro-page-container-children-container{
+  padding-block: unset;
+  padding-inline: unset;
+}
+.ant-pro-page-container-children-container{
+  padding-inline: unset;
+}
+.comm-dashboard-box{
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  margin-top: 20px;
+  .comm-dashboard-box-title{
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 20px;
+  }
 }

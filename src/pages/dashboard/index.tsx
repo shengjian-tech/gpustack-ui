@@ -12,8 +12,9 @@ const Dashboard: React.FC = () => {
         ghost
         extra={[]}
         header={{
+          title: null,
           style: {
-            paddingInline: 'var(--layout-content-header-inlinepadding)'
+            // paddingInline: 'var(--layout-content-header-inlinepadding)'
           }
         }}
       >

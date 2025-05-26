@@ -9,6 +9,7 @@ export default {
   'models.form.repoid.desc': 'Only .gguf format is supported',
   'models.form.filename': 'File Name',
   'models.form.replicas': 'Replicas',
+  'models.form.replicas.desc': 'Redundancy copies count',
   'models.form.selector': 'Selector',
   'models.form.env': 'Environment Variables',
   'models.form.configurations': 'Configurations',

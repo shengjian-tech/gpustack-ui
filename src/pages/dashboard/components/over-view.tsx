@@ -11,19 +11,32 @@ const renderCardItem = (data: {
   label: string;
   value: React.ReactNode;
   bgColor: string;
+  desc: string;
+  logoUrl?: string;
 }) => {
-  const { label, value, bgColor } = data;
+  const { label, value, bgColor,desc,logoUrl } = data;
   return (
-    <Card
-      bordered={false}
-      style={{ background: 'var(--color-white-1)' }}
-      className={styles['card-body']}
-    >
-      <div className={styles.content}>
-        <div className="label font-500">{label}</div>
-        <div className="value font-500">{value}</div>
+    <>
+      {/* <Card
+        style={{ background: 'var(--color-white-1)' }}
+        className={styles['card-body']}
+      >
+        <div className={styles.content}>
+          <div className="label font-500">{label}</div>
+          <div className="value font-500">{value}</div>
+        </div>
+      </Card> */}
+      <div className={styles['card']}>
+        <div className={styles['card-title']}>
+          <img src={logoUrl} /> {label}
+        </div>
+        <div className={styles['card-val']}>
+          {value}
+        </div>
+        <p className={styles['card-desc']}>{desc}</p>
       </div>
-    </Card>
+    </>
+    
   );
 };
 const Overview: React.FC = () => {
@@ -52,20 +65,18 @@ const Overview: React.FC = () => {
   };
   return (
     <div>
-      <Row gutter={[24, 20]} className={styles.row}>
+      <Row gutter={[20, 20]} className={styles.row}>
         {overviewConfigs.map((config, index) => (
           <Col
-            xs={{ flex: '100%' }}
-            sm={{ flex: '50%' }}
-            md={{ flex: '50%' }}
-            lg={{ flex: '25%' }}
-            xl={{ flex: '25%' }}
+            span={12}
             key={config.key}
           >
             {renderCardItem({
               label: intl.formatMessage({ id: config.label }),
               value: renderValue(_.get(data, config.key, 0)),
-              bgColor: config.backgroundColor
+              bgColor: config.backgroundColor,
+              desc: intl.formatMessage({ id: config.desc }),
+              logoUrl: config.logoUrl
             })}
           </Col>
         ))}

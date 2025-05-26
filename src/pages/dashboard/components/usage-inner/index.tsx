@@ -6,6 +6,7 @@ import { DashboardContext } from '../../config/dashboard-context';
 import RequestTokenInner from './request-token-inner';
 import TopUser from './top-user';
 import useUsageData from './use-usage-data';
+import styles from './index.less';
 
 const UsageInner: FC<{ paddingRight: string }> = ({ paddingRight }) => {
   const intl = useIntl();
@@ -13,10 +14,21 @@ const UsageInner: FC<{ paddingRight: string }> = ({ paddingRight }) => {
   const { model_usage } = useContext(DashboardContext);
 
   const { requestTokenData, topUserData } = useUsageData(model_usage || {});
+  console.log('---requestTokenData---', requestTokenData)
 
   return (
     <>
-      <PageTools
+      <div className={styles['line-box']}>
+        <p className={styles['title']}>{intl.formatMessage({ id: 'dashboard.usage' })}</p>
+        <div style={{ width: '100%',padding:' 0 10px 10px 10px' }}>
+          <RequestTokenInner
+            requestData={requestTokenData.requestData}
+            xAxisData={requestTokenData.xAxisData}
+            tokenData={requestTokenData.tokenData}
+          ></RequestTokenInner>
+        </div>
+      </div>
+      {/* <PageTools
         style={{ margin: '26px 0px' }}
         left={
           <span className="font-700">
@@ -45,7 +57,7 @@ const UsageInner: FC<{ paddingRight: string }> = ({ paddingRight }) => {
             topUserList={topUserData.topUserList}
           ></TopUser>
         </Col>
-      </Row>
+      </Row> */}
     </>
   );
 };

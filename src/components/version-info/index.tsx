@@ -1,4 +1,4 @@
-import Logo from '@/assets/images/gpustack-logo.png';
+import Logo from '@/assets/images/ai-computing power-cloud-logo.svg';
 import { GPUStackVersionAtom, UpdateCheckAtom, userAtom } from '@/atoms/user';
 import { getAtomStorage } from '@/atoms/utils';
 import externalLinks from '@/constants/external-links';

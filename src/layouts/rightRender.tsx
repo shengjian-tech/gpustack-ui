@@ -17,7 +17,7 @@ import {
   SunOutlined
 } from '@ant-design/icons';
 import { getAllLocales, history, setLocale } from '@umijs/max';
-import { Avatar, Menu, Spin } from 'antd';
+import { Avatar, Menu, Spin,Dropdown,Button } from 'antd';
 import _ from 'lodash';
 import React from 'react';
 
@@ -333,18 +333,76 @@ export const getRightRenderContent = (opts: {
     siderWidth: number,
     extraStyle: React.CSSProperties = {}
   ) => ({
-    width: collapsed ? 40 : `calc(${siderWidth}px - 16px)`,
     ...extraStyle
   });
 
+  // return (
+  //   <div style={{display:'flex'}}>
+  //     <Menu {...helpMenu} />
+  //     <Menu {...langMenu} />
+  //     <Menu {...userMenu} />
+  //   </div>
+  // );
   return (
-    <div>
-      <Menu {...helpMenu} style={getMenuStyle(collapsed, siderWidth)} />
-      <Menu {...langMenu} style={getMenuStyle(collapsed, siderWidth)} />
-      <Menu
-        {...userMenu}
-        style={getMenuStyle(collapsed, siderWidth, { marginTop: 20 })}
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      {/* 帮助菜单 */}
+      <Button
+        type="text"
+        icon={<QuestionCircleOutlined />}
+        onClick={() => {
+          // 在这里直接跳转到指定网址
+          window.open('https://www.shengjian.net', '_blank');
+        }}
       />
+      {/* <Dropdown
+        menu={{
+          items: helpMenu.items[0].children,
+          onClick: (info) => {
+            const clicked = helpMenu.items[0].children.find(i => i.key === info.key);
+            clicked?.onClick?.();
+          }
+        }}
+        trigger={['click']}
+      >
+        <Button type="text" icon={<QuestionCircleOutlined />} />
+      </Dropdown> */}
+
+      {/* 语言菜单 */}
+      <Dropdown
+        menu={{
+          items: langMenu.items[0].children,
+          onClick: (info) => {
+            const lang = allLocals.find((key) => key === info.key);
+            if (lang) setLocale(lang, false);
+          }
+        }}
+        trigger={['click']}
+      >
+        <Button type="text" icon={<GlobalOutlined />} />
+      </Dropdown>
+
+      {/* 用户菜单 */}
+      <Dropdown
+        menu={{
+          items: userMenu.items[0].children,
+          onClick: (info) => {
+            const clicked = userMenu.items[0].children.find(i => i.key === info.key);
+            clicked?.onClick?.();
+          }
+        }}
+        trigger={['click']}
+      >
+        <span style={{ cursor: 'pointer',marginLeft:20 }}>
+          <Avatar size={28} style={{ marginRight: 8 }}>
+            {_.toUpper(opts.initialState?.currentUser?.username?.charAt(0))}
+          </Avatar>
+          {!collapsed && (
+            <span style={{ fontSize: 14 }}>
+              {opts.initialState?.currentUser?.username}
+            </span>
+          )}
+        </span>
+      </Dropdown>
     </div>
   );
 };

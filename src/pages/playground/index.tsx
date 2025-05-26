@@ -15,6 +15,20 @@ import { queryModelsList } from './apis';
 import GroundLeft from './components/ground-left';
 import MultipleChat from './components/multiple-chat';
 import './style/play-ground.less';
+import styled from 'styled-components';
+
+const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.seal-table-container {
+    padding:0 30px
+  }
+`;
 
 const Playground: React.FC = () => {
   const intl = useIntl();
@@ -169,21 +183,23 @@ const Playground: React.FC = () => {
   );
 
   return (
-    <PageContainer
-      ghost
-      header={header}
-      extra={renderExtra}
-      className={classNames('playground-container', {
-        compare: activeKey === 'compare',
-        chat: activeKey !== 'compare'
-      })}
-    >
-      <div className="play-ground">
-        <div className="chat">
-          <Tabs items={items} activeKey={activeKey}></Tabs>
+    <Wrapper>
+      <PageContainer
+        ghost
+        header={header}
+        extra={renderExtra}
+        className={classNames('playground-container', {
+          compare: activeKey === 'compare',
+          chat: activeKey !== 'compare'
+        })}
+      >
+        <div className="play-ground">
+          <div className="chat">
+            <Tabs items={items} activeKey={activeKey}></Tabs>
+          </div>
         </div>
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </Wrapper>
   );
 };
 

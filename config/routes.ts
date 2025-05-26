@@ -5,13 +5,13 @@ export default [
     name: 'dashboard',
     path: '/dashboard',
     key: 'dashboard',
-    icon: 'AppstoreOutlined',
+    // icon: 'AppstoreOutlined',
     access: 'canSeeAdmin',
     component: './dashboard'
   },
   {
     name: 'playground',
-    icon: 'ExperimentOutlined',
+    // icon: 'ExperimentOutlined',
     path: '/playground',
     key: 'playground',
     routes: [
@@ -65,7 +65,7 @@ export default [
     name: 'modelCatalog',
     path: '/models/catalog',
     key: 'modelsCatalog',
-    icon: 'icon-catalog',
+    // icon: 'icon-catalog',
     access: 'canSeeAdmin',
     component: './llmodels/catalog'
   },
@@ -73,7 +73,7 @@ export default [
     name: 'models',
     path: '/models/list',
     key: 'models',
-    icon: 'Block',
+    // icon: 'Block',
     access: 'canSeeAdmin',
     component: './llmodels/index'
   },
@@ -81,7 +81,7 @@ export default [
     name: 'resources',
     path: '/resources',
     key: 'resources',
-    icon: 'CloudServer',
+    // icon: 'CloudServer',
     access: 'canSeeAdmin',
     component: './resources'
   },
@@ -89,14 +89,14 @@ export default [
     name: 'apikeys',
     path: '/api-keys',
     key: 'apikeys',
-    icon: 'KeyOutlined',
+    // icon: 'KeyOutlined',
     component: './api-keys'
   },
   {
     name: 'users',
     path: '/users',
     key: 'users',
-    icon: 'Team',
+    // icon: 'Team',
     access: 'canSeeAdmin',
     component: './users'
   },
@@ -106,7 +106,7 @@ export default [
     key: 'profile',
     hideInMenu: true,
     component: './profile',
-    icon: 'User'
+    // icon: 'User'
   },
   {
     name: 'login',

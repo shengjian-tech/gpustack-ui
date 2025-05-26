@@ -9,6 +9,12 @@ import ModelFiles from './components/model-files';
 import Workers from './components/workers';
 
 const Wrapper = styled.div`
+  .ant-page-header {
+    background: white;
+    margin-top:30px;
+    border-radius: 10px;
+    min-height: 600px;
+  }
   .ant-page-header-heading {
     padding-inline: 8px;
   }
@@ -65,7 +71,7 @@ const Resources = () => {
         tabProps={{
           type: 'card',
           style: {
-            marginTop: 78
+            marginTop: 30
           }
         }}
         extra={[]}

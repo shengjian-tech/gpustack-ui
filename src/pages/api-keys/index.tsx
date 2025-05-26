@@ -23,8 +23,22 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { deleteApisKey, queryApisKeysList } from './apis';
 import AddAPIKeyModal from './components/add-apikey';
 import { ListItem } from './config/types';
+import styled from 'styled-components';
 
 const { Column } = Table;
+
+const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.ant-table-wrapper {
+    padding:0 30px
+  }
+`;
 
 const APIKeys: React.FC = () => {
   const {
@@ -94,166 +108,168 @@ const APIKeys: React.FC = () => {
 
   return (
     <>
-      <PageContainer
-        ghost
-        header={{
-          title: intl.formatMessage({ id: 'apikeys.title' }),
-          style: {
-            paddingInline: 'var(--layout-content-header-inlinepadding)'
-          }
-        }}
-        extra={[]}
-      >
-        <PageTools
-          marginBottom={22}
-          left={
-            <Space>
-              <Input
-                placeholder={intl.formatMessage({ id: 'common.filter.name' })}
-                style={{ width: 300 }}
-                allowClear
-                onChange={handleNameChange}
-              ></Input>
-              <Button
-                type="text"
-                style={{ color: 'var(--ant-color-text-tertiary)' }}
-                onClick={handleSearch}
-                icon={<SyncOutlined></SyncOutlined>}
-              ></Button>
-            </Space>
-          }
-          right={
-            <Space size={20}>
-              <Button
-                icon={<PlusOutlined></PlusOutlined>}
-                type="primary"
-                onClick={handleAddUser}
-              >
-                {intl.formatMessage({ id: 'apikeys.button.create' })}
-              </Button>
-              <Button
-                icon={<DeleteOutlined />}
-                danger
-                onClick={handleDeleteBatch}
-                disabled={!rowSelection.selectedRowKeys.length}
-              >
-                <span>
-                  {intl?.formatMessage?.({ id: 'common.button.delete' })}
-                  {rowSelection.selectedRowKeys.length > 0 && (
-                    <span>({rowSelection.selectedRowKeys?.length})</span>
-                  )}
-                </span>
-              </Button>
-            </Space>
-          }
-        ></PageTools>
-        <ConfigProvider renderEmpty={renderEmpty}>
-          <Table
-            dataSource={dataSource.dataList}
-            rowSelection={rowSelection}
-            loading={dataSource.loading}
-            rowKey="id"
-            onChange={handleTableChange}
-            pagination={{
-              showSizeChanger: true,
-              pageSize: queryParams.perPage,
-              current: queryParams.page,
-              total: dataSource.total,
-              hideOnSinglePage: queryParams.perPage === 10,
-              onChange: handlePageChange
-            }}
-          >
-            <Column
-              title={intl.formatMessage({ id: 'common.table.name' })}
-              dataIndex="name"
-              key="name"
-              ellipsis={{
-                showTitle: false
+      <Wrapper>
+        <PageContainer
+          ghost
+          header={{
+            title: intl.formatMessage({ id: 'apikeys.title' }),
+            style: {
+              paddingInline: 'var(--layout-content-header-inlinepadding)',
+            }
+          }}
+          extra={[]}
+        >
+          <PageTools
+            marginBottom={22}
+            left={
+              <Space>
+                <Input
+                  placeholder={intl.formatMessage({ id: 'common.filter.name' })}
+                  style={{ width: 300 }}
+                  allowClear
+                  onChange={handleNameChange}
+                ></Input>
+                <Button
+                  type="text"
+                  style={{ color: 'var(--ant-color-text-tertiary)' }}
+                  onClick={handleSearch}
+                  icon={<SyncOutlined></SyncOutlined>}
+                ></Button>
+              </Space>
+            }
+            right={
+              <Space size={20}>
+                <Button
+                  icon={<PlusOutlined></PlusOutlined>}
+                  type="primary"
+                  onClick={handleAddUser}
+                >
+                  {intl.formatMessage({ id: 'apikeys.button.create' })}
+                </Button>
+                <Button
+                  icon={<DeleteOutlined />}
+                  danger
+                  onClick={handleDeleteBatch}
+                  disabled={!rowSelection.selectedRowKeys.length}
+                >
+                  <span>
+                    {intl?.formatMessage?.({ id: 'common.button.delete' })}
+                    {rowSelection.selectedRowKeys.length > 0 && (
+                      <span>({rowSelection.selectedRowKeys?.length})</span>
+                    )}
+                  </span>
+                </Button>
+              </Space>
+            }
+          ></PageTools>
+          <ConfigProvider renderEmpty={renderEmpty}>
+            <Table
+              dataSource={dataSource.dataList}
+              rowSelection={rowSelection}
+              loading={dataSource.loading}
+              rowKey="id"
+              onChange={handleTableChange}
+              pagination={{
+                showSizeChanger: true,
+                pageSize: queryParams.perPage,
+                current: queryParams.page,
+                total: dataSource.total,
+                hideOnSinglePage: queryParams.perPage === 10,
+                onChange: handlePageChange
               }}
-              render={(text, record) => {
-                return (
-                  <AutoTooltip ghost style={{ maxWidth: 400 }}>
-                    {text}
-                  </AutoTooltip>
-                );
-              }}
-            />
+            >
+              <Column
+                title={intl.formatMessage({ id: 'common.table.name' })}
+                dataIndex="name"
+                key="name"
+                ellipsis={{
+                  showTitle: false
+                }}
+                render={(text, record) => {
+                  return (
+                    <AutoTooltip ghost style={{ maxWidth: 400 }}>
+                      {text}
+                    </AutoTooltip>
+                  );
+                }}
+              />
 
-            <Column
-              title={intl.formatMessage({ id: 'apikeys.form.expiretime' })}
-              dataIndex="expires_at"
-              key="expiration"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record) => {
-                return (
-                  <AutoTooltip ghost>
-                    {text
-                      ? dayjs(text).format('YYYY-MM-DD HH:mm:ss')
-                      : intl.formatMessage({
-                          id: 'apikeys.form.expiration.never'
-                        })}
-                  </AutoTooltip>
-                );
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'common.table.description' })}
-              dataIndex="description"
-              key="description"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record) => {
-                return <AutoTooltip ghost>{text}</AutoTooltip>;
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'common.table.createTime' })}
-              dataIndex="created_at"
-              key="createTime"
-              defaultSortOrder="descend"
-              sortOrder={sortOrder}
-              showSorterTooltip={false}
-              sorter={false}
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record) => {
-                return (
-                  <AutoTooltip ghost>
-                    {dayjs(text).format('YYYY-MM-DD HH:mm:ss')}
-                  </AutoTooltip>
-                );
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'common.table.operation' })}
-              key="operation"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record: ListItem) => {
-                return (
-                  <Space size={20}>
-                    <Tooltip
-                      title={intl.formatMessage({ id: 'common.button.delete' })}
-                    >
-                      <Button
-                        onClick={() => handleDelete(record)}
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined></DeleteOutlined>}
-                      ></Button>
-                    </Tooltip>
-                  </Space>
-                );
-              }}
-            />
-          </Table>
-        </ConfigProvider>
-      </PageContainer>
+              <Column
+                title={intl.formatMessage({ id: 'apikeys.form.expiretime' })}
+                dataIndex="expires_at"
+                key="expiration"
+                ellipsis={{
+                  showTitle: false
+                }}
+                render={(text, record) => {
+                  return (
+                    <AutoTooltip ghost>
+                      {text
+                        ? dayjs(text).format('YYYY-MM-DD HH:mm:ss')
+                        : intl.formatMessage({
+                            id: 'apikeys.form.expiration.never'
+                          })}
+                    </AutoTooltip>
+                  );
+                }}
+              />
+              <Column
+                title={intl.formatMessage({ id: 'common.table.description' })}
+                dataIndex="description"
+                key="description"
+                ellipsis={{
+                  showTitle: false
+                }}
+                render={(text, record) => {
+                  return <AutoTooltip ghost>{text}</AutoTooltip>;
+                }}
+              />
+              <Column
+                title={intl.formatMessage({ id: 'common.table.createTime' })}
+                dataIndex="created_at"
+                key="createTime"
+                defaultSortOrder="descend"
+                sortOrder={sortOrder}
+                showSorterTooltip={false}
+                sorter={false}
+                ellipsis={{
+                  showTitle: false
+                }}
+                render={(text, record) => {
+                  return (
+                    <AutoTooltip ghost>
+                      {dayjs(text).format('YYYY-MM-DD HH:mm:ss')}
+                    </AutoTooltip>
+                  );
+                }}
+              />
+              <Column
+                title={intl.formatMessage({ id: 'common.table.operation' })}
+                key="operation"
+                ellipsis={{
+                  showTitle: false
+                }}
+                render={(text, record: ListItem) => {
+                  return (
+                    <Space size={20}>
+                      <Tooltip
+                        title={intl.formatMessage({ id: 'common.button.delete' })}
+                      >
+                        <Button
+                          onClick={() => handleDelete(record)}
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined></DeleteOutlined>}
+                        ></Button>
+                      </Tooltip>
+                    </Space>
+                  );
+                }}
+              />
+            </Table>
+          </ConfigProvider>
+        </PageContainer>
+      </Wrapper>
       <AddAPIKeyModal
         open={openAddModal}
         action={action}

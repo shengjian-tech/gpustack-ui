@@ -70,27 +70,16 @@ const ActiveTable = () => {
   return (
     <Row gutter={[20, 0]}>
       <Col xs={24} sm={24} md={24} lg={24} xl={24}>
-        <PageTools
-          style={{ margin: '26px 0px' }}
-          left={
-            <span
-              style={{
-                padding: '9px 0',
-                fontWeight: 'var(--font-weight-bold)'
-              }}
-            >
-              {intl.formatMessage({ id: 'dashboard.activeModels' })}
-            </span>
-          }
-          right={false}
-        />
-        <div>
-          <Table
-            columns={modelColumns}
-            dataSource={data}
-            pagination={false}
-            rowKey="id"
-          />
+        <div className='comm-dashboard-box' style={{marginBottom:'150px'}}>
+          <div className='comm-dashboard-box-title'>{intl.formatMessage({ id: 'dashboard.activeModels' })}</div>
+          <div className='comm-dashboard-box-content'>
+            <Table
+              columns={modelColumns}
+              dataSource={data}
+              pagination={false}
+              rowKey="id"
+            />
+          </div>
         </div>
       </Col>
     </Row>

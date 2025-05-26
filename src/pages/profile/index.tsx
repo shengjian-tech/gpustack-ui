@@ -8,6 +8,16 @@ import Appearance from './components/appearance';
 import ModifyPasswordn from './components/modify-password';
 
 const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.ant-table-container {
+    padding:0 30px
+  }
   .ant-page-header-heading {
     padding-inline: 8px;
   }

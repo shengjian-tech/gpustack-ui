@@ -11,6 +11,20 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { queryModelsList } from './apis';
 import GroundEmbedding from './components/ground-embedding';
 import './style/play-ground.less';
+import styled from 'styled-components';
+
+const Wrapper = styled.div`
+  .ant-pro-page-container {
+    background: white;
+    border-radius: 10px;
+    min-height: 600px;
+    max-width: 1400px;
+    margin:30px auto;
+  }
+  .page-tools,.seal-table-container {
+    padding:0 30px
+  }
+`;
 
 const PlaygroundEmbedding: React.FC = () => {
   const intl = useIntl();
@@ -93,28 +107,30 @@ const PlaygroundEmbedding: React.FC = () => {
   );
 
   return (
-    <PageContainer
-      ghost
-      header={{
-        title: intl.formatMessage({ id: 'menu.playground.embedding' }),
-        style: {
-          paddingInline: 'var(--layout-content-header-inlinepadding)'
-        },
-        breadcrumb: {}
-      }}
-      extra={renderExtra()}
-      className={classNames('playground-container chat')}
-    >
-      <div className="play-ground">
-        <div className="chat">
-          <GroundEmbedding
-            ref={ref}
-            modelList={modelList}
-            loaded={loaded}
-          ></GroundEmbedding>
+    <Wrapper>
+      <PageContainer
+        ghost
+        header={{
+          title: intl.formatMessage({ id: 'menu.playground.embedding' }),
+          style: {
+            paddingInline: 'var(--layout-content-header-inlinepadding)'
+          },
+          breadcrumb: {}
+        }}
+        extra={renderExtra()}
+        className={classNames('playground-container chat')}
+      >
+        <div className="play-ground">
+          <div className="chat">
+            <GroundEmbedding
+              ref={ref}
+              modelList={modelList}
+              loaded={loaded}
+            ></GroundEmbedding>
+          </div>
         </div>
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </Wrapper>
   );
 };
 

@@ -28,3 +28,34 @@
     font-weight: var(--font-weight-medium);
   }
 }
+:local(.card){
+  background-color: white;
+  height: 178px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 30px;
+  border-radius: 10px;
+  overflow: hidden;
+  .card-title{
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: var(--font-weight-500);
+    img{
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+    }
+  }
+  .card-val{
+    font-size: 32px;
+    font-weight: var(--font-weight-bold);
+    margin: 20px 0;
+  }
+  .card-desc{
+    font-size: 14px;
+    color: #969696;
+    margin-bottom: 0;
+  }
+}

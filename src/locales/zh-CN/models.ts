@@ -9,6 +9,7 @@ export default {
   'models.form.repoid.desc': '只支持 .gguf 格式',
   'models.form.filename': '文件名',
   'models.form.replicas': '副本数',
+  'models.form.replicas.desc': '冗余副本数',
   'models.form.selector': '选择器',
   'models.form.env': '环境变量',
   'models.form.configurations': '配置',

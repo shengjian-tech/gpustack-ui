@@ -70,7 +70,7 @@ const CatalogList: React.FC<CatalogListProps> = (props) => {
   );
 
   return (
-    <div className="relative" style={{ width: '100%' }}>
+    <div className="relative" style={{ width: '100%',padding:'0 30px' }}>
       <ResizeObserver onResize={handleResize}>
         <div>
           <Row gutter={[16, 16]}>

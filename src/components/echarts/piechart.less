@@ -1,0 +1,51 @@
+:local(.pie-box) {
+  display: flex;
+  align-items: center;
+  padding-top: 30px;
+  .pie-title{
+    flex: 1;
+    padding-left: 40px;
+    p{
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .pie-details{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      li{
+        position: relative;
+        display: flex;
+        padding-left: 15px;
+        margin-bottom: 5px;
+        span::after{
+          content: '';
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          top: 50%;
+          transform: translateY(-50%);
+          left: 0;
+        }
+        span:first-child{
+          width: 50%;
+        }
+        
+        span:last-child{
+          color: #969696;
+        }
+      }
+      li:first-child{
+        span:first-child::after{
+          background-color: #0005EB;
+        }
+      }
+      li:last-child{
+        span:first-child::after{
+          background-color: #BBECFC;
+        } 
+      }
+    }
+  }
+}

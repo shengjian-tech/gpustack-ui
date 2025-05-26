@@ -259,7 +259,7 @@ export default (props: any) => {
       return (
         <>
           {logo}
-          <div className="collapse-wrap" onClick={handleToggleCollapse}>
+          {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
             <Button
               style={{ marginRight: collapsed ? 0 : -14 }}
               size="small"
@@ -274,7 +274,7 @@ export default (props: any) => {
                 />
               </>
             </Button>
-          </div>
+          </div> */}
         </>
       );
     },
@@ -435,21 +435,15 @@ export default (props: any) => {
         location={location}
         title={userConfig.title}
         navTheme={userSettings.theme}
-        layout="side"
-        contentStyle={{
-          paddingBlock: 0,
-          paddingInline: 0
-        }}
+        layout="top"
+        contentWidth="Fixed"
         openKeys={false}
         disableMobile={true}
         header={{
           title: <div style={{ fontSize: 36 }}> gpuStack </div>
         }}
-        siderWidth={220}
-        onCollapse={onCollapse}
         onMenuHeaderClick={onMenuHeaderClick}
         menuHeaderRender={renderMenuHeader}
-        collapsed={collapsed}
         onPageChange={onPageChange}
         formatMessage={formatMessage}
         menu={{

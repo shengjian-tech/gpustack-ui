@@ -146,6 +146,15 @@ export default function useChartConfig() {
     }
   };
 
+  const pieItemConfig = {
+    type: 'pie',
+    radius: ['80%', '100%'],
+    startAngle: -90,
+    label: {
+      show: false
+    },
+  }
+
   const gaugeItemConfig = {
     type: 'gauge',
     radius: '88%',
@@ -237,6 +246,7 @@ export default function useChartConfig() {
     barItemConfig,
     lineItemConfig,
     gaugeItemConfig,
+    pieItemConfig,
     isDark: isDarkTheme
   };
 }
