@@ -1,6 +1,6 @@
-# GPUStack UI
+# AI Computing Power Cloud Platform UI
 
-UI for [GPUStack](https://github.com/gpustack/gpustack).
+UI for [AI Computing Power Cloud Platform](https://www.shengjian.net/).
 
 ## Installation
 
@@ -21,13 +21,13 @@ npm install -g pnpm
 3. Setup
 
 ```
-git clone https://github.com/gpustack/gpustack-ui/
+git clone https://www.shengjian.net/
 ```
 
 4. Install dependencies
 
 ```
-cd gpustack-ui
+cd your-project
 pnpm install
 ```
 
@@ -47,9 +47,9 @@ npm run build
 
 ## Bugs & Issues
 
-- Please submit [bugs and issues](https://github.com/gpustack/gpustack/issues) with a label `ui`
+- Please submit [bugs and issues](https://www.shengjian.net/) with a label `ui`
 
 ## Links
 
-- Official website: https://gpustack.ai/
-- Documents: https://docs.gpustack.ai/latest/overview/
+- Official website: https://www.shengjian.net/
+- Documents: https://www.shengjian.net/
