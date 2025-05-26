@@ -51,7 +51,7 @@ export default {
   'resources.worker.container.supported': 'Do not support macOS or Windows.',
   'resources.worker.current.version': 'Current version is {version}.',
   'resources.worker.driver.install':
-    'Install <a href="https://docs.gpustack.ai/latest/installation/installation-requirements/" target="_blank">required drivers and libraries</a> prior to GPUStack installation.',
+    'Install <a href="https://www.shengjian.net/" target="_blank">required drivers and libraries</a> prior to AI Computing Power Cloud Platform installation.',
   'resources.worker.select.command':
     'Select a label to generate the command and copy it using the copy button.',
   'resources.worker.script.install': 'Script Installation',
@@ -64,7 +64,7 @@ export default {
   'resources.modelfiles.selecttarget': 'Select Target',
   'resources.modelfiles.form.localdir': 'Local Directory',
   'resources.modelfiles.form.localdir.tips':
-    'The default storage directory is <span class="desc-block">/var/lib/gpustack/cache</span>, or the directory specified by <span class="desc-block">--cache-dir</span> (preferred) or <span class="desc-block">--data-dir</span>.',
+    'The default storage directory is <span class="desc-block">/var/lib/shengjian/cache</span>, or the directory specified by <span class="desc-block">--cache-dir</span> (preferred) or <span class="desc-block">--data-dir</span>.',
   'resources.modelfiles.retry.download': 'Retry Download',
   'resources.modelfiles.storagePath.holder':
     'Waiting for the download to complete...',

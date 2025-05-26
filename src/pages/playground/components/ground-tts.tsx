@@ -108,12 +108,12 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
   const sortVoiceList = useCallback(
     (locale: string, voiceDataList: Global.BaseOption<string>[]) => {
       const lang = locale === 'en-US' ? 'english' : 'chinese';
-
-      const list = voiceDataList.sort((a, b) => {
-        const aContains = a.value.toLowerCase().includes(lang) ? 1 : 0;
-        const bContains = b.value.toLowerCase().includes(lang) ? 1 : 0;
-        return bContains - aContains;
-      });
+      const list = voiceDataList
+      // const list = voiceDataList.sort((a, b) => {
+      //   const aContains = a.value.toLowerCase().includes(lang) ? 1 : 0;
+      //   const bContains = b.value.toLowerCase().includes(lang) ? 1 : 0;
+      //   return bContains - aContains;
+      // });
       return list;
     },
     []

@@ -95,7 +95,7 @@ export const getRightRenderContent = (opts: {
     {
       key: 'site',
       icon: <HomeOutlined />,
-      label: 'GPUStack',
+      label: 'AI Computing Power Cloud Platform',
       url: externalLinks.site
     },
     {

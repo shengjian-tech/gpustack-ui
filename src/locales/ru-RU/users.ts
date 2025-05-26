@@ -26,6 +26,6 @@ export default {
   'users.password.confirm.empty': 'Подтвердите новый пароль',
   'users.password.confirm.error': 'Пароли не совпадают',
   'users.login.title': 'Вход в',
-  'users.version.islatest': 'GPUStack {version} — последняя версия',
-  'users.version.update': 'Доступно обновление GPUStack {version}'
+  'users.version.islatest': 'AI Computing Power Cloud Platform {version} — последняя версия',
+  'users.version.update': 'Доступно обновление AI Computing Power Cloud Platform {version}'
 };

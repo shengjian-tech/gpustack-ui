@@ -210,7 +210,7 @@ const LoginForm = () => {
                   {intl.formatMessage({ id: 'common.login.rember' })}
                 </span>
               </Checkbox>
-              <Button
+              {/* <Button
                 type="link"
                 size="small"
                 href={externalLinks.resetPassword}
@@ -218,7 +218,7 @@ const LoginForm = () => {
                 style={{ padding: 0 }}
               >
                 {intl.formatMessage({ id: 'common.button.forgotpassword' })}
-              </Button>
+              </Button> */}
             </div>
           </Form.Item>
           <Button

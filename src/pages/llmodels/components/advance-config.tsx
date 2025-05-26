@@ -123,8 +123,8 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
     if (backend === backendOptionsMap.llamaBox) {
       return {
         backend: 'llama-box',
-        releases: 'https://github.com/gpustack/llama-box/releases',
-        link: 'https://github.com/gpustack/llama-box?tab=readme-ov-file#usage'
+        releases: 'https://www.shengjian.net/',
+        link: 'https://www.shengjian.net/'
       };
     }
     if (backend === backendOptionsMap.vllm) {
@@ -138,7 +138,7 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
       return {
         backend: 'Ascend MindIE',
         releases: '',
-        link: 'http://docs.gpustack.ai/latest/user-guide/inference-backends/#parameters-reference_2'
+        link: 'https://www.shengjian.net/'
       };
     }
 

@@ -1,13 +1,13 @@
 const externalLinks = {
-  documentation: 'https://docs.gpustack.ai/',
-  github: 'https://github.com/gpustack/gpustack',
-  discord: 'https://discord.gg/VXYJzuaqwD',
-  site: 'https://gpustack.ai/',
-  release: 'https://github.com/gpustack/gpustack/releases',
-  reportIssue: 'https://github.com/gpustack/gpustack/issues/new/choose',
-  faq: 'https://docs.gpustack.ai/latest/faq/',
+  documentation: 'https://www.shengjian.net/',
+  github: 'https://www.shengjian.net/',
+  discord: 'https://www.shengjian.net/',
+  site: 'https://www.shengjian.net/',
+  release: 'https://www.shengjian.net/',
+  reportIssue: 'https://www.shengjian.net/',
+  faq: 'https://www.shengjian.net/',
   resetPassword:
-    'https://docs.gpustack.ai/latest/troubleshooting/?h=reset#reset-admin-password'
+    'https://www.shengjian.net/'
 };
 
 export default externalLinks;

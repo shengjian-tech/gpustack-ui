@@ -24,7 +24,7 @@ export default {
   'model.deploy.sort': 'Sort',
   'model.deploy.search.placeholder': 'Type <kbd>/</kbd> to search models',
   'model.form.ollamatips':
-    'Tip: The following are the preconfigured Ollama models in GPUStack. Please select the model you want, or directly enter the model you wish to deploy in the 【{name}】 input box on the right.',
+    'Tip: The following are the preconfigured Ollama models in AI Computing Power Cloud Platform. Please select the model you want, or directly enter the model you wish to deploy in the 【{name}】 input box on the right.',
   'models.sort.name': 'Name',
   'models.sort.size': 'Size',
   'models.sort.likes': 'Likes',
@@ -81,7 +81,7 @@ export default {
   'models.form.filePath': 'Model Path',
   'models.form.backendVersion': 'Backend Version',
   'models.form.backendVersion.tips':
-    'To use the desired version of {backend}, the system will automatically create a virtual environment in the online environment to install the corresponding version. After a GPUStack upgrade, the backend version will remain fixed. {link}',
+    'To use the desired version of {backend}, the system will automatically create a virtual environment in the online environment to install the corresponding version. After a AI Computing Power Cloud Platform upgrade, the backend version will remain fixed. {link}',
   'models.form.gpuselector': 'GPU Selector',
   'models.form.backend.llamabox':
     'For GGUF format models, supports Linux, macOS, and Windows.',
@@ -158,5 +158,5 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">Following the v0.7.0 update,</span> all previously deployed models will continue to work as expected.',
   'models.ollama.deprecated.issue':
-    'See the related issue: <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">#1979 on GitHub</a>.'
+    'See the related issue: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.'
 };

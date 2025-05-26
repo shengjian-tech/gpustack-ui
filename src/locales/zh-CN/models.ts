@@ -26,7 +26,7 @@ export default {
   'model.deploy.sort': '排序',
   'model.deploy.search.placeholder': '按 <kbd>/</kbd> 开始搜索模型',
   'model.form.ollamatips':
-    '提示：以下为 GPUStack 预设的 Ollama 模型，请选择你想要的模型或者直接在右侧表单 【{name}】 输入框中输入你要部署的模型。',
+    '提示：以下为 AI算力云平台 预设的 Ollama 模型，请选择你想要的模型或者直接在右侧表单 【{name}】 输入框中输入你要部署的模型。',
   'models.sort.name': '名称',
   'models.sort.size': '大小',
   'models.sort.likes': '点赞量',
@@ -80,7 +80,7 @@ export default {
   'models.form.filePath': '模型路径',
   'models.form.backendVersion': '后端版本',
   'models.form.backendVersion.tips':
-    '固定以使用期望的 {backend} 版本，在线环境会自动创建虚拟环境安装对应版本的 {backend}。在 GPUStack 升级后也将保持固定的后端版本。{link}',
+    '固定以使用期望的 {backend} 版本，在线环境会自动创建虚拟环境安装对应版本的 {backend}。在 AI算力云平台 升级后也将保持固定的后端版本。{link}',
   'models.form.gpuselector': 'GPU 选择器',
   'models.form.backend.llamabox':
     '用于 GGUF 格式模型，支持 Linux, macOS 和 Windows。',
@@ -151,5 +151,5 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">在 v0.7.0 更新后：</span> 所有先前部署的模型仍将正常运行。',
   'models.ollama.deprecated.issue':
-    '参见 GitHub 上的问题 <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">#1979</a>。'
+    '参见 GitHub 上的问题 <a href="https://www.shengjian.net/" target="_blank">#1979</a>。'
 };

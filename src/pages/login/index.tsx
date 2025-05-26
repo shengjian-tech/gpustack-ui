@@ -78,7 +78,7 @@ const Login = () => {
   }, [userInfo]);
 
   useEffect(() => {
-    document.title = 'GPUStack';
+    document.title = '盛见';
   }, []);
 
   return (

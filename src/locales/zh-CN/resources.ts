@@ -51,7 +51,7 @@ export default {
   'resources.worker.current.version': '当前版本为 {version}',
   'resources.worker.select.command': '选择一个标签生成命令并使用复制按钮复制',
   'resources.worker.driver.install':
-    '在安装 GPUStack 之前，请安装<a href="https://docs.gpustack.ai/latest/installation/installation-requirements/" target="_blank">所需的驱动程序和库</a>。',
+    '在安装 AI算力云平台 之前，请安装<a href="https://www.shengjian.net/" target="_blank">所需的驱动程序和库</a>。',
   'resources.worker.script.install': '脚本安装',
   'resources.worker.container.install': '容器安装(仅支持 Linux)',
   'resources.worker.cann.tips':
@@ -63,7 +63,7 @@ export default {
   'resources.modelfiles.selecttarget': '选择目标位置',
   'resources.modelfiles.form.localdir': '本地目录',
   'resources.modelfiles.form.localdir.tips':
-    '默认存储目录为 <span class="desc-block">/var/lib/gpustack/cache</span>，或使用 <span class="desc-block">--cache-dir</span>（优先）、<span class="desc-block">--data-dir</span> 指定的目录。',
+    '默认存储目录为 <span class="desc-block">/var/lib/shengjian/cache</span>，或使用 <span class="desc-block">--cache-dir</span>（优先）、<span class="desc-block">--data-dir</span> 指定的目录。',
   'resources.modelfiles.retry.download': '重新下载',
   'resources.modelfiles.storagePath.holder': '等待下载完成...',
   'resources.filter.worker': '按 Worker 筛选',

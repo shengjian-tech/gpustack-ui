@@ -25,7 +25,7 @@ export default {
   'model.deploy.sort': '並び替え',
   'model.deploy.search.placeholder': '<kbd>/</kbd>を入力してモデルを検索',
   'model.form.ollamatips':
-    'ヒント: 以下はGPUStackで事前設定されたOllamaモデルです。希望するモデルを選択するか、右側の【{name}】入力ボックスにデプロイしたいモデルを直接入力してください。',
+    'ヒント: 以下はAI Computing Power Cloud Platformで事前設定されたOllamaモデルです。希望するモデルを選択するか、右側の【{name}】入力ボックスにデプロイしたいモデルを直接入力してください。',
   'models.sort.name': '名前',
   'models.sort.size': 'サイズ',
   'models.sort.likes': 'いいね',
@@ -79,7 +79,7 @@ export default {
   'models.form.filePath': 'モデルパス',
   'models.form.backendVersion': 'バックエンドバージョン',
   'models.form.backendVersion.tips':
-    '希望する{backend}バージョンを使用するには、システムがオンライン環境で対応するバージョンをインストールする仮想環境を自動的に作成します。GPUStackのアップグレード後もバックエンドバージョンは固定されます。{link}',
+    '希望する{backend}バージョンを使用するには、システムがオンライン環境で対応するバージョンをインストールする仮想環境を自動的に作成します。AI Computing Power Cloud Platformのアップグレード後もバックエンドバージョンは固定されます。{link}',
   'models.form.gpuselector': 'GPUセレクター',
   'models.form.backend.llamabox':
     'GGUF形式のモデル用（Linux、macOS、Windowsをサポート）。',
@@ -157,7 +157,7 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">Following the v0.7.0 update,</span> all previously deployed models will continue to work as expected.',
   'models.ollama.deprecated.issue':
-    'See the related issue: <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">#1979 on GitHub</a>.'
+    'See the related issue: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -165,5 +165,5 @@ export default {
 // 2. 'models.ollama.deprecated.current':'<span class="bold-text">Current Version (v0.6.1): </span>Ollama models are currently available for use.',
 // 3. 'models.ollama.deprecated.upcoming': '<span class="bold-text">Upcoming Version (v0.7.0): </span>The Ollama model source will be removed from the UI.',
 // 4. 'models.ollama.deprecated.following': '<span class="bold-text">Following the v0.7.0 update,</span> all previously deployed models will continue to work as expected.',
-// 5. 'models.ollama.deprecated.issue': 'See the related issue: <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">#1979 on GitHub</a>.'
+// 5. 'models.ollama.deprecated.issue': 'See the related issue: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.'
 // ========== End of To-Do List ==========

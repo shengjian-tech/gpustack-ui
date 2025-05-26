@@ -440,7 +440,7 @@ export default (props: any) => {
         openKeys={false}
         disableMobile={true}
         header={{
-          title: <div style={{ fontSize: 36 }}> gpuStack </div>
+          title: <div style={{ fontSize: 36 }}> AI Computing Power Cloud Platform </div>
         }}
         onMenuHeaderClick={onMenuHeaderClick}
         menuHeaderRender={renderMenuHeader}

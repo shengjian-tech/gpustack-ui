@@ -52,7 +52,7 @@ export default {
     'MacOSまたはWindowsはサポートされていません。',
   'resources.worker.current.version': '現在のバージョンは {version} です。',
   'resources.worker.driver.install':
-    '<a href="https://docs.gpustack.ai/latest/installation/installation-requirements/" target="_blank">必要なドライバとライブラリ</a> をGPUStackのインストール前にインストールしてください。',
+    '<a href="https://www.shengjian.net/" target="_blank">必要なドライバとライブラリ</a> をAI Computing Power Cloud Platformのインストール前にインストールしてください。',
   'resources.worker.select.command':
     'ラベルを選択してコマンドを生成し、コピーを使用してコマンドをコピーします。',
   'resources.worker.script.install': 'スクリプトインストール',
@@ -65,7 +65,7 @@ export default {
   'resources.modelfiles.selecttarget': 'ターゲットを選択',
   'resources.modelfiles.form.localdir': 'ローカルディレクトリ',
   'resources.modelfiles.form.localdir.tips':
-    'デフォルトのストレージディレクトリは <span class="desc-block">/var/lib/gpustack/cache</span> または <span class="desc-block">--cache-dir</span>（優先）または <span class="desc-block">--data-dir</span> で指定されたディレクトリです。',
+    'デフォルトのストレージディレクトリは <span class="desc-block">/var/lib/shengjian/cache</span> または <span class="desc-block">--cache-dir</span>（優先）または <span class="desc-block">--data-dir</span> で指定されたディレクトリです。',
   'resources.modelfiles.retry.download': 'ダウンロードを再試行',
   'resources.modelfiles.storagePath.holder':
     'ダウンロード完了を待っています...',

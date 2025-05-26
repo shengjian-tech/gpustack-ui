@@ -23,7 +23,7 @@ export default {
   'model.deploy.sort': 'Сортировка',
   'model.deploy.search.placeholder': 'Введите <kbd>/</kbd> для поиска моделей',
   'model.form.ollamatips':
-    'Подсказка: ниже представлены предустановленные модели Ollama в GPUStack. Выберите нужную или введите модель для развертывания в поле 【{name}】 справа.',
+    'Подсказка: ниже представлены предустановленные модели Ollama в AI Computing Power Cloud Platform. Выберите нужную или введите модель для развертывания в поле 【{name}】 справа.',
   'models.sort.name': 'По имени',
   'models.sort.size': 'По размеру',
   'models.sort.likes': 'По лайкам',
@@ -80,7 +80,7 @@ export default {
   'models.form.filePath': 'Путь к модели',
   'models.form.backendVersion': 'Версия бэкенда',
   'models.form.backendVersion.tips':
-    'Чтобы использовать желаемую версию {backend}, система автоматически создаст виртуальную среду в онлайн-окружении для установки соответствующей версии. После обновления GPUStack версия бэкенда останется зафиксированной. {link}',
+    'Чтобы использовать желаемую версию {backend}, система автоматически создаст виртуальную среду в онлайн-окружении для установки соответствующей версии. После обновления AI Computing Power Cloud Platform версия бэкенда останется зафиксированной. {link}',
   'models.form.gpuselector': 'Селектор GPU',
   'models.form.backend.llamabox':
     'Для моделей формата GGUF. Поддержка Linux, macOS и Windows.',
@@ -158,7 +158,7 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">После обновления до версии (v0.7.0),</span> все ранее развёрнутые модели продолжат работать в обычном режиме.',
   'models.ollama.deprecated.issue':
-    'См. связанную проблему: <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">#1979 on GitHub</a>.'
+    'См. связанную проблему: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
