@@ -1,7 +1,6 @@
-import { throttle } from 'lodash';
+import _, { throttle } from 'lodash';
 import React, {
   forwardRef,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useRef
@@ -18,6 +17,7 @@ const Chart: React.FC<{
   const chart = useRef<echarts.EChartsType>();
   const resizeable = useRef(false);
   const resizeObserver = useRef<ResizeObserver>();
+  const finished = useRef(false);
 
   useImperativeHandle(ref, () => {
     return {
@@ -25,40 +25,96 @@ const Chart: React.FC<{
     };
   });
 
-  const init = useCallback(() => {
+  const init = () => {
     if (container.current) {
       chart.current?.clear();
       chart.current = echarts.init(container.current);
     }
-  }, []);
+  };
 
-  const resize = useCallback(() => {
-    chart.current?.resize();
-  }, []);
-
-  const setOption = useCallback(
-    (options: ECOption) => {
-      chart.current?.clear();
-      chart.current?.setOption(options, {
-        notMerge: true,
-        lazyUpdate: true
-      });
-    },
-    [options]
-  );
+  const setOption = (options: ECOption) => {
+    console.log('setOption', options);
+    chart.current?.clear();
+    chart.current?.setOption(options, {
+      notMerge: true,
+      lazyUpdate: true
+    });
+    if (Array.isArray(options.yAxis) && options.yAxis.length > 1) {
+      chart.current?.resize();
+    }
+  };
 
   useEffect(() => {
+    const handleOnFinished = () => {
+      if (!chart.current || finished.current) return;
+
+      const currentChart = chart.current;
+      const optionsYAxis = currentChart.getOption()?.yAxis;
+
+      if (
+        !optionsYAxis ||
+        !Array.isArray(optionsYAxis) ||
+        optionsYAxis.length < 2
+      )
+        return;
+      // @ts-ignore
+      const model = currentChart.getModel();
+
+      const yAxisModels = [
+        model.getComponent('yAxis', 0),
+        model.getComponent('yAxis', 1)
+      ];
+
+      if (!yAxisModels[0] || !yAxisModels[1]) return;
+
+      const axes = yAxisModels.map((m) => m.axis);
+
+      const intervals = axes.map((axis) => axis.scale.getInterval());
+      const ticksList = axes.map((axis) => axis.scale.getTicks());
+      const counts = ticksList.map((t) => t.length);
+
+      const unifiedCount = Math.max(counts[0], counts[1]);
+
+      const newMax0 = intervals[0] * (unifiedCount - 1);
+      const newMax1 = intervals[1] * (unifiedCount - 1);
+
+      // if newMax0 equal to maxValue0, and newMax1 equal to maxValue1, do not update yAxis
+      if (counts[0] === counts[1]) return;
+
+      const yAxis: any[] = [{}, {}];
+
+      if (counts[0] < unifiedCount) {
+        yAxis[0].max = _.round(newMax0, 2);
+        yAxis[0].interval = intervals[0];
+        yAxis[0].splitNumber = unifiedCount;
+      }
+
+      if (counts[1] < unifiedCount) {
+        yAxis[1].max = _.round(newMax1, 2);
+        yAxis[1].interval = intervals[1];
+        yAxis[1].splitNumber = unifiedCount;
+      }
+      finished.current = true;
+
+      currentChart.setOption({
+        yAxis: yAxis
+      });
+    };
+
     if (container.current) {
       init();
+      chart.current?.on('finished', handleOnFinished);
     }
+
     return () => {
       chart.current?.dispose();
+      chart.current?.off('finished', handleOnFinished);
     };
-  }, [init]);
+  }, []);
 
   useEffect(() => {
     resizeable.current = false;
-    resize();
+    finished.current = false;
     setOption(options);
     resizeable.current = true;
   }, [options]);

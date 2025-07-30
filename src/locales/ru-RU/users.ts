@@ -29,3 +29,7 @@ export default {
   'users.version.islatest': 'AI Computing Power Cloud Platform {version} — последняя версия',
   'users.version.update': 'Доступно обновление AI Computing Power Cloud Platform {version}'
 };
+
+// ========== To-Do: Translate Keys (Remove After Translation) ==========
+
+// ========== End of To-Do List ==========

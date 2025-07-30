@@ -1,6 +1,6 @@
-import _, { map } from 'lodash';
+import _ from 'lodash';
 import { CREAT_IMAGE_API } from '../apis';
-import { MessageItem } from './types';
+import { AudioData, MessageItem } from './types';
 
 export const Roles = {
   User: 'user',
@@ -51,18 +51,30 @@ export const formatMessageParams = (messageList: any[]) => {
 export const generateMessagesByListContent = (messageList: any[]) => {
   if (!messageList.length) return [];
   return messageList.map((item: MessageItem) => {
-    if (item.imgs?.length) {
-      const content = map(
-        item.imgs,
-        (img: { uid: string | number; dataUrl: string }) => {
-          return {
-            type: 'image_url',
-            image_url: {
-              url: img.dataUrl
+    if (item.imgs?.length || item.audio?.length) {
+      const content: any[] = [];
+      // image
+      _.each(item.imgs, (img: { uid: string | number; dataUrl: string }) => {
+        content.push({
+          type: 'image_url',
+          image_url: {
+            url: img.dataUrl
+          }
+        });
+      });
+
+      // audio
+      if (item.audio?.length) {
+        _.each(item.audio, (item: AudioData) => {
+          content.push({
+            type: 'input_audio',
+            input_audio: {
+              data: item.base64,
+              format: item.format
             }
-          };
-        }
-      );
+          });
+        });
+      }
 
       if (item.content) {
         content.push({
@@ -76,39 +88,9 @@ export const generateMessagesByListContent = (messageList: any[]) => {
         content: content
       };
     }
-    return _.omit(item, ['uid', 'imgs']);
+
+    return _.omit(item, ['uid', 'imgs', 'audio']);
   });
-};
-
-export const generateMessages = (messageList: Omit<MessageItem, 'uid'>[]) => {
-  if (!messageList.length) return [];
-
-  const result: any[] = [];
-
-  messageList.forEach((item: Omit<MessageItem, 'uid'>) => {
-    if (item.imgs?.length) {
-      const imgList = item.imgs.map((img) => {
-        return {
-          type: 'image_url',
-          image_url: {
-            url: img.dataUrl
-          }
-        };
-      });
-      result.push({
-        role: item.role,
-        content: imgList
-      });
-    }
-    if (item.content) {
-      result.push({
-        role: item.role,
-        content: item.content
-      });
-    }
-  });
-
-  return result;
 };
 
 export const OpenAIViewCode = {

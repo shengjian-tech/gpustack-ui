@@ -22,11 +22,8 @@ import React, {
   useState
 } from 'react';
 import 'simplebar-react/dist/simplebar.min.css';
-import {
-  OpenAIViewCode,
-  Roles,
-  generateMessagesByListContent
-} from '../../config';
+import { CHAT_API } from '../../apis';
+import { Roles, generateMessagesByListContent } from '../../config';
 import CompareContext from '../../config/compare-context';
 import { ChatParamsConfig } from '../../config/params-config';
 import { MessageItem, ModelSelectionItem } from '../../config/types';
@@ -34,9 +31,10 @@ import { LLM_METAKEYS, llmInitialValues } from '../../hooks/config';
 import useChatCompletion from '../../hooks/use-chat-completion';
 import { useInitLLmMeta } from '../../hooks/use-init-meta';
 import '../../style/model-item.less';
+import { generateLLMCode } from '../../view-code/llm';
 import DynamicParams from '../dynamic-params';
 import ReferenceParams from '../reference-params';
-import ViewCodeModal from '../view-code-modal';
+import ViewCommonCode from '../view-common-code';
 import MessageContent from './message-content';
 import SystemMessage from './system-message';
 
@@ -92,13 +90,20 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
     loading
   } = useChatCompletion(scroller);
 
-  const viewCodeMessage = useMemo(() => {
+  const viewCodeContent = useMemo(() => {
     const resultList = systemMessage
       ? [{ role: Roles.System, content: systemMessage }]
       : [];
     const list = generateMessagesByListContent([...messageList]);
-    return [...resultList, ...list];
-  }, [messageList, systemMessage]);
+
+    return generateLLMCode({
+      api: CHAT_API,
+      parameters: {
+        ...parameters,
+        messages: [...resultList, ...list]
+      }
+    });
+  }, [messageList, systemMessage, parameters]);
 
   const abortFetch = () => {
     handleStopConversation();
@@ -109,11 +114,15 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
     handleDeleteModel(instanceId);
   };
 
+  const generateValidMessage = (message: Omit<MessageItem, 'uid'>) => {
+    if (!message.content && !message.imgs?.length && !message.audio?.length) {
+      return undefined;
+    }
+    return message;
+  };
+
   const handleSubmit = (currentMessage: Omit<MessageItem, 'uid'>) => {
-    const currentMsg =
-      currentMessage.content || currentMessage.imgs?.length
-        ? currentMessage
-        : undefined;
+    const currentMsg = generateValidMessage(currentMessage);
 
     submitMessage({
       system: systemMessage
@@ -283,12 +292,12 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
             ></Button>
           </Dropdown>
           <Popover
-            placement="bottomRight"
-            overlayInnerStyle={{ width: 384, paddingInline: 0 }}
+            autoAdjustOverflow={true}
+            overlayInnerStyle={{ width: 375, paddingInline: 0 }}
             content={
               <OverlayScroller
                 maxHeight={500}
-                style={{ paddingInline: '16px' }}
+                style={{ paddingInline: '24px' }}
                 oppositeTheme={true}
               >
                 <DynamicParams
@@ -297,21 +306,25 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
                   paramsConfig={paramsConfig}
                   initialValues={initialValues}
                   showModelSelector={false}
+                  parametersTitle={
+                    <div className="flex-center flex-between">
+                      <span>
+                        {intl.formatMessage({ id: 'playground.parameters' })}
+                      </span>
+                      <Checkbox onChange={handleApplyToAllModels}>
+                        {intl.formatMessage({
+                          id: 'playground.compare.applytoall'
+                        })}
+                      </Checkbox>
+                    </div>
+                  }
                 />
               </OverlayScroller>
             }
             trigger={['click']}
             arrow={false}
             fresh={true}
-            title={
-              <div style={{ paddingInline: '16px' }}>
-                <Checkbox onChange={handleApplyToAllModels}>
-                  {intl.formatMessage({
-                    id: 'playground.compare.applytoall'
-                  })}
-                </Checkbox>
-              </div>
-            }
+            title={false}
           >
             <Button
               type="text"
@@ -338,16 +351,11 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
           <Spin spinning={loading} size="small" style={{ width: '100%' }} />
         </div>
       </div>
-      <ViewCodeModal
-        {...OpenAIViewCode.chat}
+      <ViewCommonCode
         open={show}
-        payload={{
-          messages: viewCodeMessage
-        }}
-        parameters={parameters}
+        viewCodeContent={viewCodeContent}
         onCancel={handleCloseViewCode}
-        title={intl.formatMessage({ id: 'playground.viewcode' })}
-      ></ViewCodeModal>
+      ></ViewCommonCode>
     </div>
   );
 });

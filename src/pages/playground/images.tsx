@@ -95,8 +95,13 @@ const TextToImages: React.FC = () => {
   }, [modelList]);
 
   useEffect(() => {
-    if (size.width < breakpoints.lg && !groundTabRef1.current?.collapse) {
-      groundTabRef1.current?.setCollapse?.();
+    if (size.width < breakpoints.lg) {
+      if (!groundTabRef1.current?.collapse) {
+        groundTabRef1.current?.setCollapse?.();
+      }
+      if (!groundTabRef2.current?.collapse) {
+        groundTabRef2.current?.setCollapse?.();
+      }
     }
   }, [size.width]);
 
@@ -168,7 +173,7 @@ const TextToImages: React.FC = () => {
             <Segmented
               options={optionsList}
               size="middle"
-              className="m-l-40"
+              className="m-l-40 font-600"
               onChange={(key) => setActiveKey(key)}
             ></Segmented>
           }

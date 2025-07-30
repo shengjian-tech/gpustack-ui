@@ -1,4 +1,4 @@
-import MoreButton from '@/components/buttons/more';
+import { getRequestId } from '@/atoms/models';
 import SimpleOverlay from '@/components/simple-overlay';
 import { createAxiosToken } from '@/hooks/use-chunk-request';
 import { useIntl } from '@umijs/max';
@@ -6,11 +6,8 @@ import { Empty, Select, Spin } from 'antd';
 import _ from 'lodash';
 import React, {
   forwardRef,
-  memo,
-  useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState
 } from 'react';
@@ -23,6 +20,7 @@ import {
 } from '../apis';
 import { backendOptionsMap, modelSourceMap } from '../config';
 import '../style/hf-model-file.less';
+import FileSkeleton from './file-skeleton';
 import ModelFileItem from './model-file-item';
 import TitleWrapper from './title-wrapper';
 
@@ -42,11 +40,11 @@ interface HFModelFileProps {
   modelSource: string;
   ref: any;
   gpuOptions?: any[];
-  onSelectFile?: (file: any, evaluate?: boolean) => void;
-  displayEvaluateStatus?: (data: {
-    show?: boolean;
-    flag: Record<string, boolean>;
-  }) => void;
+  onSelectFile?: (
+    file: any,
+    options: { requestModelId: number; manual?: boolean }
+  ) => void;
+  onSelectFileAfterEvaluate?: (file: any) => void;
 }
 
 const pattern = /^(.*)-(\d+)-of-(\d+)\.(.*)$/;
@@ -56,7 +54,8 @@ const includeReg = /\.(safetensors|gguf)$/i;
 const filterRegGGUF = /\.(gguf)$/i;
 
 const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
-  const { collapsed, modelSource, isDownload, displayEvaluateStatus } = props;
+  const { collapsed, modelSource, isDownload, onSelectFileAfterEvaluate } =
+    props;
   const intl = useIntl();
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [dataSource, setDataSource] = useState<any>({
@@ -79,12 +78,22 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
   const axiosTokenRef = useRef<any>(null);
   const checkTokenRef = useRef<any>(null);
   const timer = useRef<any>(null);
-  const cacheSortListRef = useRef<any[]>([]);
+  const parentRequestModelId = useRef<number>(0);
 
-  const handleSelectModelFile = (item: any, evaluate?: boolean) => {
-    props.onSelectFile?.(item, evaluate);
+  const handleSelectModelFile = (item: any, manual?: boolean) => {
+    props.onSelectFile?.(item, {
+      requestModelId: parentRequestModelId.current,
+      manual: manual
+    });
     setCurrent(item.path);
     currentPathRef.current = item.path;
+  };
+
+  const handleSelectModelFileManually = (data: any) => {
+    if (data.path === currentPathRef.current) {
+      return;
+    }
+    handleSelectModelFile(data, true);
   };
 
   const parseFilename = (filename: string) => {
@@ -102,7 +111,7 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     }
   };
 
-  const generateGroupByFilename = useCallback((list: any[]) => {
+  const generateGroupByFilename = (list: any[]) => {
     // general file
     const generalFileList = _.filter(list, (item: any) => {
       const parsed = parseFilename(item.path);
@@ -146,7 +155,7 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     );
 
     return [...shardFileListResult, ...newGeneralFileList];
-  }, []);
+  };
 
   const hfFileFilter = (file: any) => {
     return filterRegGGUF.test(file.path) || _.includes(file.path, '.gguf');
@@ -211,7 +220,7 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     }
   };
 
-  const getEvaluateResults = useCallback(async (repoList: any[]) => {
+  const getEvaluateResults = async (repoList: any[]) => {
     try {
       checkTokenRef.current?.cancel?.();
       checkTokenRef.current = createAxiosToken();
@@ -227,9 +236,9 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     } catch (error) {
       return [];
     }
-  }, []);
+  };
 
-  const handleEvaluate = async (list: any[], first?: boolean) => {
+  const handleEvaluate = async (list: any[]) => {
     if (isDownload) {
       return;
     }
@@ -256,36 +265,21 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
       const resultList = _.map(list, (item: any, index: number) => {
         return {
           ...item,
-          evaluateResult: evaluationList[index],
-          done: true
+          evaluateResult: evaluationList[index]
         };
       });
       const currentItem = _.find(
         resultList,
         (item: any) => item.path === currentPathRef.current
       );
-      displayEvaluateStatus?.({
-        show: false,
-        flag: {
-          file: false
-        }
-      });
+
       if (currentItem) {
-        handleSelectModelFile(currentItem, true);
+        onSelectFileAfterEvaluate?.(currentItem);
       }
-      setDataSource({
-        fileList: first ? resultList : [...dataSource.fileList, ...resultList],
-        loading: false
-      });
+      setDataSource({ fileList: resultList, loading: false });
       setIsEvaluating(false);
     } catch (error) {
       setIsEvaluating(false);
-      displayEvaluateStatus?.({
-        show: false,
-        flag: {
-          file: false
-        }
-      });
     }
   };
 
@@ -295,23 +289,24 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
       handleSelectModelFile({});
       return;
     }
+    parentRequestModelId.current = getRequestId();
     checkTokenRef.current?.cancel?.();
     axiosTokenRef.current?.abort?.();
     axiosTokenRef.current = new AbortController();
     setDataSource({ ...dataSource, loading: true });
-    displayEvaluateStatus?.({
-      show: true,
-      flag: {
-        file: true
-      }
-    });
+
     setCurrent('');
     try {
       let list = [];
+      const currentParentRequestId = getRequestId();
       if (modelSourceMap.huggingface_value === modelSource) {
         list = await getHuggingfaceFiles();
       } else if (modelSourceMap.modelscope_value === modelSource) {
         list = await getModelScopeFiles();
+      }
+
+      if (currentParentRequestId !== getRequestId()) {
+        return;
       }
 
       const newList = generateGroupByFilename(list);
@@ -319,23 +314,11 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
         return sortType === 'size' ? item.size : item.path;
       });
 
-      cacheSortListRef.current = sortList;
-
-      const headList = cacheSortListRef.current.splice(0, 10);
-
-      handleSelectModelFile(headList[0]);
-      setDataSource({ fileList: headList, loading: false });
-
-      handleEvaluate(headList, true);
+      handleSelectModelFile(sortList[0] || {});
+      setDataSource({ fileList: sortList, loading: false });
     } catch (error) {
       setDataSource({ fileList: [], loading: false });
       handleSelectModelFile({});
-      displayEvaluateStatus?.({
-        show: false,
-        flag: {
-          file: false
-        }
-      });
     }
   };
 
@@ -347,46 +330,28 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     setDataSource({ ...dataSource, fileList: list });
   };
 
-  const handleOnEnter = (e: any, item: any) => {
-    e.stopPropagation();
-    if (e.key === 'Enter') {
-      handleSelectModelFile(item);
-    }
-  };
-
-  const handleOnScrollEnd = () => {
-    const headList = cacheSortListRef.current.splice(0, 10);
-    if (headList.length) {
-      setDataSource({
-        ...dataSource,
-        fileList: [...dataSource.fileList, ...headList]
-      });
-      handleEvaluate(headList);
+  const cancelRequest = () => {
+    axiosTokenRef.current?.abort?.();
+    checkTokenRef.current?.cancel?.();
+    if (timer.current) {
+      clearTimeout(timer.current);
     }
   };
 
   useImperativeHandle(ref, () => ({
-    fetchModelFiles: handleFetchModelFiles
+    fetchModelFiles: handleFetchModelFiles,
+    cancelRequest: cancelRequest
   }));
 
-  const maxHeight = useMemo(() => {
-    return collapsed ? 'max-content' : 'calc(100vh - 300px)';
-  }, [collapsed]);
-
   useEffect(() => {
-    if (!props.selectedModel?.name) {
+    if (!props.selectedModel.name) {
       setDataSource({ fileList: [], loading: false });
-      handleSelectModelFile({});
     }
   }, [props.selectedModel?.name]);
 
   useEffect(() => {
     return () => {
-      axiosTokenRef.current?.abort?.();
-      checkTokenRef.current?.cancel?.();
-      if (timer.current) {
-        clearTimeout(timer.current);
-      }
+      cancelRequest();
     };
   }, []);
 
@@ -420,52 +385,41 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
           ></Spin>
         </div>
       )}
-      <SimpleOverlay
-        height={maxHeight}
-        onScrollEnd={handleOnScrollEnd}
-        disableTrigger={isEvaluating || dataSource.loading}
-      >
+      <SimpleOverlay height={collapsed ? 'max-content' : 'calc(100vh - 300px)'}>
         <div style={{ padding: '16px 24px' }}>
-          {dataSource.fileList.length ? (
+          {dataSource.loading ? (
+            <ItemFileWrapper>
+              {_.times(5, (index: number) => {
+                return <FileSkeleton key={index} counts={2}></FileSkeleton>;
+              })}
+            </ItemFileWrapper>
+          ) : dataSource.fileList.length ? (
             <ItemFileWrapper>
               {_.map(dataSource.fileList, (item: any) => {
                 return (
                   <ModelFileItem
                     key={item.path}
                     data={item}
-                    isEvaluating={isEvaluating && !item.done}
+                    isEvaluating={isEvaluating}
                     active={item.path === current}
-                    handleSelectModelFile={handleSelectModelFile}
-                    handleOnEnter={handleOnEnter}
+                    handleSelectModelFile={handleSelectModelFileManually}
                   ></ModelFileItem>
                 );
               })}
             </ItemFileWrapper>
           ) : (
-            !dataSource.loading &&
-            !dataSource.fileList.length && (
-              <Empty
-                imageStyle={{ height: 'auto', marginTop: '20px' }}
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={intl.formatMessage({
-                  id: 'models.search.nofiles'
-                })}
-              />
-            )
+            <Empty
+              imageStyle={{ height: 'auto', marginTop: '20px' }}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={intl.formatMessage({
+                id: 'models.search.nofiles'
+              })}
+            />
           )}
-          <MoreButton
-            show={
-              cacheSortListRef.current.length > 0 &&
-              !dataSource.loading &&
-              !isEvaluating
-            }
-            loading={dataSource.loading || isEvaluating}
-            loadMore={handleOnScrollEnd}
-          ></MoreButton>
         </div>
       </SimpleOverlay>
     </div>
   );
 });
 
-export default memo(HFModelFile);
+export default HFModelFile;

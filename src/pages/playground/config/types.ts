@@ -13,9 +13,23 @@ export type MessageItemAction =
   | 'markdown'
   | 'edit';
 
+export type AudioFormat = 'wav' | 'mp3';
+
+export interface AudioData {
+  uid: string | number;
+  base64: string;
+  format: AudioFormat;
+  data: {
+    url: string;
+    name: string;
+    duration: number;
+  };
+}
+
 export interface MessageItem {
   content: string;
   imgs?: { uid: string | number; dataUrl: string }[];
+  audio?: AudioData[];
   role: string;
   title?: React.ReactNode;
   uid: number;
@@ -29,7 +43,8 @@ type SchemaType =
   | 'Slider'
   | 'TextArea'
   | 'Checkbox'
-  | 'Textarea';
+  | 'Textarea'
+  | 'Switch';
 
 export interface ParamsSchema {
   type: SchemaType;

@@ -26,6 +26,7 @@ interface LogsViewerProps {
   enableScorllLoad?: boolean;
   diffHeight?: number;
 }
+
 const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
   const { diffHeight, url, tail: defaultTail, enableScorllLoad = true } = props;
   const { pageSize, page, setPage, setTotalPage, totalPage } =
@@ -43,7 +44,7 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
   const pageRef = useRef<any>(page);
   const totalPageRef = useRef<any>(totalPage);
   const isLoadingMoreRef = useRef(false);
-  const [currentData, setCurrentData] = useState<any[]>([]);
+  const [currentData, setCurrentPageData] = useState<any[]>([]);
   const scrollPosRef = useRef<any>({
     pos: 'bottom',
     page: 1
@@ -57,6 +58,21 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
       logParseWorker.current?.terminate?.();
     }
   }));
+
+  const removeBracketsFromLine = (row: string) => {
+    return row.startsWith('(…)') ? row.slice(3) : row;
+  };
+
+  const setCurrentData = (lines: string[]) => {
+    const dataList = lines.map((line, index) => {
+      return {
+        content: removeBracketsFromLine(line),
+        uid: `${pageRef.current}-${index}`
+      };
+    });
+
+    setCurrentPageData(dataList);
+  };
 
   const debounceLoading = _.debounce(() => {
     setLoading(false);
@@ -313,7 +329,7 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
           <div className="pg">
             <div
               className={classNames('pg-inner', {
-                'at-top': isAtTop
+                'at-top': true
               })}
             >
               <LogsPagination

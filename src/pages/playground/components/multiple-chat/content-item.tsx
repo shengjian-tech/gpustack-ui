@@ -174,7 +174,7 @@ const ContentItem: React.FC<MessageItemProps> = ({
         <IconFont
           type="icon-assistant-filled"
           className="font-size-16 m-r-5"
-          style={{ color: 'var(--ant-blue-5)' }}
+          style={{ color: 'var(--ant-blue-6)' }}
         />
       );
     }
@@ -188,7 +188,7 @@ const ContentItem: React.FC<MessageItemProps> = ({
         {roleTitle}
         {data.role === Roles.Assistant && reasoningContent.thought && (
           <ThoughtStatus
-            isThinking={reasoningContent.isThinking}
+            isThinking={loading && reasoningContent.isThinking}
             collapsed={collapsed}
             setCollapsed={setCollapsed}
           ></ThoughtStatus>
@@ -200,6 +200,7 @@ const ContentItem: React.FC<MessageItemProps> = ({
     data.title,
     intl,
     showTitle,
+    loading,
     reasoningContent.thought,
     reasoningContent.isThinking,
     collapsed

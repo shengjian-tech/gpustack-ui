@@ -1,22 +1,17 @@
 import ModalFooter from '@/components/modal-footer';
+import GSDrawer from '@/components/scroller-modal/gs-drawer';
 import { PageActionType } from '@/config/types';
 import { createAxiosToken } from '@/hooks/use-chunk-request';
 import { CloseOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Drawer } from 'antd';
+import { Button } from 'antd';
 import _ from 'lodash';
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { queryCatalogItemSpec } from '../apis';
 import {
   backendOptionsMap,
+  defaultFormValues,
   modelCategoriesMap,
   sourceOptions
 } from '../config';
@@ -30,6 +25,14 @@ import {
 import ColumnWrapper from './column-wrapper';
 import CompatibilityAlert from './compatible-alert';
 import DataForm from './data-form';
+
+const pickFieldsFromSpec = [
+  'backend_version',
+  'backend_parameters',
+  'env',
+  'size',
+  'quantization'
+];
 
 type AddModalProps = {
   title: string;
@@ -125,9 +128,13 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     form.current?.submit?.();
   };
 
-  const pickSomeFieldsValue = () => {
+  // use for size change and quantization change
+  const pickSomeFieldsValue = (defaultSpec: CatalogSpec) => {
     const formData = form.current?.getFieldsValue();
-    return _.pick(formData, ['worker_selector', 'gpu_selector', 'env']);
+    const currentData = _.pick(formData, Object.keys(defaultFormValues));
+
+    // if the backend_parameters is empty, use the defaultSpec.backend_parameters
+    return currentData;
   };
 
   const generateSubmitData = (formData: FormData) => {
@@ -192,7 +199,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     });
     selectSpecRef.current = spec;
     return {
-      ..._.omit(spec, ['name']),
+      ..._.pick(spec, pickFieldsFromSpec),
       categories: _.get(current, 'categories.0', null)
     };
   };
@@ -321,21 +328,6 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     });
   };
 
-  const handleAdvanceOnValuesChange = (data: {
-    changedValues: any;
-    allValues: any;
-    source: string;
-  }) => {
-    handleOnValuesChange?.({
-      changedValues: data.changedValues,
-      allValues: {
-        ..._.omit(selectSpecRef.current, ['name']),
-        ...data.allValues
-      },
-      source: data.source
-    });
-  };
-
   const handleBackendChange = (backend: string) => {
     if (backend === backendOptionsMap.llamaBox) {
       setIsGGUF(true);
@@ -362,6 +354,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     });
 
     form.current.setFieldsValue({
+      ...defaultFormValues,
       ...data
     });
     handleCheckFormData();
@@ -415,17 +408,20 @@ const AddModal: React.FC<AddModalProps> = (props) => {
         backend: defaultSpec.backend
       });
       initFormDataBySource(defaultSpec);
-      form.current.setFieldValue(
-        'name',
-        _.toLower(current.name).replace(/\s/g, '-') || ''
-      );
+
+      const name = _.toLower(current.name).replace(/\s/g, '-') || '';
+      form.current.setFieldValue('name', name);
 
       if (defaultSpec.backend === backendOptionsMap.llamaBox) {
         setIsGGUF(true);
       } else {
         setIsGGUF(false);
       }
-      const allValues = generateSubmitData(defaultSpec);
+      const allValues = generateSubmitData({
+        ...defaultSpec,
+        categories: _.get(current, 'categories.0', null),
+        name
+      });
       handleCheckCompatibility(allValues);
     } catch (error) {
       // ignore
@@ -440,12 +436,14 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     });
     form.current.setFieldsValue({
       ...data,
-      ...pickSomeFieldsValue()
+      ...pickSomeFieldsValue(data)
     });
     handleCheckFormData();
   };
 
   const handleOnSizeChange = (val: number) => {
+    // TODO
+    form.current.setFieldValue(defaultFormValues);
     const list = handleSetQuantizationOptions({
       backend: form.current.getFieldValue('backend'),
       size: val
@@ -461,8 +459,8 @@ const AddModal: React.FC<AddModalProps> = (props) => {
 
     // set form data
     form.current.setFieldsValue({
-      ...data,
-      ...pickSomeFieldsValue()
+      ...defaultFormValues,
+      ...data
     });
     handleCheckFormData();
   };
@@ -475,10 +473,10 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     onOk(data);
   };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     onCancel?.();
     axiosToken.current?.cancel?.();
-  }, [onCancel]);
+  };
 
   const showExtraButton = useMemo(() => {
     return warningStatus.show && warningStatus.type !== 'success';
@@ -506,7 +504,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   }, []);
 
   return (
-    <Drawer
+    <GSDrawer
       title={
         <div className="flex-between flex-center">
           <span
@@ -548,6 +546,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
           byBuiltIn: true,
           sizeOptions: sizeOptions,
           quantizationOptions: quantizationOptions,
+          pageAction: action,
           onSizeChange: handleOnSizeChange,
           onQuantizationChange: handleOnQuantizationChange,
           onValuesChange: onValuesChange
@@ -618,8 +617,8 @@ const AddModal: React.FC<AddModalProps> = (props) => {
           </ColumnWrapper>
         </FormWrapper>
       </FormContext.Provider>
-    </Drawer>
+    </GSDrawer>
   );
 };
 
-export default memo(AddModal);
+export default AddModal;

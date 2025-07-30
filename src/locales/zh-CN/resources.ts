@@ -68,7 +68,26 @@ export default {
   'resources.modelfiles.storagePath.holder': '等待下载完成...',
   'resources.filter.worker': '按 Worker 筛选',
   'resources.filter.source': '按来源筛选',
-  'resources.modelfiles.delete.tips': '同时从磁盘删除文件！',
+  'resources.modelfiles.delete.tips': '同时从磁盘删除文件',
   'resources.modelfiles.copy.tips': '复制完整路径',
-  'resources.filter.path': '路径查询'
+  'resources.filter.path': '路径查询',
+  'resources.register.worker.step1':
+    '点击应用菜单<span class="bold-text">复制 Token</span>。',
+  'resources.register.worker.step2':
+    '点击应用菜单<span class="bold-text">快速配置</span>。',
+  'resources.register.worker.step3':
+    '点击页签<span class="bold-text">通用</span>。',
+  'resources.register.worker.step4':
+    '选择服务角色 <span class="bold-text">Worker</span>。',
+  'resources.register.worker.step5':
+    '输入 <span class="bold-text">Server URL</span>：{url}。',
+  'resources.register.worker.step6':
+    '粘贴 <span class="bold-text">Token</span>。',
+  'resources.register.worker.step7':
+    '点击<span class="bold-text">重启</span>，应用设置。',
+  'resources.register.install.title': '在 {os} 上安装 GPUStack',
+  'resources.register.download':
+    '下载并安装<a href={url} target="_blank">安装包</a>，仅支持 {versions}。',
+  'resource.register.maos.support': 'M 芯片，macOS 14+',
+  'resource.register.windows.support': 'win 10, win 11'
 };

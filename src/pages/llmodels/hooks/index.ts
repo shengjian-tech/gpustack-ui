@@ -7,6 +7,7 @@ import {
 import { ListItem as WorkerListItem } from '@/pages/resources/config/types';
 import { convertFileSize } from '@/utils';
 import { useIntl } from '@umijs/max';
+import { useDebounceFn } from 'ahooks';
 import _ from 'lodash';
 import { useEffect, useRef, useState } from 'react';
 import { evaluationsModelSpec, queryGPUList } from '../apis';
@@ -25,7 +26,7 @@ import {
   ListItem
 } from '../config/types';
 
-type MessageStatus = {
+export type MessageStatus = {
   show: boolean;
   title?: string;
   type?: Global.MessageType;
@@ -33,6 +34,11 @@ type MessageStatus = {
   isDefault?: boolean;
   message: string | string[];
   evaluateResult?: EvaluateResult;
+};
+
+export type WarningStausOptions = {
+  lockAfterUpdate?: boolean;
+  override?: boolean;
 };
 
 export const useGenerateFormEditInitialValues = () => {
@@ -202,14 +208,7 @@ export const useGenerateModelFileOptions = () => {
         Object.entries(worker).filter(([key]) => workerFields.has(key))
       )
     }));
-    // extract a list from the result, and the structure is like:
-    // [
-    //   {
-    //     label: 'worker_name/child_label',
-    //     value: 'child_value',
-    //     ...other child properties
-    //   }
-    // ]
+
     const childrenList = result.reduce((acc: any[], cur) => {
       if (cur.children) {
         const list = cur.children.map((child: any) => ({
@@ -223,8 +222,6 @@ export const useGenerateModelFileOptions = () => {
     }, []);
 
     return childrenList;
-
-    // return result;
   };
 
   return {
@@ -276,6 +273,7 @@ export const useCheckCompatibility = () => {
   const submitAnyway = useRef<boolean>(false);
   const requestIdRef = useRef(0);
   const updateStatusTimer = useRef<any>(null);
+  const isLockWarningStatus = useRef<boolean>(false);
   const [warningStatus, setWarningStatus] = useState<MessageStatus>({
     show: false,
     title: '',
@@ -285,6 +283,34 @@ export const useCheckCompatibility = () => {
   const updateRequestId = () => {
     requestIdRef.current += 1;
     return requestIdRef.current;
+  };
+
+  const lockWarningStatus = () => {
+    isLockWarningStatus.current = true;
+  };
+
+  const unlockWarningStatus = () => {
+    isLockWarningStatus.current = false;
+  };
+
+  const updateWarningStatus = (
+    params: MessageStatus,
+    options?: WarningStausOptions
+  ) => {
+    const { lockAfterUpdate = false, override = false } = options || {};
+    console.log('updateWarningStatus', params, options);
+
+    setWarningStatus((prev: MessageStatus) => {
+      if (isLockWarningStatus.current && !override) {
+        return prev;
+      }
+
+      if (lockAfterUpdate) {
+        lockWarningStatus();
+      }
+
+      return params;
+    });
   };
 
   const handleEvaluate = async (data: any) => {
@@ -323,6 +349,7 @@ export const useCheckCompatibility = () => {
   const handleCheckCompatibility = (
     evaluateResult: EvaluateResult | null
   ): MessageStatus => {
+    console.log('handleCheckCompatibility', evaluateResult);
     if (!evaluateResult) {
       return {
         show: false,
@@ -382,13 +409,16 @@ export const useCheckCompatibility = () => {
     };
   };
 
-  const handleShowCompatibleAlert = (evaluateResult: EvaluateResult | null) => {
+  const handleShowCompatibleAlert = (
+    evaluateResult: EvaluateResult | null,
+    options?: WarningStausOptions
+  ) => {
     const result = handleCheckCompatibility(evaluateResult);
     if (updateStatusTimer.current) {
       clearTimeout(updateStatusTimer.current);
     }
     updateStatusTimer.current = setTimeout(() => {
-      setWarningStatus(result);
+      updateWarningStatus(result, options);
     }, 300);
   };
 
@@ -475,11 +505,11 @@ export const useCheckCompatibility = () => {
   const handleDoEvalute = async (formData: FormData) => {
     const currentRequestId = updateRequestId();
     const evalutionData = await handleEvaluate(formData);
-
     if (currentRequestId === requestIdRef.current) {
       handleShowCompatibleAlert?.(evalutionData);
+      return evalutionData;
     }
-    return evalutionData;
+    return null;
   };
 
   const checkRequiredValue = (allValues: any) => {
@@ -501,6 +531,10 @@ export const useCheckCompatibility = () => {
     return noLocalValue || noOllamaValue;
   };
 
+  const clearCahceFormValues = () => {
+    cacheFormValuesRef.current = {};
+  };
+
   const handleOnValuesChange = async (params: {
     changedValues: any;
     allValues: any;
@@ -508,23 +542,17 @@ export const useCheckCompatibility = () => {
   }) => {
     const { allValues, source } = params;
     if (_.isEqual(cacheFormValuesRef.current, allValues)) {
+      console.log('No changes detected, skipping evaluation.');
       return;
     }
 
-    if (checkRequiredValue(allValues)) {
-      setWarningStatus({
-        show: false,
-        title: '',
-        message: ''
-      });
-      return;
-    }
     cacheFormValuesRef.current = allValues;
     const data = getSourceRepoConfigValue(source, allValues);
     const gpuSelector = generateGPUIds(data.values);
-    await handleDoEvalute({
+    return await handleDoEvalute({
       ...data.values,
-      ...gpuSelector
+      ...gpuSelector,
+      replicas: allValues.replicas || 0
     });
   };
 
@@ -546,17 +574,22 @@ export const useCheckCompatibility = () => {
     return res;
   };
 
-  const debounceHandleValuesChange = _.debounce(handleOnValuesChange, 500);
+  const { run: debounceHandleValuesChange } = useDebounceFn(
+    handleOnValuesChange,
+    { wait: 500 }
+  );
 
   const cancelEvaluate = () => {
+    // update the requestId to cancel the current evaluation
+    updateRequestId();
     checkTokenRef.current?.cancel();
     checkTokenRef.current = null;
-    cacheFormValuesRef.current = {};
   };
 
   useEffect(() => {
     return () => {
       cancelEvaluate();
+      clearCahceFormValues();
     };
   }, []);
 
@@ -566,10 +599,13 @@ export const useCheckCompatibility = () => {
     handleDoEvalute,
     generateGPUIds,
     handleEvaluate,
-    setWarningStatus,
+    setWarningStatus: updateWarningStatus,
+    unlockWarningStatus,
     cancelEvaluate,
     handleBackendChangeBefore,
-    handleOnValuesChange: debounceHandleValuesChange,
+    handleOnValuesChange: handleOnValuesChange,
+    handleEvaluateOnChange: handleOnValuesChange,
+    clearCahceFormValues,
     warningStatus,
     checkTokenRef,
     submitAnyway
@@ -596,7 +632,9 @@ export const useSelectModel = (data: { gpuOptions: any[] }) => {
 
     return {
       repo_id: selectModel.name,
+      file_name: '',
       name: name,
+      source: source,
       backend: backend
     };
   };

@@ -9,11 +9,8 @@ import React, {
   useRef,
   useState
 } from 'react';
-import {
-  OpenAIViewCode,
-  Roles,
-  generateMessagesByListContent
-} from '../config';
+import { CHAT_API } from '../apis';
+import { Roles, generateMessagesByListContent } from '../config';
 import { ChatParamsConfig } from '../config/params-config';
 import { MessageItem, MessageItemAction } from '../config/types';
 import { LLM_METAKEYS, llmInitialValues } from '../hooks/config';
@@ -21,12 +18,13 @@ import useChatCompletion from '../hooks/use-chat-completion';
 import { useInitLLmMeta } from '../hooks/use-init-meta';
 import '../style/ground-left.less';
 import '../style/system-message-wrap.less';
+import { generateLLMCode } from '../view-code/llm';
 import DynamicParams from './dynamic-params';
 import MessageInput from './message-input';
 import MessageContent from './multiple-chat/message-content';
 import SystemMessage from './multiple-chat/system-message';
 import ReferenceParams from './reference-params';
-import ViewCodeModal from './view-code-modal';
+import ViewCommonCode from './view-common-code';
 
 interface MessageProps {
   modelList: Global.BaseOption<string>[];
@@ -89,17 +87,29 @@ const GroundLeft: React.FC<MessageProps> = forwardRef((props, ref) => {
     };
   });
 
-  const viewCodeMessage = useMemo(() => {
+  const viewCodeContent = useMemo(() => {
     const resultList = systemMessage
       ? [{ role: Roles.System, content: systemMessage }]
       : [];
     const list = generateMessagesByListContent([...messageList]);
-    return [...resultList, ...list];
-  }, [messageList, systemMessage]);
+    return generateLLMCode({
+      api: CHAT_API,
+      parameters: {
+        ...parameters,
+        messages: [...resultList, ...list]
+      }
+    });
+  }, [messageList, systemMessage, parameters]);
+
+  const generateValidMessage = (message: Omit<MessageItem, 'uid'>) => {
+    if (!message.content && !message.imgs?.length && !message.audio?.length) {
+      return undefined;
+    }
+    return message;
+  };
 
   const handleSendMessage = (message: Omit<MessageItem, 'uid'>) => {
-    const currentMessage =
-      message.content || message.imgs?.length ? message : undefined;
+    const currentMessage = generateValidMessage(message);
     submitMessage({
       system: systemMessage
         ? { role: Roles.System, content: systemMessage }
@@ -189,17 +199,11 @@ const GroundLeft: React.FC<MessageProps> = forwardRef((props, ref) => {
           />
         </div>
       </div>
-
-      <ViewCodeModal
-        {...OpenAIViewCode.chat}
+      <ViewCommonCode
         open={show}
-        payload={{
-          messages: viewCodeMessage
-        }}
-        parameters={parameters}
+        viewCodeContent={viewCodeContent}
         onCancel={handleCloseViewCode}
-        title={intl.formatMessage({ id: 'playground.viewcode' })}
-      ></ViewCodeModal>
+      ></ViewCommonCode>
     </div>
   );
 });

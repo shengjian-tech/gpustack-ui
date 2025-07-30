@@ -84,8 +84,7 @@ export default {
   'models.form.gpuselector': 'GPU 选择器',
   'models.form.backend.llamabox':
     '用于 GGUF 格式模型，支持 Linux, macOS 和 Windows。',
-  'models.form.backend.vllm':
-    '用于非 GGUF 格式模型，仅支持 x86 Linux（amd64/x86_64）。',
+  'models.form.backend.vllm': '用于非 GGUF 格式模型，仅支持 Linux。',
   'models.form.backend.voxbox':
     '用于非 GGUF 格式的语音模型，仅支持 NVIDIA GPU 与 CPU。',
   'models.form.backend.mindie':
@@ -128,9 +127,9 @@ export default {
   'models.form.restart.onerror.tips': '当发生错误时，将自动尝试恢复',
   'models.form.check.params': '正在校验配置...',
   'models.form.check.passed': '兼容性检查通过',
-  'models.form.check.claims': '该模型大约需要 {vram} 显存和 {ram} 内存。',
-  'models.form.check.claims2': '该模型大约需要 {vram} 显存。',
-  'models.form.check.claims3': '该模型大约需要 {ram} 内存。',
+  'models.form.check.claims': '该模型大约需要消耗 {vram} 显存和 {ram} 内存。',
+  'models.form.check.claims2': '该模型大约需要消耗 {vram} 显存。',
+  'models.form.check.claims3': '该模型大约需要消耗 {ram} 内存。',
   'models.form.update.tips': '更改仅在删除并重新创建实例后生效。',
   'models.table.download.progress': '下载进度',
   'models.table.button.apiAccessInfo': 'API 接入信息',
@@ -143,7 +142,7 @@ export default {
   'models.table.apiAccessInfo.gotoCreate': '去创建',
   'models.search.parts': '{n} 个文件',
   'models.search.evaluate.error': '评估过程中发生了错误：',
-  'models.ollama.deprecated.title': 'Ollama 模型源即将被移除',
+  'models.ollama.deprecated.title': '弃用通知',
   'models.ollama.deprecated.current':
     '<span class="bold-text">当前版本（v0.6.1）：</span>Ollama 模型目前仍可使用。',
   'models.ollama.deprecated.upcoming':

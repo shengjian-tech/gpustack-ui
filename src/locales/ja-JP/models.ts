@@ -83,8 +83,7 @@ export default {
   'models.form.gpuselector': 'GPUセレクター',
   'models.form.backend.llamabox':
     'GGUF形式のモデル用（Linux、macOS、Windowsをサポート）。',
-  'models.form.backend.vllm':
-    '非GGUF形式のモデル用。Linux（amd64/x86_64）のみ対応。',
+  'models.form.backend.vllm': '非GGUF形式のモデル用。Linux のみ対応。',
   'models.form.backend.voxbox':
     '非GGUF形式の音声モデル用。NVIDIA GPUおよびCPUのみ対応。',
   'models.form.backend.mindie':
@@ -149,7 +148,7 @@ export default {
   'models.table.apiAccessInfo.gotoCreate': '作成に移動',
   'models.search.parts': '{n} 部分',
   'models.search.evaluate.error': '評価中にエラーが発生しました: ',
-  'models.ollama.deprecated.title': 'Ollama Model Source Will Be Removed',
+  'models.ollama.deprecated.title': 'Deprecation Notice',
   'models.ollama.deprecated.current':
     '<span class="bold-text">Current Version (v0.6.1): </span>Ollama models are currently available for use.',
   'models.ollama.deprecated.upcoming':

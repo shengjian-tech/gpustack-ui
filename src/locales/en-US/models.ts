@@ -86,7 +86,7 @@ export default {
   'models.form.backend.llamabox':
     'For GGUF format models, supports Linux, macOS, and Windows.',
   'models.form.backend.vllm':
-    'For non-GGUF format models, supported only on Linux (amd64/x86_64).',
+    'For non-GGUF format models, supported only on Linux.',
   'models.form.backend.voxbox':
     'For non-GGUF format audio models, supported only on NVIDIA GPUs and CPUs.',
   'models.form.backend.mindie':
@@ -134,9 +134,11 @@ export default {
   'models.form.check.params': 'Checking configuration...',
   'models.form.check.passed': 'Compatibility Check Passed',
   'models.form.check.claims':
-    'The model requires approximately {vram} VRAM and {ram} RAM.',
-  'models.form.check.claims2': 'The model requires approximately {vram} VRAM.',
-  'models.form.check.claims3': 'The model requires approximately {ram} RAM.',
+    'The model will consume approximately {vram} VRAM and {ram} RAM.',
+  'models.form.check.claims2':
+    'The model will consume approximately {vram} VRAM.',
+  'models.form.check.claims3':
+    'The model will consume approximately {ram} RAM.',
   'models.form.update.tips':
     'Changes will only apply after you delete and recreate the instance.',
   'models.table.download.progress': 'Download Progress',
@@ -150,7 +152,7 @@ export default {
   'models.table.apiAccessInfo.gotoCreate': 'Go to Create',
   'models.search.parts': '{n} parts',
   'models.search.evaluate.error': 'An error occurred during evaluation: ',
-  'models.ollama.deprecated.title': 'Ollama Model Source Will Be Removed',
+  'models.ollama.deprecated.title': 'Deprecation Notice',
   'models.ollama.deprecated.current':
     '<span class="bold-text">Current Version (v0.6.1): </span>Ollama models are currently available for use.',
   'models.ollama.deprecated.upcoming':

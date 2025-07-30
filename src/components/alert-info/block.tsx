@@ -3,7 +3,7 @@ import { Typography } from 'antd';
 import classNames from 'classnames';
 import React from 'react';
 import styled from 'styled-components';
-import OverlayScroller from '../overlay-scroller';
+import OverlayScroller, { OverlayScrollerOptions } from '../overlay-scroller';
 import './block.less';
 interface AlertInfoProps {
   type: Global.MessageType;
@@ -15,6 +15,7 @@ interface AlertInfoProps {
   contentStyle?: React.CSSProperties;
   title?: React.ReactNode;
   maxHeight?: number;
+  overlayScrollerProps?: OverlayScrollerOptions;
 }
 
 const TitleWrapper = styled.div`
@@ -29,6 +30,7 @@ const ContentWrapper = styled.div<{ $hasTitle: boolean }>`
       ? 'var(--ant-color-text-secondary)'
       : 'var(--ant-color-text)'};
   font-weight: var(--font-weight-500);
+  white-space: pre-line;
 `;
 
 const AlertInfo: React.FC<AlertInfoProps> = (props) => {
@@ -41,7 +43,8 @@ const AlertInfo: React.FC<AlertInfoProps> = (props) => {
     title,
     contentStyle,
     icon,
-    maxHeight = 86
+    maxHeight = 86,
+    overlayScrollerProps = {}
   } = props;
 
   return (
@@ -67,7 +70,11 @@ const AlertInfo: React.FC<AlertInfoProps> = (props) => {
             {title && (
               <TitleWrapper className="title-text">{title}</TitleWrapper>
             )}
-            <OverlayScroller maxHeight={maxHeight} style={{ ...contentStyle }}>
+            <OverlayScroller
+              maxHeight={maxHeight}
+              style={{ ...contentStyle }}
+              {...overlayScrollerProps}
+            >
               <ContentWrapper
                 $hasTitle={!!title}
                 className={classNames('content', type)}

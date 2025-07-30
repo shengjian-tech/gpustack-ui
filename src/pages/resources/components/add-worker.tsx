@@ -1,8 +1,14 @@
+import ScrollerModal from '@/components/scroller-modal';
+import {
+  AppleOutlined,
+  LinuxOutlined,
+  WindowsOutlined
+} from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Modal, Tabs, TabsProps } from 'antd';
+import { Tabs, TabsProps } from 'antd';
 import React from 'react';
+import MacOS from './add-worker-macos';
 import ContainerInstall from './container-install';
-import ScriptInstall from './script-install';
 
 type ViewModalProps = {
   open: boolean;
@@ -13,35 +19,64 @@ const AddWorker: React.FC<ViewModalProps> = (props) => {
   const { open, onCancel } = props || {};
   const intl = useIntl();
   const [token, setToken] = React.useState('');
-  const [activeKey, setActiveKey] = React.useState('script');
+  const [activeKey, setActiveKey] = React.useState('container');
 
   const items: TabsProps['items'] = [
     {
-      key: 'script',
-      label: intl.formatMessage({ id: 'resources.worker.script.install' }),
-      children: <ScriptInstall token={token}></ScriptInstall>
+      key: 'container',
+      label: 'Linux',
+      icon: <LinuxOutlined />,
+      children: <ContainerInstall token={token} />
     },
     {
-      key: 'container',
-      label: intl.formatMessage({ id: 'resources.worker.container.install' }),
-      children: <ContainerInstall token={token} />
+      key: 'macos',
+      label: 'macOS',
+      icon: <AppleOutlined />,
+      children: (
+        <MacOS
+          token={token}
+          platform={{
+            os: 'macOS',
+            downloadurl: 'https://gpustack.ai/',
+            supportVersions: 'resource.register.maos.support'
+          }}
+        />
+      )
+    },
+    {
+      key: 'windows',
+      label: 'Windows',
+      icon: <WindowsOutlined />,
+      children: (
+        <MacOS
+          token={token}
+          platform={{
+            os: 'Windows',
+            downloadurl: 'https://gpustack.ai/',
+            supportVersions: 'resource.register.windows.support'
+          }}
+        />
+      )
     }
   ];
 
   return (
-    <Modal
+    <ScrollerModal
       title={intl.formatMessage({ id: 'resources.button.create' })}
       open={open}
-      centered={true}
+      centered={false}
       onCancel={onCancel}
       destroyOnClose={true}
       closeIcon={true}
       maskClosable={false}
       keyboard={false}
       width={700}
+      style={{
+        top: 100
+      }}
       styles={{
         body: {
-          height: 650
+          minHeight: 450
         }
       }}
       footer={null}
@@ -53,8 +88,8 @@ const AddWorker: React.FC<ViewModalProps> = (props) => {
         type="card"
         onChange={(key) => setActiveKey(key)}
       ></Tabs>
-    </Modal>
+    </ScrollerModal>
   );
 };
 
-export default React.memo(AddWorker);
+export default AddWorker;

@@ -1,8 +1,10 @@
 import useUserSettings from '@/hooks/use-user-settings';
+import langConfigMap from '@/locales/lang-config-map';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
-import { useIntl } from '@umijs/max';
-import { Switch } from 'antd';
-import React, { useMemo } from 'react';
+import { getAllLocales, setLocale, useIntl } from '@umijs/max';
+import { Select } from 'antd';
+import _ from 'lodash';
+import React from 'react';
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
@@ -10,62 +12,84 @@ const Wrapper = styled.div`
   flex-direction: column;
   gap: 16px;
   padding: 16px 0;
-  .theme {
+`;
+
+const SettingsItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 300px;
+  .label {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    max-width: 220px;
-  }
-  .theme-label {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: var(--font-weight-500);
-  }
-  .tips {
-    color: var(--ant-color-text-secondary);
   }
 `;
 
-const ThemeOptions = [
-  {
-    key: 'realDark',
-    label: 'common.appearance.dark',
-    icon: <MoonOutlined />
-  },
-  {
-    key: 'light',
-    label: 'common.appearance.light',
-    icon: <SunOutlined />
-  }
-];
 const Appearance: React.FC = () => {
   const { setTheme, userSettings } = useUserSettings();
 
-  const intl = useIntl();
+  console.log('userSettings', userSettings);
 
-  const handleOnChange = (checked: boolean) => {
-    if (checked) {
-      setTheme('realDark');
-    } else {
-      setTheme('light');
+  const intl = useIntl();
+  const allLocals = getAllLocales();
+
+  const ThemeOptions = [
+    {
+      value: 'light',
+      label: intl.formatMessage({ id: 'common.appearance.light' }),
+      icon: <SunOutlined />
+    },
+    {
+      value: 'realDark',
+      label: intl.formatMessage({ id: 'common.appearance.dark' }),
+      icon: <MoonOutlined />
+    },
+    {
+      value: 'auto',
+      label: intl.formatMessage({ id: 'common.appearance.system' }),
+      icon: <SunOutlined />
     }
+  ];
+
+  const handleOnChange = (value: 'light' | 'realDark' | 'auto') => {
+    setTheme(value);
   };
 
-  const isDarkMode = useMemo(() => {
-    const darkMode = userSettings?.theme === 'realDark';
-    return darkMode;
-  }, [userSettings?.theme]);
+  console.log('allLocals', allLocals);
+
+  const languageOptions = allLocals.map((locale) => ({
+    value: locale,
+    label: _.get(langConfigMap, [locale, 'label'])
+  }));
 
   return (
     <Wrapper>
-      <div className="theme">
-        <span className="theme-label">
-          {intl.formatMessage({ id: 'common.appearance.darkmode' })}
+      <SettingsItem>
+        <span className="label">
+          <span>{intl.formatMessage({ id: 'common.appearance.theme' })}</span>
         </span>
-        <Switch checked={isDarkMode} onChange={handleOnChange} />
-      </div>
-      <div className="tips">
-        {intl.formatMessage({ id: 'common.appearance.tips' })}
-      </div>
+        <Select
+          value={userSettings.mode}
+          options={ThemeOptions}
+          onChange={handleOnChange}
+          style={{ width: 200 }}
+        ></Select>
+      </SettingsItem>
+      <SettingsItem>
+        <span className="label">
+          <span>{intl.formatMessage({ id: 'common.settings.language' })}</span>
+        </span>
+        <Select
+          value={intl.locale}
+          options={languageOptions}
+          onChange={(value) => {
+            setLocale(value, false);
+          }}
+          style={{ width: 200 }}
+        ></Select>
+      </SettingsItem>
     </Wrapper>
   );
 };

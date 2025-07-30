@@ -25,8 +25,17 @@ import _ from 'lodash';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { MODEL_INSTANCE_API } from '../apis';
-import { InstanceStatusMap, InstanceStatusMapValue, status } from '../config';
-import { ModelInstanceListItem } from '../config/types';
+import {
+  InstanceStatusMap,
+  InstanceStatusMapValue,
+  backendOptionsMap,
+  status
+} from '../config';
+import {
+  DistributedServerItem,
+  DistributedServers,
+  ModelInstanceListItem
+} from '../config/types';
 import '../style/instance-item.less';
 
 const fieldList = [
@@ -139,20 +148,27 @@ const RenderRayactorDownloading = (props: {
         columns={downloadList}
         dataSource={[...mainWorker, ...list]}
         rowKey="worker_name"
+        theme="light"
       ></SimpleTabel>
     </div>
   );
 };
 
 const RenderWorkerDownloading = (props: {
-  rayActors: any[];
+  distributed_servers?: DistributedServers;
   workerList: WorkerListItem[];
   instanceData: ModelInstanceListItem;
+  backend?: string;
 }) => {
-  const { rayActors, workerList, instanceData } = props;
+  const { distributed_servers, workerList, instanceData, backend } = props;
+
+  const severList: DistributedServerItem[] =
+    distributed_servers?.subordinate_workers || [];
+
   if (
     instanceData.state !== InstanceStatusMap.Downloading ||
-    !rayActors.length
+    !severList.length ||
+    backend === backendOptionsMap.llamaBox
   ) {
     return null;
   }
@@ -166,7 +182,7 @@ const RenderWorkerDownloading = (props: {
       overlayClassName="light-downloading-tooltip"
       title={
         <RenderRayactorDownloading
-          severList={rayActors}
+          severList={severList}
           workerList={workerList}
           instanceData={instanceData}
         ></RenderRayactorDownloading>
@@ -178,7 +194,7 @@ const RenderWorkerDownloading = (props: {
         size={16}
         strokeColor="var(--ant-color-success)"
         percent={
-          _.find(rayActors, (item: any) => item.download_progress < 100)
+          _.find(severList, (item: any) => item.download_progress < 100)
             ?.download_progress || 0
         }
       />
@@ -331,7 +347,7 @@ const renderMessage = (title: string) => {
   return (
     <div
       style={{
-        width: 300,
+        width: 280,
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         overflow: 'hidden'
@@ -470,13 +486,18 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
     );
   };
 
-  const renderDistributionInfo = (severList: any[]) => {
+  const renderDistributionInfo = (distributed_servers: DistributedServers) => {
+    const severList: DistributedServerItem[] =
+      distributed_servers?.subordinate_workers || [];
+
     if (!severList.length) {
       return null;
     }
+
     return (
       <TooltipOverlayScroller
         toolTipProps={{
+          trigger: 'hover',
           overlayInnerStyle: {
             width: 'max-content',
             maxWidth: '520px',
@@ -611,9 +632,7 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
               >
                 {renderOffloadInfo}
                 {renderDistributionInfo(
-                  instanceData.distributed_servers?.rpc_servers ||
-                    instanceData.distributed_servers?.ray_actors ||
-                    []
+                  instanceData.distributed_servers || ({} as DistributedServers)
                 )}
               </span>
             </Col>
@@ -627,7 +646,8 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
                   handleChildSelect={handleChildSelect}
                 />
                 <RenderWorkerDownloading
-                  rayActors={instanceData.distributed_servers?.ray_actors || []}
+                  backend={modelData?.backend}
+                  distributed_servers={instanceData.distributed_servers}
                   workerList={workerList}
                   instanceData={instanceData}
                 ></RenderWorkerDownloading>

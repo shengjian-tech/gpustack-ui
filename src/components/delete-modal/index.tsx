@@ -9,9 +9,38 @@ import {
   message,
   type ModalFuncProps
 } from 'antd';
-import { FC, forwardRef, useImperativeHandle, useState } from 'react';
+import { createStyles } from 'antd-style';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import styled from 'styled-components';
-import Styles from './index.less';
+
+const useStyles = createStyles(({ css }) => ({
+  'delete-modal-content': css`
+    display: flex;
+    font-size: var(--font-size-middle);
+    .anticon {
+      font-size: 20px;
+      margin-right: 10px;
+      color: var(--ant-color-warning);
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      font-weight: var(--font-weight-500);
+    }
+  `,
+  content: css`
+    padding-top: 15px;
+    padding-left: 30px;
+    color: var(--ant-color-text-secondary);
+    white-space: pre-line;
+    word-break: break-all;
+    span {
+      color: var(--ant-color-text);
+      display: flex;
+      margin-top: 8px;
+    }
+  `
+}));
 
 const CheckboxWrapper = styled.div`
   margin-top: 20px;
@@ -25,12 +54,8 @@ const CheckboxWrapper = styled.div`
   }
 `;
 
-interface DeleteModalProps {
-  ref: any;
-}
-
 interface DataOptions {
-  content: string;
+  content?: string;
   selection?: boolean;
   name?: string;
   okText?: string;
@@ -43,28 +68,33 @@ interface DataOptions {
   };
 }
 
-const DeleteModal: FC<DeleteModalProps> = forwardRef((props, ref) => {
+interface Configuration {
+  checked: boolean;
+}
+
+const DeleteModal = forwardRef((props, ref) => {
   const intl = useIntl();
+  const { styles } = useStyles();
   const { saveScrollHeight, restoreScrollHeight } = useBodyScroll();
   const [visible, setVisible] = useState(false);
-  const [checked, setChecked] = useState(false);
+  const [configuration, setConfiguration] = useState<Configuration>({
+    checked: false
+  });
   const [config, setConfig] = useState<ModalFuncProps & DataOptions>({} as any);
 
-  useImperativeHandle(ref, () => ({
-    show: (data: ModalFuncProps & DataOptions) => {
-      saveScrollHeight();
-      setConfig(data);
-      setChecked(data.checkConfig?.defautlChecked || false);
-      setVisible(true);
-    },
-    hide: () => {
-      setVisible(false);
-      restoreScrollHeight();
-    },
-    configuration: {
-      checked: checked
-    }
-  }));
+  const show = (data: ModalFuncProps & DataOptions) => {
+    saveScrollHeight();
+    setConfig(data);
+    setConfiguration({
+      checked: data.checkConfig?.defautlChecked || false
+    });
+    setVisible(true);
+  };
+
+  const hide = () => {
+    setVisible(false);
+    restoreScrollHeight();
+  };
 
   const handleCancel = () => {
     setVisible(false);
@@ -73,11 +103,32 @@ const DeleteModal: FC<DeleteModalProps> = forwardRef((props, ref) => {
   };
 
   const handleOk = async () => {
-    await config.onOk?.();
-    message.success(intl.formatMessage({ id: 'common.message.success' }));
-    setVisible(false);
-    restoreScrollHeight();
+    try {
+      const res = await config.onOk?.();
+      const isArray = Array.isArray(res);
+      if (isArray) {
+        const allSuccess = res.every(
+          (item: any) => item?.status === 'fulfilled'
+        );
+        if (allSuccess) {
+          message.success(intl.formatMessage({ id: 'common.message.success' }));
+        }
+      } else {
+        message.success(intl.formatMessage({ id: 'common.message.success' }));
+      }
+    } catch (error) {
+      // Handle error if needed
+    } finally {
+      setVisible(false);
+      restoreScrollHeight();
+    }
   };
+
+  useImperativeHandle(ref, () => ({
+    show,
+    hide,
+    configuration
+  }));
 
   return (
     <Modal
@@ -87,12 +138,16 @@ const DeleteModal: FC<DeleteModalProps> = forwardRef((props, ref) => {
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
-      destroyOnClose={true}
+      destroyOnClose={false}
       closeIcon={false}
       maskClosable={false}
       keyboard={false}
       width={460}
-      styles={{}}
+      styles={{
+        footer: {
+          marginTop: '20px'
+        }
+      }}
       footer={
         <Space size={20}>
           <Button onClick={handleCancel} size="middle">
@@ -108,7 +163,7 @@ const DeleteModal: FC<DeleteModalProps> = forwardRef((props, ref) => {
         </Space>
       }
     >
-      <div className={Styles['delete-modal-content']}>
+      <div className={styles['delete-modal-content']}>
         <span className="title">
           <ExclamationCircleFilled />
           <span>
@@ -119,26 +174,30 @@ const DeleteModal: FC<DeleteModalProps> = forwardRef((props, ref) => {
         </span>
       </div>
       <div
-        className={Styles['content']}
+        className={styles['content']}
         dangerouslySetInnerHTML={{
-          __html:
-            config.content &&
-            intl.formatMessage(
-              {
-                id: config.operation || ''
-              },
-              {
-                type: intl.formatMessage({ id: config.content }),
-                name: config.name
-              }
-            )
+          __html: config.content
+            ? intl.formatMessage(
+                {
+                  id: config.operation || ''
+                },
+                {
+                  type: intl.formatMessage({ id: config.content }),
+                  name: config.name
+                }
+              )
+            : ''
         }}
       ></div>
       {config.checkConfig && (
         <CheckboxWrapper>
           <Checkbox
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
+            checked={configuration.checked}
+            onChange={(e) =>
+              setConfiguration({
+                checked: e.target.checked
+              })
+            }
           >
             <span className="check-text">
               {intl.formatMessage({ id: config.checkConfig?.checkText })}

@@ -1,8 +1,8 @@
 @font-face {
   font-family: iconfont; /* Project id 4613488 */
-  src: url('iconfont.woff2?t=1746695264114') format('woff2'),
-       url('iconfont.woff?t=1746695264114') format('woff'),
-       url('iconfont.ttf?t=1746695264114') format('truetype');
+  src: url('iconfont.woff2?t=1752112673765') format('woff2'),
+       url('iconfont.woff?t=1752112673765') format('woff'),
+       url('iconfont.ttf?t=1752112673765') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,214 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-huggingface1::before {
+  content: "\e605";
+}
+
+.icon-modelscope_light::before {
+  content: "\e696";
+}
+
+.icon-catalog1::before {
+  content: "\e691";
+}
+
+.icon-chat-filled::before {
+  content: "\e692";
+}
+
+.icon-chat::before {
+  content: "\e693";
+}
+
+.icon-files-filled::before {
+  content: "\e694";
+}
+
+.icon-files::before {
+  content: "\e695";
+}
+
+.icon-models-filled::before {
+  content: "\e682";
+}
+
+.icon-image-filled::before {
+  content: "\e683";
+}
+
+.icon-audio1::before {
+  content: "\e684";
+}
+
+.icon-image1::before {
+  content: "\e685";
+}
+
+.icon-audio-filled::before {
+  content: "\e686";
+}
+
+.icon-reranker-filled::before {
+  content: "\e687";
+}
+
+.icon-embedding-filled::before {
+  content: "\e68a";
+}
+
+.icon-models::before {
+  content: "\e68b";
+}
+
+.icon-reranker::before {
+  content: "\e68c";
+}
+
+.icon-embedding::before {
+  content: "\e68d";
+}
+
+.icon-gpu-filled::before {
+  content: "\e68e";
+}
+
+.icon-catalog-filled::before {
+  content: "\e68f";
+}
+
+.icon-gpu1::before {
+  content: "\e690";
+}
+
+.icon-language::before {
+  content: "\e679";
+}
+
+.icon-help::before {
+  content: "\e67a";
+}
+
+.icon-key-filled::before {
+  content: "\e67b";
+}
+
+.icon-key::before {
+  content: "\e67d";
+}
+
+.icon-resources::before {
+  content: "\e67e";
+}
+
+.icon-users::before {
+  content: "\e67f";
+}
+
+.icon-resources-filled::before {
+  content: "\e680";
+}
+
+.icon-users-filled::before {
+  content: "\e681";
+}
+
+.icon-model::before {
+  content: "\e676";
+}
+
+.icon-model-filled::before {
+  content: "\e678";
+}
+
+.icon-layers-filled::before {
+  content: "\e671";
+}
+
+.icon-layers::before {
+  content: "\e673";
+}
+
+.icon-experiment::before {
+  content: "\e674";
+}
+
+.icon-experiment-filled::before {
+  content: "\e675";
+}
+
+.icon-dashboard::before {
+  content: "\e66d";
+}
+
+.icon-dashboard-filled::before {
+  content: "\e66e";
+}
+
+.icon-expand-left::before {
+  content: "\ea48";
+}
+
+.icon-expand-right::before {
+  content: "\ea49";
+}
+
+.icon-users-fill::before {
+  content: "\e677";
+}
+
+.icon-layers-fill::before {
+  content: "\e89d";
+}
+
+.icon-key-fill::before {
+  content: "\e80e";
+}
+
+.icon-server-fill::before {
+  content: "\e7a3";
+}
+
+.icon-model-fill::before {
+  content: "\e7b7";
+}
+
+.icon-left_panel_close::before {
+  content: "\e668";
+}
+
+.icon-left_panel_open::before {
+  content: "\e669";
+}
+
+.icon-playcircle-fill::before {
+  content: "\e665";
+}
+
+.icon-stopcircle-fill::before {
+  content: "\e666";
+}
+
+.icon-play-speed::before {
+  content: "\e856";
+}
+
+.icon-more::before {
+  content: "\e62e";
+}
+
+.icon-play::before {
+  content: "\e9f9";
+}
+
+.icon-pause::before {
+  content: "\e713";
+}
+
+.icon-dark_theme::before {
+  content: "\e646";
 }
 
 .icon-theme-auto-1::before {
@@ -231,14 +439,6 @@
 
 .icon-image::before {
   content: "\e62c";
-}
-
-.icon-stopcircle-fill::before {
-  content: "\e7cc";
-}
-
-.icon-playcircle-fill::before {
-  content: "\e7cd";
 }
 
 .icon-SpeakerSlash::before {

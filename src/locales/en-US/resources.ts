@@ -70,7 +70,26 @@ export default {
     'Waiting for the download to complete...',
   'resources.filter.worker': 'Filter by worker',
   'resources.filter.source': 'Filter by Source',
-  'resources.modelfiles.delete.tips': 'Also delete the file from disk!',
+  'resources.modelfiles.delete.tips': 'Also delete the file from disk',
   'resources.modelfiles.copy.tips': 'Copy Full Path',
-  'resources.filter.path': 'Filter by path'
+  'resources.filter.path': 'Filter by path',
+  'resources.register.worker.step1':
+    'Click the <span class="bold-text">Copy Token</span> menu in the application.',
+  'resources.register.worker.step2':
+    'Click the <span class="bold-text">Quick Config</span> menu in the application.',
+  'resources.register.worker.step3':
+    'Click the <span class="bold-text">General</span> tab.',
+  'resources.register.worker.step4':
+    'Select <span class="bold-text">Worker</span> as the service role.',
+  'resources.register.worker.step5':
+    'Enter the <span class="bold-text">Server URL</span>: {url}.',
+  'resources.register.worker.step6':
+    'Paste the <span class="bold-text">Token</span>.',
+  'resources.register.worker.step7':
+    'Click <span class="bold-text">Restart</span> to apply the settings.',
+  'resources.register.install.title': 'Install GPUStack on {os}',
+  'resources.register.download':
+    'Download and install the <a href={url} target="_blank">installer</a>. Only supported: {versions}.',
+  'resource.register.maos.support': 'Apple Silicon (M series), macOS 14+',
+  'resource.register.windows.support': 'win 10, win 11'
 };

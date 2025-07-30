@@ -3,16 +3,40 @@ import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
 type UserSettings = {
-  theme: 'light' | 'realDark' | 'auto';
+  theme: 'light' | 'realDark';
+  mode: 'light' | 'realDark' | 'auto';
   colorPrimary: string;
   isDarkTheme: boolean;
+  collapsed: boolean;
 };
 
-export const userSettingsAtom = atomWithStorage<UserSettings>('userSettings', {
+const defaultSettings: UserSettings = {
   theme: 'light',
+  mode: 'auto',
   isDarkTheme: false,
-  colorPrimary: colorPrimary
-});
+  colorPrimary: colorPrimary,
+  collapsed: false
+};
+
+export const getStorageUserSettings = () => {
+  if (typeof window === 'undefined') return defaultSettings;
+  try {
+    const savedSettings = JSON.parse(
+      localStorage.getItem('userSettings') || '{}'
+    );
+    return {
+      ...defaultSettings,
+      ...savedSettings
+    };
+  } catch {
+    return defaultSettings;
+  }
+};
+
+export const userSettingsAtom = atomWithStorage<UserSettings>(
+  'userSettings',
+  defaultSettings
+);
 
 export const userSettingsHelperAtom = atom(
   (get) => get(userSettingsAtom),

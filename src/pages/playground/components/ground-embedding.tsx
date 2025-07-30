@@ -16,7 +16,6 @@ import { useIntl } from '@umijs/max';
 import { Button, Checkbox, Form, Segmented, Spin, Tabs, Tooltip } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
-import { PCA } from 'ml-pca';
 import 'overlayscrollbars/overlayscrollbars.css';
 import { Resizable } from 're-resizable';
 import React, {
@@ -30,7 +29,9 @@ import React, {
 } from 'react';
 import { EMBEDDING_API, handleEmbedding } from '../apis';
 import { extractErrorMessage } from '../config';
+import { embeddingSamples } from '../config/samples';
 import { LLM_METAKEYS } from '../hooks/config';
+import useEmbeddingWorker from '../hooks/use-embedding-worker';
 import { useInitLLmMeta } from '../hooks/use-init-meta';
 import '../style/ground-left.less';
 import '../style/rerank.less';
@@ -38,6 +39,7 @@ import { generateEmbeddingCode } from '../view-code/embedding';
 import DynamicParams from './dynamic-params';
 import FileList from './file-list';
 import InputList from './input-list';
+import TokenUsage from './token-usage';
 import ViewCommonCode from './view-common-code';
 
 interface MessageProps {
@@ -48,9 +50,10 @@ interface MessageProps {
 
 const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
   const { modelList } = props;
-  const messageId = useRef<number>(0);
 
   const intl = useIntl();
+  const { workerRef, createWorker, postMessage, terminateWorker } =
+    useEmbeddingWorker();
   const requestSource = useRequestToken();
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -127,7 +130,11 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
       },
       setCollapse() {
         setCollapse(!collapse);
-      }
+      },
+      calculateNewMaxFromBoundary: (maxWidth?: number, maxHeight?: number) => {
+        resizeRef.current?.calculateNewMaxFromBoundary();
+      },
+      collapse: collapse
     };
   });
 
@@ -150,48 +157,8 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
     return list.length < 2;
   }, [textList, fileList]);
 
-  const generateEmbedding = useCallback(
-    (embeddings: any[]) => {
-      try {
-        const dataList = embeddings.map((item) => {
-          return item.embedding;
-        });
-
-        const pca = new PCA(dataList);
-        const pcadata = pca.predict(dataList, { nComponents: 2 }).to2DArray();
-
-        const input = [
-          ...textList.map((item) => item.text).filter((item) => item),
-          ...fileList.map((item) => item.text).filter((item) => item)
-        ];
-
-        const list = pcadata.map((item: number[], index: number) => {
-          return {
-            value: item,
-            name: index + 1,
-            text: input[index]
-          };
-        });
-        setScatterData(list);
-        const embeddingJson = embeddings.map((o, index) => {
-          const item = _.cloneDeep(o);
-          item.embedding = item.embedding.slice(0, 5);
-          item.embedding.push(null);
-          return item;
-        });
-        setEmbeddingData({
-          code: JSON.stringify(embeddingJson, null, 2).replace(/null/g, '...'),
-          copyValue: JSON.stringify(embeddings, null, 2)
-        });
-      } catch (e) {
-        console.log('error:', e);
-      }
-    },
-    [textList, fileList]
-  );
-
   const setMessageId = () => {
-    messageId.current = messageId.current + 1;
+    return inputListRef.current?.setMessageId?.();
   };
 
   const handleStopConversation = () => {
@@ -245,13 +212,25 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
 
       const embeddingsList = result.data || [];
 
-      generateEmbedding(embeddingsList);
+      createWorker();
+
+      workerRef.current!.onmessage = (event: MessageEvent) => {
+        const { scatterData, embeddingData } = event.data;
+        setScatterData(scatterData);
+        setEmbeddingData(embeddingData);
+        setLoading(false);
+      };
+
+      postMessage({
+        embeddings: embeddingsList,
+        textList: textList,
+        fileList: fileList
+      });
     } catch (error: any) {
       setTokenResult({
         error: true,
         errorMessage: extractErrorMessage(error.response)
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -320,12 +299,11 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
       if (!multiplePasteEnable.current) return;
       const text = e.clipboardData.getData('text');
       if (text) {
-        const currentContent = textList[index].text;
         const dataLlist = text.split('\n').map((item: string) => {
           return {
             text: item?.trim(),
-            uid: inputListRef.current?.setMessageId(),
-            name: ''
+            name: '',
+            uid: setMessageId()
           };
         });
         dataLlist[0].text = `${selectionTextRef.current?.beforeText || ''}${dataLlist[0].text}${selectionTextRef.current?.afterText || ''}`;
@@ -333,14 +311,8 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
           ...textList.slice(0, index),
           ...dataLlist,
           ...textList.slice(index + 1)
-        ]
-          .filter((item) => item.text)
-          .map((item, index) => {
-            return {
-              ...item,
-              uid: inputListRef.current?.setMessageId()
-            };
-          });
+        ].filter((item) => item.text);
+
         setTextList(result);
       }
     },
@@ -396,6 +368,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
         label: 'Chart',
         children: (
           <ScatterChart
+            key={collapse ? 'collapse' : 'expand'}
             seriesData={scatterData}
             height={outputHeight}
             width="100%"
@@ -409,7 +382,9 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
         children: (
           <div
             style={{
-              backgroundColor: 'var(--ant-color-bg-container)'
+              backgroundColor: 'var(--ant-color-bg-container)',
+              borderRadius: 'var(--border-radius-base)',
+              overflow: 'hidden'
             }}
           >
             <HighlightCode
@@ -424,7 +399,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
         )
       }
     ];
-  }, [outputHeight, scatterData, embeddingData]);
+  }, [outputHeight, collapse, scatterData, embeddingData]);
 
   const onValuesChange = useCallback(
     (changeValues: Record<string, any>, allValues: Record<string, any>) => {
@@ -449,6 +424,22 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
     }
     messageListLengthCache.current = textList.length + fileList.length;
   }, [textList.length, fileList.length]);
+
+  useEffect(() => {
+    if (intl.locale || 'en-US') {
+      const sample = embeddingSamples[intl.locale];
+
+      if (sample) {
+        setTextList(
+          sample.map((item: string, index: number) => ({
+            text: item,
+            uid: setMessageId(),
+            name: `Document ${index + 1}`
+          }))
+        );
+      }
+    }
+  }, []);
 
   return (
     <div className="ground-left-wrapper rerank">
@@ -488,7 +479,11 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                   </Checkbox>
                 </Tooltip>
 
-                <Button size="middle" onClick={handleAddText}>
+                <Button
+                  size="middle"
+                  onClick={handleAddText}
+                  disabled={loading}
+                >
                   <PlusOutlined />
                   {intl.formatMessage({ id: 'playground.embedding.addtext' })}
                 </Button>
@@ -547,21 +542,29 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                 onSelect={handleonSelect}
                 onPaste={handleOnPaste}
               ></InputList>
-              <div style={{ marginTop: 8 }}>
-                <FileList
-                  fileList={fileList}
-                  textListCount={textList.length || 0}
-                  onDelete={handleDeleteFile}
-                ></FileList>
-              </div>
-              {lessTwoInput && (
-                <AlertInfo
-                  type="danger"
-                  message={intl.formatMessage({
-                    id: 'playground.documents.verify.embedding'
-                  })}
-                ></AlertInfo>
+              {fileList.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <FileList
+                    fileList={fileList}
+                    textListCount={textList.length || 0}
+                    onDelete={handleDeleteFile}
+                  ></FileList>
+                </div>
               )}
+              {lessTwoInput && (
+                <div className="m-t-16">
+                  <AlertInfo
+                    type="danger"
+                    message={intl.formatMessage({
+                      id: 'playground.documents.verify.embedding'
+                    })}
+                  ></AlertInfo>
+                </div>
+              )}
+              <TokenUsage
+                tokenResult={tokenResult}
+                className="m-t-16"
+              ></TokenUsage>
             </div>
           </div>
         </div>
@@ -674,8 +677,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                 style={{
                   border: '1px solid var(--ant-color-border)',
                   borderRadius: 'var(--border-radius-base)',
-                  width: '100%',
-                  overflow: 'hidden'
+                  width: '100%'
                 }}
                 className="scatter"
               >

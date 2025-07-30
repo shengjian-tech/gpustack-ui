@@ -6,12 +6,11 @@ import langConfigMap from '@/locales/lang-config-map';
 import {
   DiscordOutlined,
   GithubOutlined,
-  GlobalOutlined,
   HomeOutlined,
   InfoCircleOutlined,
   LogoutOutlined,
   MoonOutlined,
-  QuestionCircleOutlined,
+  MoreOutlined,
   ReadOutlined,
   SettingOutlined,
   SunOutlined
@@ -21,23 +20,14 @@ import { Avatar, Menu, Spin,Dropdown,Button } from 'antd';
 import _ from 'lodash';
 import React from 'react';
 
-const themeConfig = [
-  {
-    key: 'realDark',
-    label: 'common.appearance.dark',
-    icon: <MoonOutlined />
-  },
-  {
-    key: 'light',
-    label: 'common.appearance.light',
-    icon: <SunOutlined />
-  }
-  // {
-  //   key: 'auto',
-  //   label: 'common.appearance.system',
-  //   icon: <IconFont type="icon-theme-auto" />
-  // }
-];
+const getMenuStyle = (
+  collapsed: boolean,
+  siderWidth: number,
+  extraStyle: React.CSSProperties = {}
+) => ({
+  width: collapsed ? 40 : `calc(${siderWidth}px - 16px)`,
+  ...extraStyle
+});
 
 export const getRightRenderContent = (opts: {
   runtimeConfig: any;
@@ -140,7 +130,7 @@ export const getRightRenderContent = (opts: {
     items: [
       {
         key: 'help',
-        icon: <QuestionCircleOutlined />,
+        icon: <IconFont type="icon-help" />,
         label: (
           <span className="sub-title ">
             <span className="flex-center">
@@ -213,7 +203,7 @@ export const getRightRenderContent = (opts: {
     items: [
       {
         key: 'lang',
-        icon: <GlobalOutlined />,
+        icon: <IconFont type="icon-language" />,
         label: (
           <span className="sub-title">
             {intl?.formatMessage?.({ id: 'common.settings.language' })}
@@ -265,7 +255,7 @@ export const getRightRenderContent = (opts: {
       ? 'user-menu-container user-menu-collapsed'
       : 'user-menu-container',
     mode: 'vertical',
-    expandIcon: false,
+    expandIcon: collapsed ? false : <MoreOutlined />,
     // inlineCollapsed: collapsed,
     triggerSubMenuAction: 'hover',
     items: [
@@ -274,7 +264,7 @@ export const getRightRenderContent = (opts: {
         key: 'user',
         className: 'user-avatar',
         icon: (
-          <span>
+          <span className="avatar-container">
             <Avatar
               size={28}
               style={{
@@ -287,7 +277,13 @@ export const getRightRenderContent = (opts: {
             {!collapsed && (
               <span
                 className="m-l-8 font-size-14"
-                style={{ fontWeight: 'var(--font-weight-normal)' }}
+                style={{
+                  fontWeight: 'var(--font-weight-normal)',
+                  maxWidth: 100,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
               >
                 {opts.initialState?.currentUser?.username}
               </span>
@@ -295,6 +291,20 @@ export const getRightRenderContent = (opts: {
           </span>
         ),
         children: [
+          {
+            key: 'apikeys',
+            label: (
+              <span className="flex flex-center">
+                <IconFont type="icon-key" />
+                <span className="m-l-8" style={{ marginLeft: 8 }}>
+                  {intl?.formatMessage?.({ id: 'menu.apikeys' })}
+                </span>
+              </span>
+            ),
+            onClick: () => {
+              history.push('/api-keys');
+            }
+          },
           {
             key: 'settings',
             label: (

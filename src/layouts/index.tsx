@@ -2,6 +2,8 @@
 
 import { routeCacheAtom, setRouteCache } from '@/atoms/route-cache';
 import { GPUStackVersionAtom, UpdateCheckAtom, userAtom } from '@/atoms/user';
+import DarkMask from '@/components/dark-mask';
+import IconFont from '@/components/icon-font';
 import ShortCuts, {
   modalConfig as ShortCutsConfig
 } from '@/components/short-cuts';
@@ -13,7 +15,6 @@ import useUserSettings from '@/hooks/use-user-settings';
 import { logout } from '@/pages/login/apis';
 import { useAccessMarkedRoutes } from '@@/plugin-access';
 import { useModel } from '@@/plugin-model';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { ProLayout } from '@ant-design/pro-components';
 import {
   Link,
@@ -27,16 +28,18 @@ import {
   useNavigate,
   type IRoute
 } from '@umijs/max';
-import { Button, ConfigProvider, Modal, theme } from 'antd';
+import { Button, ConfigProvider, Modal, Tooltip, theme } from 'antd';
 import 'driver.js/dist/driver.css';
 import { useAtom } from 'jotai';
 import 'overlayscrollbars/overlayscrollbars.css';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Exception from './Exception';
 import './Layout.css';
 import { LogoIcon, SLogoIcon } from './Logo';
+import ErrorBoundary from './error-boundary';
 import { getRightRenderContent } from './rightRender';
 import { patchRoutes } from './runtime';
+import SiderMenu from './sider-menu';
 
 const loginPath = '/login';
 
@@ -100,7 +103,8 @@ export default (props: any) => {
     defer: false
   });
   const [modal, contextHolder] = Modal.useModal();
-  const { themeData, setTheme, userSettings, isDarkTheme } = useUserSettings();
+  const { themeData, setTheme, setUserSettings, userSettings, isDarkTheme } =
+    useUserSettings();
   const { saveScrollHeight, restoreScrollHeight } = useBodyScroll();
   const { initialize: initializeMenu } = useOverlayScroller();
   const [userInfo] = useAtom(userAtom);
@@ -111,8 +115,9 @@ export default (props: any) => {
   const navigate = useNavigate();
   const intl = useIntl();
   const { clientRoutes, pluginManager } = useAppData();
-  const [collapsed, setCollapsed] = useState(false);
+  // const [collapsed, setCollapsed] = useState(userSettings.collapsed || false);
   const [collapseValue, setCollapseValue] = useState(false);
+  const [collapseKeys, setCollapseKeys] = useState<Set<string>>(new Set());
 
   const initialInfo = (useModel && useModel('@@initialState')) || {
     initialState: undefined,
@@ -185,7 +190,11 @@ export default (props: any) => {
 
   const handleToggleCollapse = (e: any) => {
     e.stopPropagation();
-    setCollapsed(!collapsed);
+    // setCollapsed(!collapsed);
+    setUserSettings({
+      ...userSettings,
+      collapsed: !userSettings.collapsed
+    });
   };
 
   const newRoutes = filterRoutes(
@@ -201,6 +210,8 @@ export default (props: any) => {
   const role = initialState?.currentUser?.is_admin ? 'admin' : 'user';
   const [route] = useAccessMarkedRoutes(mapRoutes(newRoutes, role));
 
+  console.log('route============', route);
+
   patchRoutes({
     routes: route.children,
     initialState: initialInfo.initialState
@@ -210,6 +221,24 @@ export default (props: any) => {
     () => matchRoutes(route?.children || [], location.pathname)?.pop?.()?.route,
     [location.pathname]
   );
+
+  const allRouteKeys = useMemo(() => {
+    const keys = new Set<string>();
+    const childrenRoutes = route?.children || [];
+    const traverseRoutes = (routes) => {
+      routes.forEach((r) => {
+        if (r.path) {
+          keys.add(r.path);
+        }
+        if (r.children) {
+          traverseRoutes(r.children);
+        }
+      });
+    };
+    traverseRoutes(childrenRoutes);
+
+    return keys;
+  }, [route?.children]);
 
   const showUpgrade = useMemo(() => {
     return (
@@ -281,95 +310,155 @@ export default (props: any) => {
     [collapsed]
   );
 
-  const actionRender = useCallback(
-    (layoutProps) => {
-      const dom = getRightRenderContent({
-        runtimeConfig,
-        loading,
-        initialState,
-        setInitialState,
-        intl,
-        isDarkTheme: userSettings.isDarkTheme,
-        siderWidth: layoutProps.siderWidth,
-        collapsed: layoutProps.collapsed,
-        showUpgrade
-      });
+  const renderMenuHeader = (logo, title) => {
+    return (
+      <>
+        {logo}
+        <div className="collapse-wrap" onClick={handleToggleCollapse}>
+          <Button
+            style={{ marginRight: collapsed ? 0 : -14, border: 'none' }}
+            size="small"
+            type={collapsed ? 'default' : 'text'}
+          >
+            <>
+              <IconFont
+                type="icon-expand-left"
+                className="font-size-18 text-secondary"
+                style={{ display: collapsed ? 'block' : 'none' }}
+              />
+              <IconFont
+                type="icon-expand-right"
+                className="font-size-18 text-secondary"
+                style={{ display: !collapsed ? 'block' : 'none' }}
+              />
+            </>
+          </Button>
+        </div>
+      </>
+    );
+  };
 
-      return dom;
-    },
-    [intl, showUpgrade, userSettings.theme, userSettings.isDarkTheme]
-  );
+  const handleToggleGroup = (menuItemProps, e) => {
+    e.stopPropagation();
 
-  const itemRender = useCallback((route, _, routes) => {
-    const { breadcrumbName, title, path } = route;
-    const label = title || breadcrumbName;
-    const last = routes[routes.length - 1];
-    if (last) {
-      if (last.path === path || last.linkPath === path) {
-        return <span>{label}</span>;
-      }
+    if (collapseKeys.has(menuItemProps.key)) {
+      collapseKeys.delete(menuItemProps.key);
+    } else {
+      collapseKeys.add(menuItemProps.key);
     }
-    return <Link to={path}>{label}</Link>;
-  }, []);
+    setCollapseKeys(new Set(collapseKeys));
+  };
 
-  const menuItemRender = useCallback(
-    (menuItemProps, defaultDom) => {
-      if (menuItemProps.isUrl || menuItemProps.children) {
-        return defaultDom;
-      }
-      if (menuItemProps.path && location.pathname !== menuItemProps.path) {
-        return (
+  const menuContentRender = (menuProps, defaultDom) => {
+    return <SiderMenu {...menuProps}></SiderMenu>;
+  };
+
+  const actionRender = (layoutProps) => {
+    console.log('actionRender', layoutProps);
+    const dom = getRightRenderContent({
+      runtimeConfig,
+      loading,
+      initialState,
+      setInitialState,
+      intl,
+      isDarkTheme: userSettings.isDarkTheme,
+      siderWidth: layoutProps.siderWidth,
+      collapsed: layoutProps.collapsed,
+      showUpgrade
+    });
+
+    return dom;
+  };
+
+  const menuItemRender = (menuItemProps, defaultDom) => {
+    console.log('defaultdom==========', menuItemProps, defaultDom);
+    if (menuItemProps.isUrl || menuItemProps.children) {
+      return defaultDom;
+    }
+    if (menuItemProps.path && location.pathname !== menuItemProps.path) {
+      return (
+        <Tooltip
+          title={collapsed ? menuItemProps.name : false}
+          placement="right"
+        >
           <Link
             to={menuItemProps.path.replace('/*', '')}
             target={menuItemProps.target}
           >
             {defaultDom}
           </Link>
+        </Tooltip>
+      );
+    }
+    return (
+      <Tooltip title={collapsed ? menuItemProps.name : false} placement="right">
+        {defaultDom}
+      </Tooltip>
+    );
+  };
+
+  const menuDataRender = (menuData) => {
+    const currentItem = menuData.find((s) => location.pathname === s.path);
+    const result = menuData.map((item) => {
+      const newItem = { ...item };
+
+      const selected =
+        location.pathname === newItem.path ||
+        location.pathname.indexOf(newItem.path) > -1;
+
+      if (newItem.icon) {
+        newItem.icon = selected ? (
+          <IconFont type={newItem.selectedIcon} />
+        ) : (
+          <IconFont type={newItem.defaultIcon} />
         );
       }
-      return <>{defaultDom}</>;
-    },
-    [location.pathname]
-  );
-
-  const onPageChange = useCallback(
-    (route) => {
-      const { location } = history;
-      const { pathname } = location;
-
-      initRouteCacheValue(pathname);
-      dropRouteCache(pathname);
-
-      // if user is not change password, redirect to change password page
-      if (
-        location.pathname !== loginPath &&
-        userInfo?.require_password_change
-      ) {
-        history.push(loginPath);
-        return;
+      if (newItem.children) {
+        newItem.children = menuDataRender(newItem.children);
       }
+      return newItem;
+    });
 
-      // if user is not logged in, redirect to login page
-      if (!initialState?.currentUser && location.pathname !== loginPath) {
-        history.push(loginPath);
-      } else if (location.pathname === '/') {
-        const pathname = initialState?.currentUser?.is_admin
-          ? '/dashboard'
-          : '/playground';
-        history.push(pathname);
-      }
-    },
-    [userInfo?.require_password_change, initialState?.currentUser]
-  );
+    return result;
+  };
 
-  const onMenuHeaderClick = useCallback((e) => {
+  const onPageChange = (route) => {
+    const { location } = history;
+    const { pathname } = location;
+    console.log('onPageChange', pathname, route);
+
+    initRouteCacheValue(pathname);
+    dropRouteCache(pathname);
+
+    // if user is not change password, redirect to change password page
+    if (location.pathname !== loginPath && userInfo?.require_password_change) {
+      history.push(loginPath);
+      return;
+    }
+
+    // if user is not logged in, redirect to login page
+    if (!initialState?.currentUser && location.pathname !== loginPath) {
+      history.push(loginPath);
+    } else if (location.pathname === '/') {
+      const pathname = initialState?.currentUser?.is_admin
+        ? '/dashboard'
+        : '/playground';
+      history.push(pathname);
+    }
+  };
+
+  const onMenuHeaderClick = (e) => {
     e.stopPropagation();
     e.preventDefault();
     navigate('/dashboard');
-  }, []);
+  };
 
   const onCollapse = (value) => {
-    setCollapsed(value);
+    // setCollapsed(value);
+    setUserSettings({
+      ...userSettings,
+      collapsed: value
+    });
   };
 
   useEffect(() => {
@@ -415,7 +504,6 @@ export default (props: any) => {
         : theme.defaultAlgorithm,
       ...themeData
     };
-    console.log('currentTheme====', data);
     return data;
   }, [userSettings.isDarkTheme, themeData]);
 
@@ -430,6 +518,7 @@ export default (props: any) => {
         ...themeData
       }}
     >
+      <DarkMask></DarkMask>
       <ProLayout
         route={route}
         location={location}
@@ -447,16 +536,18 @@ export default (props: any) => {
         onPageChange={onPageChange}
         formatMessage={formatMessage}
         menu={{
-          locale: true
+          locale: true,
+          type: 'group'
         }}
+        splitMenus={true}
         logo={collapsed ? SLogoIcon : LogoIcon}
-        menuItemRender={menuItemRender}
-        itemRender={itemRender}
+        menuContentRender={menuContentRender}
         disableContentMargin
         fixSiderbar
         fixedHeader
         {...runtimeConfig}
         actionsRender={actionRender}
+        ErrorBoundary={ErrorBoundary}
       >
         <Exception
           route={matchedRoute}

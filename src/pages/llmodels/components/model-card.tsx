@@ -5,7 +5,7 @@ import ThemeTag from '@/components/tags-wrapper/theme-tag';
 import useRequestToken from '@/hooks/use-request-token';
 import {
   DownOutlined,
-  FileTextOutlined,
+  FileMarkdownOutlined,
   RightOutlined
 } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
@@ -20,15 +20,49 @@ import React, {
   useState
 } from 'react';
 import 'simplebar-react/dist/simplebar.min.css';
+import styled from 'styled-components';
 import {
   downloadModelFile,
-  downloadModelScopeModelfile,
   queryHuggingfaceModelDetail,
   queryModelScopeModelDetail
 } from '../apis';
 import { modelSourceMap } from '../config';
 import '../style/model-card.less';
 import TitleWrapper from './title-wrapper';
+
+const MkdTitle = styled.span`
+  cursor: pointer;
+  background-color: var(--ant-color-fill-tertiary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  height: 36px;
+`;
+
+const MarkDownTitle: React.FC<{
+  collapsed: boolean;
+  loading: boolean;
+  onCollapse: () => void;
+}> = ({ collapsed, loading, onCollapse }) => {
+  const intl = useIntl();
+  return (
+    <MkdTitle onClick={onCollapse}>
+      <span>
+        <FileMarkdownOutlined className="m-r-2 text-tertiary" /> README.md
+      </span>
+      <span>
+        {collapsed ? (
+          <DownOutlined />
+        ) : loading ? (
+          <Spin spinning={true} size="small"></Spin>
+        ) : (
+          <RightOutlined />
+        )}
+      </span>
+    </MkdTitle>
+  );
+};
 
 const ModelCard: React.FC<{
   onCollapse: (flag: boolean) => void;
@@ -69,6 +103,7 @@ const ModelCard: React.FC<{
       return modelData?.ModelType?.[0];
     }
   }, [modelData, modelSource]);
+
   const loadFile = useCallback(async (repo: string, sha: string) => {
     try {
       axiosTokenRef.current?.abort?.();
@@ -94,27 +129,6 @@ const ModelCard: React.FC<{
       onCollapse(false);
     }
   };
-
-  const loadConfig = useCallback(async (repo: string, sha: string) => {
-    try {
-      loadConfigTokenRef.current?.abort?.();
-      loadConfigTokenRef.current = new AbortController();
-      const res = await downloadModelFile(
-        {
-          repo,
-          revision: sha,
-          path: 'config.json'
-        },
-        {
-          signal: loadConfigTokenRef.current.signal
-        }
-      );
-      return res || null;
-    } catch (error) {
-      console.log('error======', error);
-      return null;
-    }
-  }, []);
 
   const removeMetadata = useCallback((str: string) => {
     let indexes = [];
@@ -160,27 +174,10 @@ const ModelCard: React.FC<{
       setModelData(null);
       setReadmeText(null);
       handleOnCollapse(null);
-      setIsGGUF(false);
-      setIsGGUFModel(false);
+      // setIsGGUF(false);
+      // setIsGGUFModel(false);
     }
   };
-
-  const loadModelscopeModelConfig = useCallback(async (name: string) => {
-    try {
-      loadConfigJsonTokenRef.current?.abort?.();
-      loadConfigJsonTokenRef.current = new AbortController();
-      return await downloadModelScopeModelfile(
-        {
-          name: name
-        },
-        {
-          signal: loadConfigJsonTokenRef.current.token
-        }
-      );
-    } catch (error) {
-      return null;
-    }
-  }, []);
 
   const getModelScopeModelDetail = async () => {
     try {
@@ -208,8 +205,8 @@ const ModelCard: React.FC<{
       setModelData(null);
       setReadmeText(null);
       handleOnCollapse(null);
-      setIsGGUF(false);
-      setIsGGUFModel(false);
+      // setIsGGUF(false);
+      // setIsGGUFModel(false);
     }
   };
 
@@ -295,8 +292,17 @@ const ModelCard: React.FC<{
   );
 
   useEffect(() => {
+    if (!props.selectedModel.name) return;
+
     getModelCardData();
-  }, [props.selectedModel?.name]);
+    setIsGGUFModel(props.selectedModel.isGGUF);
+    setModelData(() => ({
+      ...modelData,
+      id: props.selectedModel.name,
+      name: props.selectedModel.name,
+      isGGUF: props.selectedModel.isGGUF
+    }));
+  }, [props.selectedModel?.name, props.selectedModel?.isGGUF]);
 
   useEffect(() => {
     return () => {
@@ -316,7 +322,7 @@ const ModelCard: React.FC<{
       <div className="card-wrapper">
         {modelData ? (
           <div className="model-card-wrap">
-            <div className="flex-center">
+            <div className="flex-center flex-wrap gap-8">
               {modelType && (
                 <ThemeTag className="tag-item" color="gold" opacity={0.65}>
                   <span className="m-r-5">
@@ -352,27 +358,25 @@ const ModelCard: React.FC<{
                   overflow: 'hidden'
                 }}
               >
-                <span className="mkd-title" onClick={handleCollapse}>
-                  <span>
-                    <FileTextOutlined className="m-r-2 text-tertiary" />{' '}
-                    README.md
-                  </span>
-                  <span>
-                    {collapsed ? <DownOutlined /> : <RightOutlined />}
-                  </span>
-                </span>
-                <SimpleOverlay
-                  style={{
-                    paddingTop: collapsed ? 12 : 0,
-                    maxHeight: collapsed ? 300 : 0
-                  }}
-                >
-                  <MarkdownViewer
-                    generateImgLink={generateModeScopeImgLink}
-                    content={readmeText}
-                    theme="light"
-                  ></MarkdownViewer>
-                </SimpleOverlay>
+                <MarkDownTitle
+                  onCollapse={handleCollapse}
+                  collapsed={collapsed}
+                  loading={loading}
+                ></MarkDownTitle>
+                <Spin spinning={loading && collapsed}>
+                  <SimpleOverlay
+                    style={{
+                      paddingTop: collapsed ? 12 : 0,
+                      maxHeight: collapsed ? 300 : 0
+                    }}
+                  >
+                    <MarkdownViewer
+                      generateImgLink={generateModeScopeImgLink}
+                      content={readmeText}
+                      theme="light"
+                    ></MarkdownViewer>
+                  </SimpleOverlay>
+                </Spin>
               </div>
             )}
           </div>
@@ -393,7 +397,7 @@ const ModelCard: React.FC<{
             {readmeText && (
               <>
                 <TitleWrapper>
-                  <div className="title">README.md</div>
+                  <span className="title">README.md</span>
                 </TitleWrapper>
                 <div className="card-wrapper">
                   <MarkdownViewer
@@ -411,4 +415,4 @@ const ModelCard: React.FC<{
   );
 };
 
-export default React.memo(ModelCard);
+export default ModelCard;

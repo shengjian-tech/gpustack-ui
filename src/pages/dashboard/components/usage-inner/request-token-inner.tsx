@@ -1,11 +1,31 @@
 import CardWrapper from '@/components/card-wrapper';
-import BarChart from '@/components/echarts/bar-chart';
-import LineChart from '@/components/echarts/line-chart';
-import { useIntl } from '@umijs/max';
-import { Col, Row } from 'antd';
+import { SimpleCard } from '@/components/card-wrapper/simple-card';
+import MixLineBar from '@/components/echarts/mix-line-bar';
+import { formatLargeNumber } from '@/utils';
+import { Button } from 'antd';
 import dayjs from 'dayjs';
-import React from 'react';
+import React, { useMemo } from 'react';
 import styles from './index.less';
+import styled from 'styled-components';
+import { baseColorMap } from '../../config';
+
+const DownloadButton = styled(Button).attrs({
+  className: 'download-button'
+})`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: none;
+`;
+
+const CardWrapperBox = styled.div`
+  &:hover {
+    .download-button {
+      display: flex;
+    }
+  }
+`;
 
 interface RequestTokenInnerProps {
   requestData: {
@@ -18,11 +38,46 @@ interface RequestTokenInnerProps {
     data: { time: string; value: number }[];
   }[];
   xAxisData: string[];
+  overViewData?: {
+    requestCount: number;
+    completionCount: number;
+    promptCount: number;
+  };
 }
 
 const labelFormatter = (v: any) => {
   return dayjs(v).format('MM-DD');
 };
+
+const dataList = [
+  {
+    label: '0',
+    value: 'Completion Tokens',
+    key: 'completionCount',
+    iconType: 'roundRect',
+    color: baseColorMap.base
+  },
+  {
+    label: '0',
+    value: 'Prompt Tokens',
+    key: 'promptCount',
+    iconType: 'roundRect',
+    color: baseColorMap.baseR3
+  },
+  {
+    label: '0',
+    value: 'API Requests',
+    key: 'requestCount',
+    iconType: 'circle',
+    color: baseColorMap.baseR1
+  }
+];
+
+const legendData = [
+  { name: 'Completion tokens', icon: 'roundRect' },
+  { name: 'Prompt tokens', icon: 'roundRect' },
+  { name: 'API requests', icon: 'circle' }
+];
 
 const RequestTokenInner: React.FC<RequestTokenInnerProps> = (props) => {
   const { requestData, tokenData, xAxisData } = props;
@@ -83,4 +138,4 @@ const RequestTokenInner: React.FC<RequestTokenInnerProps> = (props) => {
   );
 };
 
-export default React.memo(RequestTokenInner);
+export default RequestTokenInner;

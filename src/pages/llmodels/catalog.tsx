@@ -54,7 +54,7 @@ const Catalog: React.FC = () => {
   });
   const [queryParams, setQueryParams] = useState({
     page: 1,
-    perPage: 30,
+    perPage: 24,
     search: '',
     categories: ''
   });
@@ -184,7 +184,7 @@ const Catalog: React.FC = () => {
         });
         message.success(intl.formatMessage({ id: 'common.message.success' }));
         setModelsExpandKeys([modelData.id]);
-        navigate('/models/list');
+        navigate('/models/deployments');
       } catch (error) {}
     },
     [openDeployModal]

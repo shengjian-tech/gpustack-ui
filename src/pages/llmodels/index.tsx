@@ -252,9 +252,21 @@ const Models: React.FC = () => {
     });
   }, [fetchData, createModelsChunkRequest, createModelsInstanceChunkRequest]);
 
-  const handleSearch = useCallback(async () => {
-    await fetchData();
+  const handleSearchBySilent = useCallback(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 300);
+    });
+    fetchData({
+      loadingVal: false
+    });
   }, [fetchData]);
+
+  const handleSearch = useCallback(
+    async (params?: any) => {
+      await fetchData(params);
+    },
+    [fetchData]
+  );
 
   const debounceUpdateFilter = _.debounce((e: any) => {
     setQueryParams({
@@ -458,6 +470,8 @@ const Models: React.FC = () => {
         handleOnToggleExpandAll={createModelsInstanceChunkRequest}
         onViewLogs={handleOnViewLogs}
         onCancelViewLogs={handleOnCancelViewLogs}
+        onStop={handleSearchBySilent}
+        onStart={handleSearchBySilent}
         queryParams={queryParams}
         loading={dataSource.loading}
         loadend={dataSource.loadend}

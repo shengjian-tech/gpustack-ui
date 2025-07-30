@@ -85,7 +85,7 @@ export default {
   'models.form.backend.llamabox':
     'Для моделей формата GGUF. Поддержка Linux, macOS и Windows.',
   'models.form.backend.vllm':
-    'Для моделей не-GGUF формата, поддерживается только в Linux (amd64/x86_64).',
+    'Для моделей не-GGUF формата, поддерживается только в Linux.',
   'models.form.backend.voxbox':
     'Для аудиомоделей не-GGUF формата, поддерживается только на GPU NVIDIA и CPU.',
   'models.form.backend.mindie':
@@ -150,7 +150,7 @@ export default {
   'models.table.apiAccessInfo.gotoCreate': 'Перейти к созданию',
   'models.search.parts': '{n} частей',
   'models.search.evaluate.error': 'Возникла ошибка при вычислении: ',
-  'models.ollama.deprecated.title': 'Источник моделей Ollama будет удалён',
+  'models.ollama.deprecated.title': 'Deprecation Notice',
   'models.ollama.deprecated.current':
     '<span class="bold-text">Текущая версия (v0.6.1): </span>Модели Ollama в настоящее время доступны для использования.',
   'models.ollama.deprecated.upcoming':
@@ -162,5 +162,7 @@ export default {
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-
+// 1. 'models.ollama.deprecated.title': 'Deprecation Notice',
+// 2. 'models.ollama.deprecated.notice': `The Ollama model source has been deprecated as of v0.6.1. For more information, see the <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">related GitHub issue</a>.`
+// 3. 'models.backend.mindie.310p':'Ascend 310P only supports FP16, so you need to set --dtype=float16.'
 // ========== End of To-Do List ==========

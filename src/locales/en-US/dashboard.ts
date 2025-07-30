@@ -27,5 +27,14 @@ export default {
   'dashboard.activeModels': 'Active Models',
   'dashboard.runninginstances': 'Running Instances',
   'dashboard.activeModels.name': 'Model Name',
-  'dashboard.allocatevram': 'Allocated VRAM / RAM'
+  'dashboard.allocatevram': 'Allocated VRAM / RAM',
+  'dashboard.usage.selectuser': 'Select users',
+  'dashboard.usage.selectmodel': 'Select models',
+  'dashboard.usage.export': 'Export Data',
+  'dashboard.usage.export.user': 'User',
+  'dashboard.usage.export.model': 'Model',
+  'dashboard.usage.export.date': 'Date',
+  'dashboard.usage.datePicker.last7days': 'Last 7 Days',
+  'dashboard.usage.datePicker.last30days': 'Last 30 Days',
+  'dashboard.usage.datePicker.last60days': 'Last 60 Days'
 };

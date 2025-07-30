@@ -25,12 +25,15 @@ export default {
     Tabs: {
       titleFontSizeLG: 14
     },
+    DatePicker: {
+      fontSizeLG: 14
+    },
     Menu: {
       iconSize: 16,
       iconMarginInlineEnd: 12,
       itemBorderRadius: 4,
       itemSelectedColor: '#007BFF',
-      itemHeight: 44,
+      itemHeight: 32,
       groupTitleColor: 'rgba(0,0,0,1)',
       itemHoverColor: 'rgba(0,0,0,1)',
       itemColor: 'rgba(0,0,0,1)',
@@ -66,6 +69,7 @@ export default {
     }
   },
   token: {
+    darkMode: false,
     fontFamily:
       "Helvetica Neue, -apple-system, BlinkMacSystemFont, Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
     colorText: 'rgba(0,0,0,1)',

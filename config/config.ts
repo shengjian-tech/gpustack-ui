@@ -28,6 +28,9 @@ export default defineConfig({
     logLevel: 'info',
     defaultSizes: 'parsed' // stat  // gzip
   },
+  mfsu: {
+    exclude: ['lodash', 'ml-pca']
+  },
   base: process.env.npm_config_base || '/',
   ...(isProduction
     ? {
@@ -50,11 +53,6 @@ export default defineConfig({
               chunkFilename: `css/[name].${t}.chunk.css`
             }
           ]);
-          config.module
-            .rule('worker')
-            .test(/\.worker\.js$/)
-            .use('worker-loader')
-            .loader('worker-loader');
           config.output
             .filename(`js/[name].${t}.js`)
             .chunkFilename(`js/[name].${t}.chunk.js`);

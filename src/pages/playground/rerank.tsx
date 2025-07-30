@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { queryModelsList } from './apis';
 import GroundReranker from './components/ground-reranker';
+import useCollapseLayout from './hooks/use-collapse-layout';
 import './style/play-ground.less';
 import styled from 'styled-components';
 
@@ -34,6 +35,13 @@ const PlaygroundRerank: React.FC = () => {
     Global.BaseOption<string>[]
   >([]);
   const [loaded, setLoaded] = useState(false);
+
+  useCollapseLayout({
+    handler: () => {
+      groundRerankerRef.current?.setCollapse?.();
+    },
+    triggeredRef: groundRerankerRef.current
+  });
 
   const handleViewCode = useCallback(() => {
     groundRerankerRef.current?.viewCode?.();
@@ -104,7 +112,7 @@ const PlaygroundRerank: React.FC = () => {
   useHotkeys(
     HotKeys.RIGHT.join(','),
     () => {
-      groundLeftRef.current?.setCollapse?.();
+      groundRerankerRef.current?.setCollapse?.();
     },
     {
       preventDefault: true

@@ -21,7 +21,7 @@ export default {
   'playground.params.temperature.tips':
     'Controls randomness: Lowering results in less random completions. As the temperature approaches zero, the model will become deterministic and repetitive.',
   'playground.params.maxtokens.tips':
-    "The maximum number of tokens to generated. The total length of input tokens and generated tokens is limited by the model's context length.",
+    "The maximum number of tokens to generate. The total length of input tokens and generated tokens is limited by the model's context length.",
   'playground.params.topp.tips':
     'Controls diversity via nucleus sampling: 0.5 means half of all likelihood-weighted options are considered.',
   'playground.params.seed.tips':
@@ -90,7 +90,7 @@ export default {
   'playground.audio.stoprecord': 'Stop Recording',
   'playground.audio.generating.tips': 'Generated text will appear here.',
   'playground.audio.uploadfile.tips':
-    'Please upload an audio file, supported formats: {formats}',
+    'Upload an audio file, supported formats: {formats}',
   'playground.input.multiplePaste': 'Batch Input Mode',
   'playground.input.multiplePaste.tips':
     'When enabled, pasted multi-line text will be automatically split by newline into separate entries in the form.',
@@ -151,5 +151,10 @@ export default {
   'playground.image.negativeMask.tips':
     '1. After selection, no further masking can be drawn; therefore, you should draw the mask first and then check the option.\n 2. Once a mask image is uploaded, no further masks can be generated.',
   'playground.model.noavailable.tips2':
-    'If the expected model isn’t showing up, make sure it’s running and correctly categorized. If the category is incorrect, you can manually adjust it in the model’s settings.'
+    'If the expected model isn’t showing up, make sure it’s running and correctly categorized. If the category is incorrect, you can manually adjust it in the model’s settings.',
+  'playground.rerank.query.validate': 'The query is required.',
+  'playground.image.generate.error':
+    'Something went wrong. The image could not be generated.',
+  'playground.uploadfile.sizeError':
+    'File size exceeds the limit. Maximum allowed: {size}.'
 };

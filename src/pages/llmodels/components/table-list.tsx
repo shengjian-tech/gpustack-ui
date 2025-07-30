@@ -98,7 +98,7 @@ const Wrapper = styled.div`
   }
 `;
 interface ModelsProps {
-  handleSearch: () => void;
+  handleSearch: (params?: any) => void;
   handleNameChange: (e: any) => void;
   handleShowSizeChange?: (page: number, size: number) => void;
   handlePageChange: (page: number, pageSize: number | undefined) => void;
@@ -107,6 +107,8 @@ interface ModelsProps {
   onViewLogs: () => void;
   onCancelViewLogs: () => void;
   handleOnToggleExpandAll: () => void;
+  onStop?: (ids: number[]) => void;
+  onStart?: () => void;
   queryParams: {
     page: number;
     perPage: number;
@@ -146,6 +148,8 @@ const Models: React.FC<ModelsProps> = ({
   onCancelViewLogs,
   handleCategoryChange,
   handleOnToggleExpandAll,
+  onStop,
+  onStart,
   modelFileOptions,
   deleteIds,
   dataSource,
@@ -337,7 +341,7 @@ const Models: React.FC<ModelsProps> = ({
   }, [onCancelViewLogs]);
 
   const handleDelete = async (row: any) => {
-    modalRef.current.show({
+    modalRef.current?.show({
       content: 'models.table.models',
       operation: 'common.delete.single.confirm',
       name: row.name,
@@ -352,16 +356,23 @@ const Models: React.FC<ModelsProps> = ({
   };
 
   const handleDeleteBatch = () => {
-    modalRef.current.show({
+    modalRef.current?.show({
       content: 'models.table.models',
       operation: 'common.delete.confirm',
       selection: true,
       async onOk() {
-        await handleBatchRequest(rowSelection.selectedRowKeys, deleteModel);
-        rowSelection.clearSelections();
-        removeExpandedRowKey(rowSelection.selectedRowKeys);
+        const successIds: any[] = [];
+        const res = await handleBatchRequest(
+          rowSelection.selectedRowKeys,
+          async (id: any) => {
+            await deleteModel(id);
+            successIds.push(id);
+          }
+        );
+        rowSelection.removeSelectedKeys(successIds);
         handleDeleteSuccess();
         handleSearch();
+        return res;
       }
     });
   };
@@ -409,7 +420,7 @@ const Models: React.FC<ModelsProps> = ({
   );
   const handleDeleteInstace = useCallback(
     (row: any) => {
-      modalRef.current.show({
+      modalRef.current?.show({
         content: 'models.instances',
         okText: 'common.button.delrecreate',
         operation: 'common.delete.single.confirm',
@@ -482,6 +493,7 @@ const Models: React.FC<ModelsProps> = ({
           await handleStartModel(row);
           message.success(intl.formatMessage({ id: 'common.message.success' }));
           updateExpandedRowKeys([row.id, ...expandedRowKeys]);
+          onStart?.();
         }
 
         if (val === 'api') {
@@ -489,7 +501,7 @@ const Models: React.FC<ModelsProps> = ({
         }
 
         if (val === 'stop') {
-          modalRef.current.show({
+          modalRef.current?.show({
             content: 'models.instances',
             title: 'common.title.stop.confirm',
             okText: 'common.button.stop',
@@ -497,6 +509,7 @@ const Models: React.FC<ModelsProps> = ({
             name: row.name,
             async onOk() {
               await handleStopModel(row);
+              onStop?.([row.id]);
             }
           });
         }
@@ -504,7 +517,14 @@ const Models: React.FC<ModelsProps> = ({
         // ignore
       }
     },
-    [handleEdit, handleOpenPlayGround, handleDelete, expandedRowKeys]
+    [
+      handleEdit,
+      handleOpenPlayGround,
+      handleDelete,
+      onStop,
+      onStart,
+      expandedRowKeys
+    ]
   );
 
   const handleChildSelect = useCallback(
@@ -556,27 +576,27 @@ const Models: React.FC<ModelsProps> = ({
   };
 
   const handleStartBatch = async () => {
-    modalRef.current.show({
+    modalRef.current?.show({
       content: 'models.table.models',
       title: 'common.title.start.confirm',
       okText: 'common.button.start',
       operation: 'common.start.confirm',
       async onOk() {
         await handleBatchRequest(rowSelection.selectedRows, handleStartModel);
-        rowSelection.clearSelections();
+        onStart?.();
       }
     });
   };
 
   const handleStopBatch = async () => {
-    modalRef.current.show({
+    modalRef.current?.show({
       content: 'models.table.models',
       title: 'common.title.stop.confirm',
       okText: 'common.button.stop',
       operation: 'common.stop.confirm',
       async onOk() {
         await handleBatchRequest(rowSelection.selectedRows, handleStopModel);
-        rowSelection.clearSelections();
+        onStop?.(rowSelection.selectedRowKeys as number[]);
       }
     });
   };
@@ -748,7 +768,7 @@ const Models: React.FC<ModelsProps> = ({
         className="models-page-container"
         ghost
         header={{
-          title: intl.formatMessage({ id: 'models.title' }),
+          title: intl.formatMessage({ id: 'menu.models.deployment' }),
           style: {
             paddingInline: 'var(--layout-content-header-inlinepadding)'
           },

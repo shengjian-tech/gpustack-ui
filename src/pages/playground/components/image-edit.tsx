@@ -170,13 +170,8 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
       stream_options_chunk_size: 16 * 1024,
       stream_options_chunk_result: true
     };
-    if (parameters.preview === 'preview') {
-      stream_options = {
-        stream_options_preview: true
-      };
-    }
 
-    if (parameters.preview === 'preview_faster') {
+    if (parameters.preview) {
       stream_options = {
         stream_options_preview_faster: true
       };
@@ -492,6 +487,7 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
                       <div
                         style={{
                           height: 125,
+                          width: 125,
                           maxHeight: 125
                         }}
                         key={item.uid}
@@ -499,6 +495,7 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
                         <SingleImage
                           {...item}
                           height={125}
+                          width={125}
                           maxHeight={125}
                           preview={item.preview}
                           loading={item.loading}
@@ -572,7 +569,7 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
         </div>
         <div style={{ width: 389 }}>
           <MessageInput
-            actions={['clear']}
+            actions={[]}
             defaultSize={{
               minRows: 5,
               maxRows: 5

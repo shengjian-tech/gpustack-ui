@@ -139,15 +139,25 @@ export default {
   'playground.chat.aithought': 'Рассуждение (CoT)',
   'playground.chat.thinking': 'Рассуждение...',
   'playground.image.mask.uploaded': 'Маска загружена',
-  'playground.image.mask.upload': 'Маска загрузки: Дополнительное редактирование запрещено после загрузки.',
+  'playground.image.mask.upload':
+    'Маска загрузки: Дополнительное редактирование запрещено после загрузки.',
   'playground.params.frequency_penalty.tips': `Число от -2.0 до 2.0. Положительные значения снижают вероятность повторения токенов, уже часто встречающихся в тексте, уменьшая склонность модели дословно повторять одни и те же фразы.`,
   'playground.params.presence_penalty.tips': `Число от -2.0 до 2.0. Положительные значения снижают вероятность повторения любых токенов, присутствующих в тексте, повышая склонность модели к обсуждению новых тем.`,
   'playground.image.origin': 'Оригинал',
   'playground.image.mask': 'Маска',
-  'playground.image.negativeMask.tips': '1. После выделения области создание маски станет недоступным; поэтому сначала нарисуйте маску, а затем активируйте опцию. \n 2. После загрузки изображения маски создание новых масок невозможно.',
-  'playground.model.noavailable.tips2': 'Если нужная модель не отображается, убедитесь, что она запущена и ей присвоена правильная категория. Если категория указана неверно, её можно изменить вручную в настройках модели.' // Translated
+  'playground.image.negativeMask.tips':
+    '1. После выделения области создание маски станет недоступным; поэтому сначала нарисуйте маску, а затем активируйте опцию. \n 2. После загрузки изображения маски создание новых масок невозможно.',
+  'playground.model.noavailable.tips2':
+    'Если нужная модель не отображается, убедитесь, что она запущена и ей присвоена правильная категория. Если категория указана неверно, её можно изменить вручную в настройках модели.',
+  'playground.rerank.query.validate': 'The query is required.',
+  'playground.image.generate.error':
+    'Something went wrong. The image could not be generated.',
+  'playground.uploadfile.sizeError':
+    'File size exceeds the limit. Maximum allowed: {size}.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-
+// 1. 'playground.rerank.query.validate': 'The query is required.'
+// 2.  'playground.image.generate.error': 'Something went wrong. The image could not be generated.',
+// 3. 'playground.uploadfile.sizeError': 'File size exceeds the limit. Maximum allowed: {size}.'
 // ========== End of To-Do List ==========

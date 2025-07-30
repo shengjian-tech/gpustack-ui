@@ -41,7 +41,7 @@ export async function queryModelsInstances(
 }
 export async function queryModelsList(
   params: Global.SearchParams,
-  options?: any
+  options?: Record<string, any>
 ) {
   return request<Global.PageResponse<ListItem>>(
     `${MODELS_API}?${qs.stringify(params)}`,
@@ -191,11 +191,11 @@ export async function queryModelScopeModels(
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
+      PageSize: 10,
+      PageNumber: 1,
       ...params,
       ...Criterion,
-      Name: `${params.Name}`,
-      PageSize: 10,
-      PageNumber: 1
+      Name: `${params.Name}`
     })
   });
   if (!res.ok) {
@@ -256,7 +256,7 @@ export async function queryHuggingfaceModels(
   for await (const model of listModels({
     ...params,
     ...options,
-    limit: 10,
+    limit: 500,
     additionalFields: ['sha', 'tags'],
     fetch(_url: string, config: any) {
       const url = params.search.sort

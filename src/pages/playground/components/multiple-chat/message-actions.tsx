@@ -1,10 +1,25 @@
 import CopyButton from '@/components/copy-button';
-import { EditOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import UploadAudio from '@/components/upload-audio';
+import {
+  audioTypeMap,
+  convertFileToBase64,
+  readAudioFile
+} from '@/utils/load-audio-file';
+import {
+  CustomerServiceOutlined,
+  EditOutlined,
+  MinusCircleOutlined
+} from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { Button, Tooltip } from 'antd';
-import React, { useCallback } from 'react';
+import _ from 'lodash';
+import React from 'react';
 import { Roles } from '../../config';
-import { MessageItem, MessageItemAction } from '../../config/types';
+import {
+  AudioFormat,
+  MessageItem,
+  MessageItemAction
+} from '../../config/types';
 import UploadImg from '../upload-img';
 
 interface MessageActionsProps {
@@ -26,17 +41,39 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 }) => {
   const intl = useIntl();
 
-  const handleUpdateImgList = useCallback(
-    (list: { uid: number | string; dataUrl: string }[]) => {
-      updateMessage?.({
-        role: data.role,
-        content: data.content,
-        uid: data.uid,
-        imgs: [...(data.imgs || []), ...list]
-      });
-    },
-    [data, updateMessage]
-  );
+  const handleUpdateImgList = (
+    list: { uid: number | string; dataUrl: string }[]
+  ) => {
+    updateMessage?.({
+      role: data.role,
+      content: data.content,
+      uid: data.uid,
+      audio: data.audio || [],
+      imgs: [...(data.imgs || []), ...list]
+    });
+  };
+
+  const handleUploadAudioChange = async (audio: {
+    file: any;
+    fileList: any[];
+  }) => {
+    const base64Audio = await convertFileToBase64(audio.file);
+    const audioData = await readAudioFile(audio.file);
+    updateMessage?.({
+      role: data.role,
+      content: data.content,
+      uid: data.uid,
+      imgs: data.imgs || [],
+      audio: [
+        {
+          uid: audio.file.uid || audio.fileList[0].uid,
+          format: audioTypeMap[audio.file.type] as AudioFormat,
+          base64: base64Audio.split(',')[1],
+          data: _.pick(audioData, ['url', 'name', 'duration'])
+        }
+      ]
+    });
+  };
 
   return (
     <>
@@ -45,6 +82,17 @@ const MessageActions: React.FC<MessageActionsProps> = ({
           <div className="actions-wrap gap-5">
             {actions.includes('upload') && data.role === Roles.User && (
               <UploadImg handleUpdateImgList={handleUpdateImgList} />
+            )}
+            {actions.includes('upload') && data.role === Roles.User && (
+              <UploadAudio
+                type="text"
+                maxFileSize={1024 * 1024}
+                accept={'.mp3,.wav'}
+                size="small"
+                shape="default"
+                icon={<CustomerServiceOutlined />}
+                onChange={handleUploadAudioChange}
+              ></UploadAudio>
             )}
             {actions.includes('edit') && data.role === Roles.Assistant && (
               <Tooltip title={intl.formatMessage({ id: 'common.button.edit' })}>

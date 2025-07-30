@@ -1,5 +1,6 @@
 import IconFont from '@/components/icon-font';
 import { RightOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Button, Checkbox } from 'antd';
 import _ from 'lodash';
 import React from 'react';
@@ -29,8 +30,18 @@ const HeaderPrefix: React.FC<HeaderPrefixProps> = (props) => {
     disabled
   } = props;
 
+  const intl = useIntl();
+
   const handleToggleExpand = () => {
     onExpandAll?.(!expandAll);
+  };
+
+  const handleUnCheckAll = () => {
+    onSelectAll?.({
+      target: {
+        checked: false
+      }
+    });
   };
 
   if (!hasColumns) {
@@ -98,4 +109,4 @@ const HeaderPrefix: React.FC<HeaderPrefixProps> = (props) => {
   return null;
 };
 
-export default React.memo(HeaderPrefix);
+export default HeaderPrefix;

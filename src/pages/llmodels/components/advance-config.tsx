@@ -24,6 +24,7 @@ import {
   backendLabelMap,
   backendOptionsMap,
   backendParamsHolderTips,
+  getBackendParamsTips,
   modelCategories,
   placementStrategyOptions
 } from '../config';
@@ -207,16 +208,7 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
     }
   };
 
-  const handleBeforeGpuSelectorChange = (gpuIds: any[]) => {
-    if (backend !== backendOptionsMap.ascendMindie || !gpuIds?.length) {
-      return;
-    }
-    const lastGroupName = gpuIds[gpuIds.length - 1][0];
-
-    const lastGroupItems = gpuIds.filter((item) => item[0] === lastGroupName);
-
-    form.setFieldValue(['gpu_selector', 'gpu_ids'], lastGroupItems);
-  };
+  const handleBeforeGpuSelectorChange = (gpuIds: any[]) => {};
 
   const handleGpuSelectorChange = (value: any[]) => {
     handleBeforeGpuSelectorChange(value);
@@ -349,6 +341,11 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
 
         <Form.Item name="backend_version">
           <SealInput.Input
+            placeholder={
+              backendParamsTips?.version
+                ? `${intl.formatMessage({ id: 'common.help.eg' })} ${backendParamsTips?.version}`
+                : ''
+            }
             onBlur={handleBackendVersionOnBlur}
             label={intl.formatMessage({ id: 'models.form.backendVersion' })}
             description={intl.formatMessage(
@@ -357,6 +354,9 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
               },
               {
                 backend: backendLabelMap[backend],
+                version: backendParamsTips?.version
+                  ? `(${intl.formatMessage({ id: 'common.help.eg' })} ${backendParamsTips?.version})`
+                  : '',
                 link: backendParamsTips?.releases && (
                   <span
                     style={{
@@ -403,26 +403,33 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
             onDelete={handleDeleteBackendParameters}
             options={paramsConfig}
             description={
-              backendParamsTips && (
-                <span style={{ marginLeft: 5 }}>
-                  {intl.formatMessage(
-                    { id: 'models.form.backend_parameters.vllm.tips' },
-                    { backend: backendParamsTips.backend || '' }
-                  )}{' '}
-                  <Typography.Link
-                    style={{ display: 'inline' }}
-                    className="flex-center"
-                    href={backendParamsTips.link}
-                    target="_blank"
-                  >
+              backendParamsTips.link && (
+                <span>
+                  {backend === backendOptionsMap.ascendMindie && (
                     <span>
-                      {intl.formatMessage({ id: 'common.text.here' })}
+                      {intl.formatMessage({ id: 'models.backend.mindie.310p' })}
                     </span>
-                    <IconFont
-                      type="icon-external-link"
-                      className="font-size-14 m-l-4"
-                    ></IconFont>
-                  </Typography.Link>
+                  )}
+                  <span style={{ marginLeft: 5 }}>
+                    {intl.formatMessage(
+                      { id: 'models.form.backend_parameters.vllm.tips' },
+                      { backend: backendParamsTips.backend || '' }
+                    )}{' '}
+                    <Typography.Link
+                      style={{ display: 'inline' }}
+                      className="flex-center"
+                      href={backendParamsTips.link}
+                      target="_blank"
+                    >
+                      <span>
+                        {intl.formatMessage({ id: 'common.text.here' })}
+                      </span>
+                      <IconFont
+                        type="icon-external-link"
+                        className="font-size-14 m-l-4"
+                      ></IconFont>
+                    </Typography.Link>
+                  </span>
                 </span>
               )
             }
@@ -461,9 +468,11 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
           </div>
         )}
         {scheduleType === 'auto' &&
-          [backendOptionsMap.llamaBox, backendOptionsMap.vllm].includes(
-            backend
-          ) && (
+          [
+            backendOptionsMap.llamaBox,
+            backendOptionsMap.vllm,
+            backendOptionsMap.ascendMindie
+          ].includes(backend) && (
             <div style={{ paddingBottom: 22, paddingLeft: 10 }}>
               <Form.Item<FormData>
                 name="distributed_inference_across_workers"
@@ -554,4 +563,4 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
   );
 };
 
-export default React.memo(AdvanceConfig);
+export default AdvanceConfig;

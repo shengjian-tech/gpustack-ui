@@ -1,27 +1,12 @@
 import useUserSettings from '@/hooks/use-user-settings';
+import { formatLargeNumber } from '@/utils';
 import { theme } from 'antd';
 import { isFunction } from 'lodash';
 import { useMemo } from 'react';
 
-const formatLargeNumber = (value: number) => {
-  if (typeof value !== 'number' || isNaN(value)) {
-    return value;
-  }
-
-  if (value >= 1e9) {
-    return (value / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
-  } else if (value >= 1e6) {
-    return (value / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
-  } else if (value >= 1e3) {
-    return (value / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
-  } else {
-    return value;
-  }
-};
-
 export const grid = {
   left: 0,
-  right: 20,
+  right: 0,
   bottom: 20,
   containLabel: true
 };
@@ -40,7 +25,12 @@ export default function useChartConfig() {
       tickLineColor: token.colorSplit,
       axislabelColor: token.colorTextTertiary,
       gaugeBgColor: token.colorFillSecondary,
-      gaugeSplitLineColor: isDarkTheme ? '#999' : 'rgba(255, 255, 255, 1)',
+      gaugeSplitLineColor: isDarkTheme
+        ? 'rgba(255,255,255,.3)'
+        : 'rgba(255, 255, 255, 1)',
+      gaugeSplitLineColor2: isDarkTheme
+        ? 'rgba(255,255,255,.5)'
+        : 'rgba(255, 255, 255, 1)',
       colorBgContainerHover: isDarkTheme ? '#424242' : '#fff'
     };
   }, [userSettings.theme, isDarkTheme]);
@@ -51,18 +41,23 @@ export default function useChartConfig() {
     borderColor: 'transparent',
     formatter(params: any, callback?: (val: any) => any) {
       let result = `<span class="tooltip-x-name">${params[0].axisValue}</span>`;
+
       params.forEach((item: any) => {
         let value = isFunction(callback)
           ? callback?.(item.data.value)
           : item.data.value;
+
+        const borderRadius = item.seriesType === 'bar' ? '2px' : '8px';
+
         result += `<span class="tooltip-item">
-     <span class="tooltip-item-name">
-       <span style="display:inline-block;margin-right:5px;border-radius:8px;width:8px;height:8px;background-color:${item.color};"></span>
-       <span class="tooltip-title">${item.seriesName}</span>:
-     </span>
-      <span class="tooltip-value">${value}</span>
+          <span class="tooltip-item-name">
+            <span style="display:inline-block;margin-right:5px;border-radius:${borderRadius};width:8px;height:8px;background-color:${item.color};"></span>
+            <span class="tooltip-title">${item.seriesName}</span>:
+          </span>
+            <span class="tooltip-value">${value}</span>
       </span>`;
       });
+
       return `<div class="tooltip-wrapper">${result}</div>`;
     }
   };
@@ -93,8 +88,6 @@ export default function useChartConfig() {
   };
 
   const yAxis = {
-    // max: 100,
-    // min: 0,
     nameTextStyle: {
       padding: [0, 0, 0, -20]
     },
@@ -197,11 +190,11 @@ export default function useChartConfig() {
       }
     },
     splitLine: {
-      distance: -6,
-      length: 6,
+      distance: -5,
+      length: 5,
       lineStyle: {
         width: 1.5,
-        color: chartColorMap.gaugeSplitLineColor
+        color: chartColorMap.gaugeSplitLineColor2
       }
     },
     axisLabel: {

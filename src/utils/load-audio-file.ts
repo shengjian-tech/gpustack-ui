@@ -1,6 +1,32 @@
+import { message } from 'antd';
 import { convertFileSize } from './index';
 
-export const loadAudioData = async (data: any, type: string) => {
+export const audioTypeMap: Record<string, string> = {
+  'audio/wav': 'wav',
+  'audio/mp3': 'mp3',
+  'audio/mpeg': 'mp3',
+  'audio/x-wav': 'wav'
+};
+
+export const convertFileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+export const loadAudioData = async (
+  data: any,
+  type: string
+): Promise<{
+  data: Blob;
+  size: number | string;
+  type: string;
+  duration: number;
+  url: string;
+}> => {
   return new Promise((resolve, reject) => {
     try {
       const audioBlob = new Blob([data], { type: type });
@@ -24,6 +50,12 @@ export const loadAudioData = async (data: any, type: string) => {
       audio.addEventListener('ended', () => {
         URL.revokeObjectURL(audio.src);
       });
+
+      audio.addEventListener('error', () => {
+        URL.revokeObjectURL(url);
+        message.error('Failed to load audio metadata invalid file');
+        reject(new Error('Failed to load audio metadata invalid file'));
+      });
     } catch (error) {
       console.log('error====', error);
       reject(error);
@@ -31,7 +63,9 @@ export const loadAudioData = async (data: any, type: string) => {
   });
 };
 
-export const readAudioFile = async (file: File) => {
+export const readAudioFile = async (
+  file: File
+): Promise<{ url: string; name: string; duration: number }> => {
   console.log('file====', file);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

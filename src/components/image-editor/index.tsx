@@ -433,7 +433,6 @@ const CanvasImageEditor: React.FC<CanvasImageEditorProps> = forwardRef(
       fitView();
       setActiveScale(autoScale.current);
       updateCursorSize();
-      redrawStrokes(strokesRef.current);
     };
 
     const handleBrushSizeChange = (value: number) => {
@@ -454,11 +453,22 @@ const CanvasImageEditor: React.FC<CanvasImageEditorProps> = forwardRef(
 
     useEffect(() => {
       const handleUndoShortcut = (e: KeyboardEvent) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          e.key === 'z' &&
+          !negativeMaskRef.current
+        ) {
           undo();
         }
       };
+      window.addEventListener('keydown', handleUndoShortcut);
 
+      return () => {
+        window.removeEventListener('keydown', handleUndoShortcut);
+      };
+    }, []);
+
+    useEffect(() => {
       const handleMouseDown = (e: MouseEvent) => {
         mouseDownState.current = true;
       };
@@ -467,7 +477,6 @@ const CanvasImageEditor: React.FC<CanvasImageEditorProps> = forwardRef(
         mouseDownState.current = false;
       };
 
-      window.addEventListener('keydown', handleUndoShortcut);
       // mouse down
       window.addEventListener('mousedown', handleMouseDown);
 
@@ -475,7 +484,7 @@ const CanvasImageEditor: React.FC<CanvasImageEditorProps> = forwardRef(
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
         clearTimeout(timer.current);
-        window.removeEventListener('keydown', handleUndoShortcut);
+
         window.removeEventListener('mousedown', handleMouseDown);
         window.removeEventListener('mouseup', handleMouseUp);
       };

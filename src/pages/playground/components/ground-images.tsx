@@ -145,13 +145,8 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
       chunk_size: 16 * 1024,
       chunk_results: true
     };
-    if (parameters.preview === 'preview') {
-      stream_options = {
-        preview: true
-      };
-    }
 
-    if (parameters.preview === 'preview_faster') {
+    if (parameters.preview) {
       stream_options = {
         preview_faster: true
       };
@@ -250,16 +245,12 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
             placeholer={intl.formatMessage({
               id: 'playground.input.prompt.holder'
             })}
-            actions={['clear']}
+            actions={[]}
             defaultSize={{
               minRows: 5,
               maxRows: 5
             }}
-            title={
-              <span className="font-600">
-                {intl.formatMessage({ id: 'playground.image.prompt' })}
-              </span>
-            }
+            title={intl.formatMessage({ id: 'playground.image.prompt' })}
             loading={loading}
             disabled={!parameters.model}
             isEmpty={!imageList.length}

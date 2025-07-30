@@ -27,7 +27,7 @@ const TableRow: React.FC<
     rowIndex,
     expandable,
     rowSelection,
-    expandedRowKeys,
+    expandedRowKeys = [],
     rowKey,
     childParentKey,
     columns,
@@ -41,7 +41,6 @@ const TableRow: React.FC<
   } = props;
   const tableContext: any = React.useContext<{
     allChildren?: any[];
-    allSubChildren?: any[];
     setDisableExpand?: (record: any) => boolean;
   }>(TableContext);
   const { setChunkRequest } = useSetChunkRequest();
@@ -79,6 +78,12 @@ const TableRow: React.FC<
   const checked = useMemo(() => {
     return rowSelection?.selectedRowKeys?.includes(record[rowKey]);
   }, [rowSelection?.selectedRowKeys, record, rowKey]);
+
+  useEffect(() => {
+    if (expandedRowKeys?.length === 0) {
+      setCurrentExpand(false);
+    }
+  }, [expandedRowKeys.length]);
 
   const renderChildrenData = () => {
     if (childrenData.length === 0) {
@@ -131,9 +136,6 @@ const TableRow: React.FC<
   }, [record, loadChildren]);
 
   const filterUpdateChildrenHandler = () => {
-    if (!expandedRowKeys?.includes(record[rowKey])) {
-      return;
-    }
     const dataList = _.filter(tableContext.allChildren, (data: any) => {
       return _.get(data, [childParentKey]) === _.get(record, [rowKey]);
     });
@@ -269,7 +271,7 @@ const TableRow: React.FC<
             })}
           </Row>
         </div>
-        {expanded && (
+        {expanded && !disableExpand && (
           <div className="expanded-row">
             <Spin spinning={loading}>{renderChildrenData()}</Spin>
           </div>
@@ -279,4 +281,4 @@ const TableRow: React.FC<
   );
 };
 
-export default React.memo(TableRow);
+export default TableRow;

@@ -26,6 +26,7 @@ import {
   CopyOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
 import { useIntl, useNavigate } from '@umijs/max';
 import { ConfigProvider, Empty, Table, Tag, Typography, message } from 'antd';
 import dayjs from 'dayjs';
@@ -541,13 +542,13 @@ const ModelFiles = () => {
       });
       message.success(intl.formatMessage({ id: 'common.message.success' }));
       setModelsExpandKeys([modelData.id]);
-      navigate('/models/list');
+      navigate('/models/deployments');
     } catch (error) {
       // console.log('error', error);
     }
   };
 
-  const columns = [
+  const columns: any[] = [
     {
       title: intl.formatMessage({ id: 'models.form.source' }),
       dataIndex: 'source',
@@ -583,7 +584,7 @@ const ModelFiles = () => {
     {
       title: intl.formatMessage({ id: 'common.table.status' }),
       dataIndex: 'state',
-      width: 120,
+      width: 132,
       render: (text: string, record: ListItem) => {
         return <InstanceStatusTag data={record} />;
       }
@@ -602,7 +603,7 @@ const ModelFiles = () => {
     {
       title: intl.formatMessage({ id: 'resources.modelfiles.size' }),
       dataIndex: 'size',
-      width: 100,
+      width: 110,
       align: 'right',
       ellipsis: {
         showTitle: false
@@ -648,66 +649,82 @@ const ModelFiles = () => {
 
   return (
     <>
-      <FilterBar
-        actionType="dropdown"
-        selectHolder="resources.filter.worker"
-        inputHolder="resources.filter.path"
-        buttonText={intl.formatMessage({ id: 'resources.modelfiles.download' })}
-        handleSelectChange={handleWorkerChange}
-        handleDeleteByBatch={handleDeleteByBatch}
-        handleClickPrimary={handleClickDropdown}
-        handleSearch={handleSearch}
-        selectOptions={workersList}
-        handleInputChange={handleNameChange}
-        rowSelection={rowSelection}
-        actionItems={onLineSourceOptions}
-        showSelect={true}
-      ></FilterBar>
-      <ConfigProvider renderEmpty={renderEmpty}>
-        <Table
-          rowKey="id"
-          tableLayout="fixed"
-          style={{ width: '100%' }}
-          onChange={handleTableChange}
-          dataSource={dataSource.dataList}
-          loading={dataSource.loading}
+      <PageContainer
+        ghost
+        header={{
+          title: intl.formatMessage({ id: 'resources.modelfiles.modelfile' }),
+          style: {
+            paddingInline: 'var(--layout-content-header-inlinepadding)'
+          },
+          breadcrumb: {}
+        }}
+        extra={[]}
+      >
+        <FilterBar
+          marginBottom={22}
+          marginTop={30}
+          actionType="dropdown"
+          selectHolder="resources.filter.worker"
+          inputHolder="resources.filter.path"
+          buttonText={intl.formatMessage({
+            id: 'resources.modelfiles.download'
+          })}
+          handleSelectChange={handleWorkerChange}
+          handleDeleteByBatch={handleDeleteByBatch}
+          handleClickPrimary={handleClickDropdown}
+          handleSearch={handleSearch}
+          selectOptions={workersList}
+          handleInputChange={handleNameChange}
           rowSelection={rowSelection}
-          columns={columns}
-          pagination={{
-            showSizeChanger: true,
-            pageSize: queryParams.perPage,
-            current: queryParams.page,
-            total: dataSource.total,
-            hideOnSinglePage: queryParams.perPage === 10,
-            onChange: handlePageChange
-          }}
-        ></Table>
-      </ConfigProvider>
-      <DeleteModal ref={modalRef}></DeleteModal>
-      <DownloadModal
-        onCancel={handleDownloadCancel}
-        onOk={handleDownload}
-        title={intl.formatMessage({ id: 'resources.modelfiles.download' })}
-        open={downloadModalStatus.show}
-        source={downloadModalStatus.source}
-        width={downloadModalStatus.width}
-        hasLinuxWorker={downloadModalStatus.hasLinuxWorker}
-        workersList={readyWorkers}
-      ></DownloadModal>
-      <DeployModal
-        deploymentType="modelFiles"
-        title={intl.formatMessage({ id: 'models.button.deploy' })}
-        onCancel={handleDeployModalCancel}
-        onOk={handleCreateModel}
-        open={openDeployModal.show}
-        action={PageAction.CREATE}
-        source={openDeployModal.source}
-        width={openDeployModal.width}
-        gpuOptions={openDeployModal.gpuOptions}
-        modelFileOptions={openDeployModal.modelFileOptions || []}
-        initialValues={openDeployModal.initialValues}
-        isGGUF={openDeployModal.isGGUF}
-      ></DeployModal>
+          actionItems={onLineSourceOptions}
+          showSelect={true}
+        ></FilterBar>
+        <ConfigProvider renderEmpty={renderEmpty}>
+          <Table
+            rowKey="id"
+            tableLayout="fixed"
+            style={{ width: '100%' }}
+            onChange={handleTableChange}
+            dataSource={dataSource.dataList}
+            loading={dataSource.loading}
+            rowSelection={rowSelection}
+            columns={columns}
+            pagination={{
+              showSizeChanger: true,
+              pageSize: queryParams.perPage,
+              current: queryParams.page,
+              total: dataSource.total,
+              hideOnSinglePage: queryParams.perPage === 10,
+              onChange: handlePageChange
+            }}
+          ></Table>
+        </ConfigProvider>
+        <DeleteModal ref={modalRef}></DeleteModal>
+        <DownloadModal
+          onCancel={handleDownloadCancel}
+          onOk={handleDownload}
+          title={intl.formatMessage({ id: 'resources.modelfiles.download' })}
+          open={downloadModalStatus.show}
+          source={downloadModalStatus.source}
+          width={downloadModalStatus.width}
+          hasLinuxWorker={downloadModalStatus.hasLinuxWorker}
+          workersList={readyWorkers}
+        ></DownloadModal>
+        <DeployModal
+          deploymentType="modelFiles"
+          title={intl.formatMessage({ id: 'models.button.deploy' })}
+          onCancel={handleDeployModalCancel}
+          onOk={handleCreateModel}
+          open={openDeployModal.show}
+          action={PageAction.CREATE}
+          source={openDeployModal.source}
+          width={openDeployModal.width}
+          gpuOptions={openDeployModal.gpuOptions}
+          modelFileOptions={openDeployModal.modelFileOptions || []}
+          initialValues={openDeployModal.initialValues}
+          isGGUF={openDeployModal.isGGUF}
+        ></DeployModal>
+      </PageContainer>
     </>
   );
 };

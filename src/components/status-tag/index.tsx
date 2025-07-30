@@ -29,6 +29,7 @@ type StatusTagProps = {
   download?: {
     percent: number;
   };
+  maxTooltipWidth?: number;
   extra?: React.ReactNode;
   actions?: {
     label: string;
@@ -44,6 +45,7 @@ const StatusTag: React.FC<StatusTagProps> = ({
   download,
   extra,
   actions = [],
+  maxTooltipWidth = 250,
   type = 'tag'
 }) => {
   const { text, status } = statusValue;
@@ -56,16 +58,21 @@ const StatusTag: React.FC<StatusTagProps> = ({
     return StatusColorMap[status];
   }, [status]);
 
-  const statusMessage = useMemo(() => {
-    return statusValue.message?.replace(linkReg, '');
+  const hasLink = useMemo(() => {
+    if (!statusValue.message) return false;
+    return linkReg.test(statusValue.message || '');
   }, [statusValue.message]);
 
-  const messageLink = useMemo(() => {
+  const statusMessage = useMemo<string>(() => {
+    if (!statusValue.message) return '';
     const link = statusValue.message?.match(linkReg);
     if (link) {
-      return link?.[0].replace(linkReg, '<a $1 target="_blank">$2</a>');
+      return statusValue.message?.replace(
+        linkReg,
+        '<a $1 target="_blank">$2</a>'
+      );
     }
-    return null;
+    return statusValue.message;
   }, [statusValue.message]);
 
   const renderContent = () => {
@@ -118,17 +125,17 @@ const StatusTag: React.FC<StatusTagProps> = ({
         <div
           style={{
             width: 'max-content',
-            maxWidth: 250,
+            maxWidth: maxTooltipWidth,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word'
           }}
         >
-          {statusMessage}
-          {statusMessage && <span className="m-r-5"></span>}
-          {extra}
-          {messageLink && (
-            <span dangerouslySetInnerHTML={{ __html: messageLink }}></span>
+          {hasLink ? (
+            <span dangerouslySetInnerHTML={{ __html: statusMessage }}></span>
+          ) : (
+            statusMessage
           )}
+          {extra && <span className="m-l-5">{extra}</span>}
         </div>
       </div>
     );

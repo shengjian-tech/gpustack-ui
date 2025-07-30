@@ -7,27 +7,41 @@ import _ from 'lodash';
 import qs from 'query-string';
 import { useEffect, useRef, useState } from 'react';
 
-export default function useTableFetch<ListItem>(options: {
-  API?: string;
-  watch?: boolean;
-  fetchAPI: (params: any) => Promise<Global.PageResponse<ListItem>>;
-  deleteAPI?: (id: number, params?: any) => Promise<any>;
-  contentForDelete?: string;
-  defaultData?: any[];
-}) {
+type EventsType = 'CREATE' | 'UPDATE' | 'DELETE' | 'INSERT';
+
+type WatchConfig =
+  | { watch?: false | undefined; API?: string; polling?: boolean }
+  | { watch: true; API: string; polling?: false | undefined }
+  | { polling: true; watch: false | undefined; API?: string };
+
+export default function useTableFetch<ListItem>(
+  options: {
+    fetchAPI: (params: any) => Promise<Global.PageResponse<ListItem>>;
+    deleteAPI?: (id: number, params?: any) => Promise<any>;
+    contentForDelete?: string;
+    defaultData?: any[];
+    events?: EventsType[];
+  } & WatchConfig
+) {
   const {
     fetchAPI,
     deleteAPI,
     contentForDelete,
     API,
+    polling = false,
     watch,
-    defaultData = []
+    defaultData = [],
+    events = ['UPDATE', 'DELETE']
   } = options;
+  const pollingRef = useRef<any>(null);
   const chunkRequedtRef = useRef<any>(null);
   const modalRef = useRef<any>(null);
   const rowSelection = useTableRowSelection();
   const { sortOrder, setSortOrder } = useTableSort({
     defaultSortOrder: 'descend'
+  });
+  const [extraStatus, setExtraStatus] = useState<Record<string, any>>({
+    firstLoad: true
   });
 
   const [dataSource, setDataSource] = useState<{
@@ -51,7 +65,7 @@ export default function useTableFetch<ListItem>(options: {
 
   const { setChunkRequest } = useSetChunkRequest();
   const { updateChunkedList, cacheDataListRef } = useUpdateChunkedList({
-    events: ['UPDATE'],
+    events: events,
     dataList: dataSource.dataList,
     setDataList(list, opts?: any) {
       setDataSource((pre) => {
@@ -66,6 +80,8 @@ export default function useTableFetch<ListItem>(options: {
       });
     }
   });
+
+  const debounceSetExtraStatus = _.debounce(setExtraStatus, 3000);
 
   const updateHandler = (list: any) => {
     _.each(list, (data: any) => {
@@ -88,12 +104,14 @@ export default function useTableFetch<ListItem>(options: {
     }
   };
 
-  const fetchData = async (params?: { query: any }) => {
+  const fetchData = async (params?: { query: any }, polling = false) => {
+    if (!polling) {
+      setDataSource((pre) => {
+        pre.loading = true;
+        return { ...pre };
+      });
+    }
     const { query } = params || {};
-    setDataSource((pre) => {
-      pre.loading = true;
-      return { ...pre };
-    });
     try {
       const params = {
         ..._.pickBy(query || queryParams, (val: any) => !!val)
@@ -136,7 +154,29 @@ export default function useTableFetch<ListItem>(options: {
         total: dataSource.total,
         totalPage: dataSource.totalPage
       });
+    } finally {
+      debounceSetExtraStatus({
+        firstLoad: false
+      });
     }
+  };
+
+  const fetchAPIWithPolling = async (params: any) => {
+    if (!polling || watch || !fetchAPI) return;
+
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+
+    // fetch data with polling, 1s interval
+    pollingRef.current = setInterval(async () => {
+      fetchData(
+        {
+          query: params
+        },
+        true
+      );
+    }, 5000);
   };
 
   const handleQueryChange = (params: any) => {
@@ -176,7 +216,7 @@ export default function useTableFetch<ListItem>(options: {
     row: ListItem & { name: string; id: number },
     options?: any
   ) => {
-    modalRef.current.show({
+    modalRef.current?.show({
       content: contentForDelete,
       operation: 'common.delete.single.confirm',
       name: row.name,
@@ -192,23 +232,40 @@ export default function useTableFetch<ListItem>(options: {
   };
 
   const handleDeleteBatch = (options = {}) => {
-    modalRef.current.show({
+    modalRef.current?.show({
       content: contentForDelete,
       operation: 'common.delete.confirm',
       selection: true,
       ...options,
       async onOk() {
         if (!deleteAPI) return;
-        await handleBatchRequest(rowSelection.selectedRowKeys, (id) =>
-          deleteAPI(id, {
-            ...modalRef.current?.configuration
-          })
+        const successIds: any[] = [];
+        const res = await handleBatchRequest(
+          rowSelection.selectedRowKeys,
+          async (id: any) => {
+            await deleteAPI(id, {
+              ...modalRef.current?.configuration
+            });
+            successIds.push(id);
+          }
         );
-        rowSelection.clearSelections();
+        rowSelection.removeSelectedKeys(successIds);
         fetchData();
+        return res;
       }
     });
   };
+
+  useEffect(() => {
+    if (dataSource.loadend) {
+      fetchAPIWithPolling(queryParams);
+    }
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [dataSource.loadend, queryParams]);
 
   useEffect(() => {
     const init = async () => {
@@ -230,6 +287,7 @@ export default function useTableFetch<ListItem>(options: {
     sortOrder,
     queryParams,
     modalRef,
+    extraStatus,
     setQueryParams,
     handleDelete,
     handleDeleteBatch,

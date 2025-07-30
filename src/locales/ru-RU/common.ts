@@ -237,11 +237,20 @@ export default {
   'common.appearance.dark': 'Темная',
   'common.appearance.light': 'Светлая',
   'common.appearance.system': 'Как в системе',
-  'common.exception.404': 'Извините, страница, которую вы посетили, не существует.',
+  'common.exception.404':
+    'Извините, страница, которую вы посетили, не существует.',
   'common.appearance.darkmode': 'Тёмная тема',
   'common.appearance.lightmode': 'Светлая тема',
   'common.appearance.tips': 'По умолчанию соответствует системным настройкам.',
-  'common.button.forgotpassword': 'Забыли пароль?'
+  'common.button.forgotpassword': 'Забыли пароль?',
+  'common.appearance.theme': 'Тема',
+  'common.page.wentwrong': 'Что-то пошло не так.',
+  'common.page.refresh.tips':
+    'Упс! Что-то пошло не так. Попробуйте обновить страницу.',
+  'common.tips.escape.disable':
+    'Чтобы закрыть, нажмите "Отмена" или крестик (X) в правом верхнем углу.',
+  'common.button.clearSelection': 'Сбросить выбор',
+  'common.select.count': '{count} Выбрано'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

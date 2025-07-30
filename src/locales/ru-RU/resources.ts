@@ -69,9 +69,28 @@ export default {
   'resources.modelfiles.storagePath.holder': 'Ожидание завершения загрузки...',
   'resources.filter.worker': 'Фильтровать по узлу',
   'resources.filter.source': 'Фильтровать по источнику',
-  'resources.modelfiles.delete.tips': 'Также удалить файл с диска!',
+  'resources.modelfiles.delete.tips': 'Также удалить файл с диска',
   'resources.modelfiles.copy.tips': 'Скопировать полный путь',
-  'resources.filter.path': 'Фильтрация по пути'
+  'resources.filter.path': 'Фильтрация по пути',
+  'resources.register.worker.step1':
+    'В меню выберите <span class="bold-text">Скопировать токен</span>.',
+  'resources.register.worker.step2':
+    'В меню выберите <span class="bold-text">Быстрая настройка</span>.',
+  'resources.register.worker.step3':
+    'Перейдите на вкладку <span class="bold-text">Общие</span>.',
+  'resources.register.worker.step4':
+    'Выберите роль сервиса: <span class="bold-text">Воркер</span>.',
+  'resources.register.worker.step5':
+    'Введите <span class="bold-text">URL сервера</span>: {url}.',
+  'resources.register.worker.step6':
+    'Вставьте <span class="bold-text">Токен</span>.',
+  'resources.register.worker.step7':
+    'Нажмите <span class="bold-text">Перезапуск</span> для применения настроек.',
+  'resources.register.install.title': 'Установка GPUStack на {os}',
+  'resources.register.download':
+    'Скачайте и установите <a href={url} target="_blank">инсталлятор</a>. Поддерживаемые версии: {versions}.',
+  'resource.register.maos.support': 'Apple Silicon (серия M), macOS 14+',
+  'resource.register.windows.support': 'Windows 10, Windows 11'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

@@ -7,7 +7,8 @@ export default [
     key: 'dashboard',
     // icon: 'AppstoreOutlined',
     access: 'canSeeAdmin',
-    component: './dashboard'
+    component: './dashboard',
+    routes: []
   },
   {
     name: 'playground',
@@ -24,31 +25,19 @@ export default [
         title: 'Chat',
         path: '/playground/chat',
         key: 'chat',
-        icon: 'Comment',
+        icon: 'icon-chat',
+        selectedIcon: 'icon-chat-filled',
+        defaultIcon: 'icon-chat',
         component: './playground/index'
-      },
-      {
-        name: 'text2images',
-        title: 'Text2Images',
-        path: keepAliveRoutes.text2images,
-        key: 'text2images',
-        icon: 'Comment',
-        component: './playground/images'
-      },
-      {
-        name: 'speech',
-        title: 'Speech',
-        path: keepAliveRoutes.speech,
-        key: 'speech',
-        icon: 'Comment',
-        component: './playground/speech'
       },
       {
         name: 'embedding',
         title: 'embedding',
         path: '/playground/embedding',
         key: 'embedding',
-        icon: 'Comment',
+        icon: 'icon-embedding',
+        selectedIcon: 'icon-embedding-filled',
+        defaultIcon: 'icon-embedding',
         component: './playground/embedding'
       },
       {
@@ -56,49 +45,134 @@ export default [
         title: 'Rerank',
         path: '/playground/rerank',
         key: 'rerank',
-        icon: 'Comment',
+        icon: 'icon-reranker',
+        selectedIcon: 'icon-reranker-filled',
+        defaultIcon: 'icon-reranker',
         component: './playground/rerank'
+      },
+      {
+        name: 'text2images',
+        title: 'Text2Images',
+        path: keepAliveRoutes.text2images,
+        key: 'text2images',
+        icon: 'icon-image1',
+        selectedIcon: 'icon-image-filled',
+        defaultIcon: 'icon-image1',
+        component: './playground/images'
+      },
+      {
+        name: 'speech',
+        title: 'Speech',
+        path: keepAliveRoutes.speech,
+        key: 'speech',
+        icon: 'icon-audio1',
+        selectedIcon: 'icon-audio-filled',
+        defaultIcon: 'icon-audio1',
+        component: './playground/speech'
       }
     ]
   },
   {
-    name: 'modelCatalog',
-    path: '/models/catalog',
-    key: 'modelsCatalog',
-    // icon: 'icon-catalog',
-    access: 'canSeeAdmin',
-    component: './llmodels/catalog'
-  },
-  {
     name: 'models',
-    path: '/models/list',
+    path: '/models',
     key: 'models',
-    // icon: 'Block',
     access: 'canSeeAdmin',
-    component: './llmodels/index'
+    routes: [
+      {
+        path: '/models',
+        redirect: '/models/deployments'
+      },
+      {
+        name: 'modelCatalog',
+        path: '/models/catalog',
+        key: 'modelsCatalog',
+        icon: 'icon-layers',
+        selectedIcon: 'icon-layers-filled',
+        defaultIcon: 'icon-layers',
+        access: 'canSeeAdmin',
+        component: './llmodels/catalog'
+      },
+      {
+        name: 'deployment',
+        path: '/models/deployments',
+        key: 'modelDeployments',
+        icon: 'icon-model',
+        selectedIcon: 'icon-model-filled',
+        defaultIcon: 'icon-model',
+        access: 'canSeeAdmin',
+        component: './llmodels/index'
+      }
+    ]
   },
   {
     name: 'resources',
     path: '/resources',
     key: 'resources',
-    // icon: 'CloudServer',
     access: 'canSeeAdmin',
-    component: './resources'
+    routes: [
+      {
+        path: '/resources',
+        redirect: '/resources/workers'
+      },
+      {
+        name: 'workers',
+        path: '/resources/workers',
+        key: 'workers',
+        icon: 'icon-resources',
+        selectedIcon: 'icon-resources-filled',
+        defaultIcon: 'icon-resources',
+        component: './resources/components/workers'
+      },
+      {
+        name: 'gpus',
+        path: '/resources/gpus',
+        key: 'gpus',
+        icon: 'icon-gpu1',
+        selectedIcon: 'icon-gpu-filled',
+        defaultIcon: 'icon-gpu1',
+        component: './resources/components/gpus'
+      },
+      {
+        name: 'modelfiles',
+        path: '/resources/modelfiles',
+        key: 'modelfiles',
+        icon: 'icon-files',
+        selectedIcon: 'icon-files-filled',
+        defaultIcon: 'icon-files',
+        component: './resources/components/model-files'
+      }
+    ]
+  },
+  {
+    name: 'accessControl',
+    path: '/access-control',
+    key: 'accessControl',
+    access: 'canSeeAdmin',
+    routes: [
+      {
+        path: '/access-control',
+        redirect: '/access-control/users'
+      },
+      {
+        name: 'users',
+        path: '/access-control/users',
+        key: 'users',
+        icon: 'icon-users',
+        selectedIcon: 'icon-users-filled',
+        defaultIcon: 'icon-users',
+        component: './users'
+      }
+    ]
   },
   {
     name: 'apikeys',
     path: '/api-keys',
     key: 'apikeys',
-    // icon: 'KeyOutlined',
+    hideInMenu: true,
+    selectedIcon: 'icon-key-filled',
+    icon: 'icon-key',
+    defaultIcon: 'icon-key',
     component: './api-keys'
-  },
-  {
-    name: 'users',
-    path: '/users',
-    key: 'users',
-    // icon: 'Team',
-    access: 'canSeeAdmin',
-    component: './users'
   },
   {
     name: 'profile',

@@ -173,7 +173,8 @@ const Users: React.FC = () => {
           title: intl.formatMessage({ id: 'users.title' }),
           style: {
             paddingInline: 'var(--layout-content-header-inlinepadding)'
-          }
+          },
+          breadcrumb: {}
         }}
         extra={[]}
       >

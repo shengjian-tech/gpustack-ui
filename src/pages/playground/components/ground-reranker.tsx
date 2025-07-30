@@ -9,7 +9,16 @@ import {
   SendOutlined
 } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Checkbox, Form, Input, Spin, Tag, Tooltip } from 'antd';
+import {
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Spin,
+  Tag,
+  Tooltip,
+  Typography
+} from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import 'overlayscrollbars/overlayscrollbars.css';
@@ -22,8 +31,10 @@ import React, {
   useRef,
   useState
 } from 'react';
+import styled from 'styled-components';
 import { rerankerQuery } from '../apis';
 import { extractErrorMessage } from '../config';
+import { rerankerSamples } from '../config/samples';
 import { ParamsSchema } from '../config/types';
 import { LLM_METAKEYS } from '../hooks/config';
 import { useInitLLmMeta } from '../hooks/use-init-meta';
@@ -33,7 +44,21 @@ import '../style/system-message-wrap.less';
 import { generateRerankCode } from '../view-code/rerank';
 import DynamicParams from './dynamic-params';
 import InputList from './input-list';
+import TokenUsage from './token-usage';
 import ViewCommonCode from './view-common-code';
+
+const { Text } = Typography;
+
+const SearchInputWrapper = styled.div`
+  margin: 16px 32px 10px;
+  position: relative;
+`;
+
+const ValidText = styled(Text)`
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+`;
 
 interface MessageProps {
   modelList: Global.BaseOption<string>[];
@@ -64,7 +89,6 @@ const fieldConfig: ParamsSchema[] = [
 const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
   const { modelList } = props;
 
-  const messageId = useRef<number>(0);
   const intl = useIntl();
   const requestSource = useRequestToken();
   const [show, setShow] = useState(false);
@@ -88,6 +112,7 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
       rank?: number;
     }[]
   >([]);
+  const [isEmptyQuery, setIsEmptyQuery] = useState<boolean>(false);
 
   const [textList, setTextList] = useState<
     {
@@ -111,7 +136,6 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
       name: ''
     }
   ]);
-  const [sortIndexMap, setSortIndexMap] = useState<number[]>([]);
   const [queryValue, setQueryValue] = useState<string>('');
   const selectionTextRef = useRef<any>(null);
 
@@ -146,9 +170,34 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
       },
       setCollapse() {
         setCollapse(!collapse);
-      }
+      },
+      collapse: collapse
     };
   });
+
+  const setMessageId = () => {
+    const uid = inputListRef.current?.setMessageId();
+    return uid;
+  };
+
+  useEffect(() => {
+    if (intl.locale || 'en-US') {
+      const sample = rerankerSamples[intl.locale];
+      if (sample) {
+        setTextList(
+          sample.documents.map((item: string, index: number) => ({
+            text: item,
+            uid: setMessageId(),
+            name: `Document ${index + 1}`,
+            percent: undefined,
+            score: undefined,
+            rank: undefined
+          }))
+        );
+        setQueryValue(sample.query);
+      }
+    }
+  }, []);
 
   const viewCodeContent = useMemo(() => {
     return generateRerankCode({
@@ -179,7 +228,7 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
     return res * 100;
   };
 
-  const renderPercent = useCallback((data: any) => {
+  const renderPercent = (data: any) => {
     if (!data.showExtra || !data.percent) {
       return null;
     }
@@ -208,11 +257,6 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
         </span>
       </div>
     );
-  }, []);
-
-  const setMessageId = () => {
-    messageId.current = messageId.current + 1;
-    return messageId.current;
   };
 
   const handleStopConversation = () => {
@@ -220,10 +264,13 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
     setLoading(false);
   };
 
-  const submitMessage = async () => {
+  const submitMessage = async (query: string) => {
     try {
+      setIsEmptyQuery(!queryValue);
+      setTokenResult(null);
       await formRef.current?.form.validateFields();
-      if (!parameters.model) return;
+
+      if (!parameters.model || !queryValue) return;
       const documentList: any[] = [...textList, ...fileList];
 
       const validDocus = documentList.filter((item) => item.text);
@@ -235,21 +282,20 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
       setIsEmptyText(false);
       setLoading(true);
       setMessageId();
-      setTokenResult(null);
-      setSortIndexMap([]);
 
       requestToken.current?.cancel?.();
       requestToken.current = requestSource();
+
+      const filledList = textList.filter((item) => item.text);
+
+      setTextList(filledList);
 
       const result: any = await rerankerQuery(
         {
           model: parameters.model,
           top_n: parameters.top_n,
-          query: queryValue,
-          documents: [
-            ...textList.map((item) => item.text),
-            ...fileList.map((item) => item.text)
-          ]
+          query: query,
+          documents: filledList.map((item) => item.text)
         },
         {
           token: requestToken.current.token
@@ -267,18 +313,14 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
       const minValue = sortList[0].relevance_score;
 
       // reset state
-      let newTextList = textList.map((item) => {
+      let newTextList = filledList.map((item) => {
         item.percent = undefined;
         item.score = undefined;
         item.rank = undefined;
         return item;
       });
 
-      let sortMap: number[] = [];
-
       result.results?.forEach((item: any, sIndex: number) => {
-        sortMap.push(item.index);
-
         newTextList[item.index] = {
           ...newTextList[item.index],
           uid: setMessageId(),
@@ -294,7 +336,6 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
       });
 
       newTextList = _.sortBy(newTextList, 'rank');
-      setSortIndexMap(sortMap);
       setTextList(newTextList);
     } catch (error: any) {
       setTokenResult({
@@ -306,12 +347,16 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
     }
   };
 
-  const handleSearch = (val: string) => {
-    submitMessage();
+  const handleSearch = (val: string, event: any, action: any) => {
+    if (action.source === 'clear') {
+      return;
+    }
+    submitMessage(val);
   };
 
   const handleQueryChange = (e: any) => {
     setQueryValue(e.target.value);
+    setIsEmptyQuery(!e.target.value);
   };
 
   const handleCloseViewCode = () => {
@@ -322,78 +367,52 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
     inputListRef.current?.handleAdd();
   };
 
-  const handleTextListChange = useCallback(
-    (list: { text: string; uid: number | string; name: string }[]) => {
-      const newList = list?.map((item: any) => {
-        item.percent = undefined;
-        item.score = undefined;
-        item.rank = undefined;
-        return item;
-      });
-      setTextList(newList);
-    },
-    []
-  );
+  const handleTextListChange = (
+    list: { text: string; uid: number | string; name: string }[]
+  ) => {
+    const newList = list?.map((item: any) => {
+      item.percent = undefined;
+      item.score = undefined;
+      item.rank = undefined;
+      return item;
+    });
+    setTextList(newList);
+  };
 
-  const handleonSelect = useCallback(
-    (data: {
-      start: number;
-      end: number;
-      beforeText: string;
-      afterText: string;
-      index: number;
-    }) => {
-      selectionTextRef.current = data;
-    },
-    []
-  );
+  const handleonSelect = (data: {
+    start: number;
+    end: number;
+    beforeText: string;
+    afterText: string;
+    index: number;
+  }) => {
+    selectionTextRef.current = data;
+  };
 
-  const handleOnPaste = useCallback(
-    (e: any, index: number) => {
-      if (!multiplePasteEnable.current) return;
-      const text = e.clipboardData.getData('text');
-      if (text) {
-        const dataLlist = text.split('\n').map((item: string) => {
-          return {
-            text: item?.trim(),
-            uid: setMessageId(),
-            name: ''
-          };
-        });
-        dataLlist[0].text = `${selectionTextRef.current?.beforeText || ''}${dataLlist[0].text}${selectionTextRef.current?.afterText || ''}`;
-        const result = [
-          ...textList.slice(0, index),
-          ...dataLlist,
-          ...textList.slice(index + 1)
-        ]
-          .filter((item) => item.text)
-          .map((item, index) => {
-            item.percent = undefined;
-            item.score = undefined;
-            item.rank = undefined;
-            return {
-              ...item,
-              uid: setMessageId()
-            };
-          });
-        setTextList(result);
-      }
-    },
-    [textList]
-  );
-
-  const handleOnSort = useCallback(
-    (list: { text: string; uid: number | string; name: string }[]) => {
-      const newList = list?.map((item) => {
+  const handleOnPaste = (e: any, index: number) => {
+    if (!multiplePasteEnable.current) return;
+    const text = e.clipboardData.getData('text');
+    if (text) {
+      const dataLlist = text.split('\n').map((item: string) => {
         return {
-          ...item,
-          uid: setMessageId()
+          text: item?.trim(),
+          name: '',
+          uid: setMessageId(),
+          percent: undefined,
+          score: undefined,
+          rank: undefined
         };
       });
-      setTextList(newList);
-    },
-    []
-  );
+      dataLlist[0].text = `${selectionTextRef.current?.beforeText || ''}${dataLlist[0].text}${selectionTextRef.current?.afterText || ''}`;
+      const result = [
+        ...textList.slice(0, index),
+        ...dataLlist,
+        ...textList.slice(index + 1)
+      ].filter((item) => item.text);
+
+      setTextList(result);
+    }
+  };
 
   const renderExtra = useMemo(() => {
     if (modelMeta?.n_ctx && modelMeta?.n_slot) {
@@ -414,12 +433,12 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
     setTextList([
       {
         text: '',
-        uid: -1,
+        uid: setMessageId(),
         name: ''
       },
       {
         text: '',
-        uid: -2,
+        uid: setMessageId(),
         name: ''
       }
     ]);
@@ -434,18 +453,6 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
     }
     handleOnValuesChange(changedValues, allValues);
   }, []);
-
-  // useHotkeys(
-  //   HotKeys.SUBMIT,
-  //   (e: any) => {
-  //     e.preventDefault();
-  //     handleSearch(queryValue);
-  //   },
-  //   {
-  //     enabled: !loading,
-  //     preventDefault: true
-  //   }
-  // );
 
   useEffect(() => {
     if (scroller.current) {
@@ -470,9 +477,10 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
           >
             <span>{intl.formatMessage({ id: 'playground.rerank.query' })}</span>
           </h3>
-          <div style={{ margin: '16px 32px 10px' }}>
+          <SearchInputWrapper>
             <Input.Search
               allowClear
+              value={queryValue}
               onSearch={handleSearch}
               onChange={handleQueryChange}
               enterButton={
@@ -492,7 +500,12 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
                 id: 'playground.rerank.query.holder'
               })}
             ></Input.Search>
-          </div>
+            {isEmptyQuery && (
+              <ValidText type="danger">
+                {intl.formatMessage({ id: 'playground.rerank.query.validate' })}
+              </ValidText>
+            )}
+          </SearchInputWrapper>
         </div>
         <div className="center" ref={scroller}>
           <div className="documents">
@@ -502,15 +515,7 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
                   {intl.formatMessage({ id: 'playground.embedding.documents' })}
                 </span>
               </h3>
-              <span className="m-l-10 font-size-12">
-                {' '}
-                {tokenResult?.total_tokens && (
-                  <span style={{ color: 'var(--ant-orange)' }}>
-                    {intl.formatMessage({ id: 'playground.tokenusage' })}:{' '}
-                    {tokenResult?.total_tokens}
-                  </span>
-                )}
-              </span>
+
               <div className="flex-center gap-10">
                 <Tooltip
                   title={intl.formatMessage({
@@ -545,15 +550,11 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
             </div>
             <div className="docs-wrapper">
               <InputList
-                key={messageId.current}
-                sortIndex={sortIndexMap}
                 ref={inputListRef}
                 textList={textList}
                 showLabel={false}
-                sortable={false}
                 height={46}
                 onChange={handleTextListChange}
-                onSort={handleOnSort}
                 extra={renderPercent}
                 onSelect={handleonSelect}
                 onPaste={handleOnPaste}
@@ -568,6 +569,10 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
                   ></AlertInfo>
                 </div>
               )}
+              <TokenUsage
+                tokenResult={tokenResult}
+                className="m-t-16"
+              ></TokenUsage>
             </div>
           </div>
           <div></div>

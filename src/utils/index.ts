@@ -18,26 +18,29 @@ export const handleBatchRequest = async (
   list: any[],
   fn: (args: any) => void
 ) => {
-  return Promise.all(list.map((item) => fn(item)));
+  return Promise.allSettled(list.map((item) => fn(item)));
 };
 
 export const convertFileSize = (
-  sizeInBytes?: number,
+  sizeInBytes: number,
   prec = 1,
   allowEmpty = false
 ): string | number => {
   if (!sizeInBytes) return allowEmpty ? '' : 0;
 
+  const fmt = 1024;
+
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  const precs = [0, 1, 1, 2, 2]; // precision for each unit
   let size = sizeInBytes;
   let unitIndex = 0;
 
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
+  while (size >= fmt && unitIndex < units.length - 1) {
+    size /= fmt;
     unitIndex++;
   }
 
-  return `${_.round(size, prec)} ${units[unitIndex]}`;
+  return `${_.round(size, precs[unitIndex])} ${units[unitIndex]}`;
 };
 
 export const platformCall = () => {
@@ -84,6 +87,22 @@ export const formatNumber = (num: number) => {
     return (num / 1000).toFixed(2) + 'k';
   } else {
     return num.toString();
+  }
+};
+
+export const formatLargeNumber = (value: number) => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return value;
+  }
+
+  if (value >= 1e9) {
+    return (value / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+  } else if (value >= 1e6) {
+    return (value / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  } else if (value >= 1e3) {
+    return (value / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+  } else {
+    return value;
   }
 };
 

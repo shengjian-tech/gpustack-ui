@@ -21,7 +21,6 @@ import { FormData, SourceType } from '../config/types';
 import CatalogFrom from '../forms/catalog';
 import HuggingFaceForm from '../forms/hugging-face';
 import LocalPathForm from '../forms/local-path';
-import OllamaForm from '../forms/ollama_library';
 import AdvanceConfig from './advance-config';
 
 interface DataFormProps {
@@ -150,7 +149,7 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
 
   const handleOnValuesChange = async (changedValues: any, allValues: any) => {
     const fieldName = Object.keys(changedValues)[0];
-    console.log('handleOnValuesChange', fieldName, changedValues, allValues);
+
     if (excludeFields.includes(fieldName)) {
       return;
     }
@@ -248,11 +247,11 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
       <FormInnerContext.Provider
         value={{
           onBackendChange: handleBackendChange,
+          onValuesChange: onValuesChange,
           gpuOptions: gpuOptions
         }}
       >
         <HuggingFaceForm></HuggingFaceForm>
-        <OllamaForm></OllamaForm>
         <LocalPathForm></LocalPathForm>
       </FormInnerContext.Provider>
       <Form.Item name="backend" rules={[{ required: true }]}>

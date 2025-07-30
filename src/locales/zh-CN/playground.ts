@@ -87,7 +87,7 @@ export default {
   'playground.audio.startrecord': '开始录音',
   'playground.audio.stoprecord': '停止录音',
   'playground.audio.generating.tips': '生成的文本将出现在这里',
-  'playground.audio.uploadfile.tips': '请上传音频文件，支持格式：{formats}',
+  'playground.audio.uploadfile.tips': '上传音频文件，支持格式：{formats}',
   'playground.audio.button.generate': '生成文本',
   'playground.input.multiplePaste': '批量输入',
   'playground.input.multiplePaste.tips':
@@ -145,5 +145,8 @@ export default {
   'playground.image.negativeMask.tips':
     '1. 选择后，将不可再绘制遮罩；因此，你应该先绘制遮罩然后再勾选.\n 2. 当上传了遮罩图片，将不可再生成遮罩',
   'playground.model.noavailable.tips2':
-    '若预期的模型未显示，请检查模型是否已正常运行并被正确分类。如分类不正确，请编辑模型并手动调整其类别。'
+    '若预期的模型未显示，请检查模型是否已正常运行并被正确分类。如分类不正确，请编辑模型并手动调整其类别。',
+  'playground.rerank.query.validate': '查询内容不能为空',
+  'playground.image.generate.error': '出了一点问题，图片未能生成。',
+  'playground.uploadfile.sizeError': '上传的文件大小超过限制，最大允许 {size}'
 };

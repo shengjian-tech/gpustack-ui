@@ -97,7 +97,7 @@ export default {
   'common.form.field.input.required': 'required',
   'common.form.field.select.required': 'required',
   'common.select.option': 'All',
-  'common.checbox.all': 'All',
+  'common.checbox.all': 'Select all',
   'common.select.all': 'All {type}',
   'common.data.unkonwn': 'Unknown',
   'common.data.none': 'No Data',
@@ -105,7 +105,7 @@ export default {
   'common.button.addfile': 'Add File',
   'common.logout.msg': 'Log out succeeded',
   'common.button.logout': 'Log out',
-  'common.form.rule.select': 'please select {name}',
+  'common.form.rule.select': 'Please select a {name}',
   'common.form.rule.input': '{name} is required',
   'common.form.key': 'the same key exists',
   'common.date.utc': 'UTC time',
@@ -147,7 +147,7 @@ export default {
   'common.copy.notSupport': 'Your browser does not support Clipboard API',
   'common.title.basicInfo': 'Basic',
   'common.help.need': 'Need help?',
-  'common.help.eg': 'e.g.:',
+  'common.help.eg': 'e.g.,',
   'common.filter.label': 'Filters',
   'common.filter.isrequired.holder': 'Optional',
   'common.filter.isrequired.true': 'Required',
@@ -194,13 +194,13 @@ export default {
   'common.delete.confirm':
     'Are you sure you want to delete the selected {type}?',
   'common.delete.single.confirm':
-    'Are you sure you want to delete <span style="font-size: 13px;font-weight: 700">{name}</span>?',
+    'Are you sure you want to delete? \n <span style="font-size: 13px;font-weight: 700">{name}</span>',
   'common.stop.confirm': 'Are you sure you want to stop the selected {type}?',
   'common.stop.single.confirm':
-    'Are you sure you want to stop <span style="font-size: 13px;font-weight: 700">{name}</span>?',
+    'Are you sure you want to stop? \n <span style="font-size: 13px;font-weight: 700">{name}</span>',
   'common.start.confirm': 'Are you sure you want to start the selected {type}?',
   'common.start.single.confirm':
-    'Are you sure you want to start <span style="font-size: 13px;font-weight: 700">{name}</span>?',
+    'Are you sure you want to start? \n <span style="font-size: 13px;font-weight: 700">{name}</span>',
   'common.filter.name': 'Filter by name',
   'common.form.password': 'Password',
   'common.form.username': 'Username',
@@ -210,7 +210,7 @@ export default {
   'common.button.feedback': 'Feedback',
   'common.button.docs': 'Documentation',
   'common.button.version': 'Version',
-  'common.title.delete.confirm': 'Confirm delete',
+  'common.title.delete.confirm': 'Confirm deletion',
   'common.title.stop.confirm': 'Confirm stop',
   'common.title.start.confirm': 'Confirm start',
   'common.title.recreate.confirm': 'Confirm recreate',
@@ -243,5 +243,13 @@ export default {
   'common.appearance.darkmode': 'Dark Mode',
   'common.appearance.lightmode': 'Light Mode',
   'common.appearance.tips': 'Default follows system preference.',
-  'common.button.forgotpassword': 'Forgot password?'
+  'common.button.forgotpassword': 'Forgot password?',
+  'common.appearance.theme': 'Theme',
+  'common.page.wentwrong': 'Something went wrong.',
+  'common.page.refresh.tips':
+    'Oops! Something went wrong. Try refreshing the page.',
+  'common.tips.escape.disable':
+    'Click Cancel or the X at the top right to close.',
+  'common.button.clearSelection': 'Clear Selection',
+  'common.select.count': '{count} selected'
 };

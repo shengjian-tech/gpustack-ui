@@ -141,7 +141,7 @@ export default {
   'common.copy.notSupport': '您的浏览器不支持剪贴板 API',
   'common.title.basicInfo': '基本信息',
   'common.help.need': '需要帮助？',
-  'common.help.eg': '例:',
+  'common.help.eg': '例如:',
   'common.filter.label': '筛选',
   'common.filter.isrequired.holder': '是否必填',
   'common.filter.isrequired.true': '必填',
@@ -185,15 +185,15 @@ export default {
   'common.table.user': '用户',
   'common.settings.instructions': '操作指引',
   'common.settings.language': '语言',
-  'common.delete.confirm': '删除选中的{type}，确定吗？',
+  'common.delete.confirm': '确定删除选中的{type}吗？',
   'common.delete.single.confirm':
-    '删除 <span style="font-size: 13px;font-weight: 700">{name}</span>，确定吗？',
-  'common.stop.confirm': '停止选中的{type}，确定吗？',
+    '确定删除以下内容？\n <span style="font-size: 13px;font-weight: 700">{name}</span>',
+  'common.stop.confirm': '确定停止选中的{type}吗？',
   'common.stop.single.confirm':
-    '停止 <span style="font-size: 13px;font-weight: 700">{name}</span>，确定吗？',
-  'common.start.confirm': '启动选中的{type}，确定吗？',
+    '确定停止 <span style="font-size: 13px;font-weight: 700">{name}？</span>',
+  'common.start.confirm': '确定启动选中的{type}吗？',
   'common.start.single.confirm':
-    '启动 <span style="font-size: 13px;font-weight: 700">{name}</span>，确定吗？',
+    '确定启动 <span style="font-size: 13px;font-weight: 700">{name}？</span>',
   'common.filter.name': '名称查询',
   'common.form.password': '密码',
   'common.form.username': '用户名',
@@ -238,5 +238,11 @@ export default {
   'common.appearance.darkmode': '深色模式',
   'common.appearance.lightmode': '浅色模式',
   'common.appearance.tips': '默认跟随系统设置',
-  'common.button.forgotpassword': '忘记密码？'
+  'common.button.forgotpassword': '忘记密码？',
+  'common.appearance.theme': '主题',
+  'common.page.wentwrong': '哎呀，出了点问题',
+  'common.page.refresh.tips': '出了点问题，试试刷新页面吧！',
+  'common.tips.escape.disable': '请点击「取消」按钮或右上角 X 关闭窗口',
+  'common.button.clearSelection': '清除选择',
+  'common.select.count': '已选 {count} 项'
 };

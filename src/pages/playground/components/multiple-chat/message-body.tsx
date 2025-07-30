@@ -1,3 +1,4 @@
+import SimpleAudio from '@/components/audio-player/simple-audio';
 import FullMarkdown from '@/components/markdown-viewer/full-markdown';
 import { Input } from 'antd';
 import classNames from 'classnames';
@@ -8,10 +9,27 @@ import React, {
   useImperativeHandle,
   useRef
 } from 'react';
+import styled from 'styled-components';
 import { Roles } from '../../config';
 import { MessageItem, MessageItemAction } from '../../config/types';
 import ThumbImg from '../thumb-img';
 import ThinkContent from './think-content';
+
+const AudioWrapper = styled.div`
+  padding-top: 10px;
+  height: max-content;
+  width: max-content;
+  margin-inline: 10px;
+`;
+
+const ThumbImgWrapper = styled.div.attrs({
+  className: 'custom-scrollbar-horizontal'
+})`
+  display: flex;
+  justify-content: flex-start;
+  overflow-x: auto;
+  flex-direction: column;
+`;
 
 interface MessageBodyProps {
   ref?: any;
@@ -93,6 +111,7 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
               role: data.role,
               content: data.content,
               uid: data.uid,
+              audio: data.audio || [],
               imgs: [...(data.imgs || []), ...list]
             });
           }
@@ -117,13 +136,25 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
         role: data.role,
         content: data.content,
         uid: data.uid,
+        audio: data.audio || [],
         imgs: list
+      });
+    };
+
+    const handleDeleteAudio = () => {
+      updateMessage?.({
+        role: data.role,
+        content: data.content,
+        uid: data.uid,
+        audio: [],
+        imgs: data.imgs || []
       });
     };
 
     const handleMessageChange = (e: any) => {
       updateMessage?.({
         imgs: data.imgs || [],
+        audio: data.audio || [],
         role: data.role,
         content: e.target.value,
         uid: data.uid
@@ -143,6 +174,7 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
         role: data.role,
         content: editContent,
         uid: data.uid,
+        audio: data.audio || [],
         imgs: data.imgs
       });
     };
@@ -182,14 +214,27 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
       return (
         <div
           className={classNames('content-item-content', {
-            'has-img': data.imgs?.length
+            'has-img':
+              data.imgs?.length || (data.audio && data.audio?.length > 0)
           })}
         >
-          <ThumbImg
-            editable={editable}
-            dataList={data.imgs || []}
-            onDelete={handleDeleteImg}
-          />
+          <div className="justify-start ">
+            <ThumbImg
+              editable={editable}
+              dataList={data.imgs || []}
+              onDelete={handleDeleteImg}
+            />
+            {data.audio && data.audio.length > 0 && (
+              <AudioWrapper>
+                <SimpleAudio
+                  url={data.audio?.[0]?.data.url}
+                  name={data.audio?.[0]?.data.name}
+                  actions={[]}
+                  height={50}
+                ></SimpleAudio>
+              </AudioWrapper>
+            )}
+          </div>
           {data.content && <div className="text">{data.content}</div>}
         </div>
       );
@@ -199,15 +244,29 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
       return (
         <div
           className={classNames('message-content-input', {
-            'has-img': data.imgs?.length
+            'has-img':
+              data.imgs?.length || (data.audio && data.audio?.length > 0)
           })}
           onClick={handleClickWrapper}
         >
-          <ThumbImg
-            editable={editable}
-            dataList={data.imgs || []}
-            onDelete={handleDeleteImg}
-          />
+          <ThumbImgWrapper>
+            <ThumbImg
+              style={{ paddingBlockEnd: 0 }}
+              editable={editable}
+              dataList={data.imgs || []}
+              onDelete={handleDeleteImg}
+            />
+            {data.audio && data.audio.length > 0 && (
+              <AudioWrapper className={data.imgs?.length ? '' : 'm-l-10'}>
+                <SimpleAudio
+                  url={data.audio?.[0]?.data.url}
+                  name={data.audio?.[0]?.data.name}
+                  onDelete={handleDeleteAudio}
+                  height={50}
+                ></SimpleAudio>
+              </AudioWrapper>
+            )}
+          </ThumbImgWrapper>
           <>
             {data.role === Roles.User ? (
               <Input.TextArea
@@ -217,7 +276,6 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
                 autoSize={{ minRows: 1 }}
                 style={{ borderRadius: 'var(--border-radius-mini)' }}
                 readOnly={loading}
-                onKeyDown={handleKeyDown}
                 onChange={handleMessageChange}
                 onPaste={handleOnPaste}
               />
@@ -228,7 +286,7 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
                     <ThinkContent
                       collapsed={collapsed}
                       content={reasoningContent.thought}
-                      isThinking={reasoningContent.isThinking}
+                      isThinking={loading && reasoningContent.isThinking}
                     ></ThinkContent>
                     <div style={{ paddingInline: 4 }}>
                       <FullMarkdown
@@ -244,7 +302,6 @@ const MessageBody: React.FC<MessageBodyProps> = forwardRef(
                     variant="filled"
                     autoSize={{ minRows: 1 }}
                     style={{ borderRadius: 'var(--border-radius-mini)' }}
-                    onKeyDown={handleKeyDown}
                     onChange={handleEdit}
                     onPaste={handleOnPaste}
                   />

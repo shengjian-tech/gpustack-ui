@@ -1,7 +1,8 @@
 import ModalFooter from '@/components/modal-footer';
+import GSDrawer from '@/components/scroller-modal/gs-drawer';
 import { CloseOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Drawer } from 'antd';
+import { Button } from 'antd';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ColumnWrapper from '../components/column-wrapper';
@@ -53,7 +54,7 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
     if (source === modelSourceMap.huggingface_value) {
       const huggingFaceModel = {
         huggingface_repo_id: selectedModel.name,
-        huggingface_filename: fileName
+        huggingface_filename: fileName || null
       };
       return huggingFaceModel;
     }
@@ -61,7 +62,7 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
     if (source === modelSourceMap.modelscope_value) {
       const modelScopeModel = {
         model_scope_model_id: selectedModel.name,
-        model_scope_file_path: fileName
+        model_scope_file_path: fileName || null
       };
       return modelScopeModel;
     }
@@ -125,7 +126,7 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
   }, [open, source]);
 
   return (
-    <Drawer
+    <GSDrawer
       title={
         <div className="flex-between flex-center">
           <span
@@ -248,7 +249,7 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
           </ColumnWrapper>
         </div>
       </div>
-    </Drawer>
+    </GSDrawer>
   );
 };
 

@@ -71,7 +71,40 @@ export default {
     'ダウンロード完了を待っています...',
   'resources.filter.worker': 'ワーカーでフィルタ',
   'resources.filter.source': 'ソースでフィルタ',
-  'resources.modelfiles.delete.tips': 'ディスクからファイルも削除します！',
+  'resources.modelfiles.delete.tips': 'ディスクからファイルも削除します',
   'resources.modelfiles.copy.tips': 'フルパスをコピー',
-  'resources.filter.path': 'パスでフィルタ'
+  'resources.filter.path': 'パスでフィルタ',
+  'resources.register.worker.step1':
+    'Click the <span class="bold-text">Copy Token</span> menu in the application.',
+  'resources.register.worker.step2':
+    'Click the <span class="bold-text">Quick Config</span> menu in the application.',
+  'resources.register.worker.step3':
+    'Click the <span class="bold-text">General</span> tab.',
+  'resources.register.worker.step4':
+    'Select <span class="bold-text">Worker</span> as the service role.',
+  'resources.register.worker.step5':
+    'Enter the <span class="bold-text">Server URL</span>: {url}.',
+  'resources.register.worker.step6':
+    'Paste the <span class="bold-text">Token</span>.',
+  'resources.register.worker.step7':
+    'Click <span class="bold-text">Restart</span> to apply the settings.',
+  'resources.register.install.title': 'Install GPUStack on {os}',
+  'resources.register.download':
+    'Download and install the <a href={url} target="_blank">installer</a>. Only supported: {versions}.',
+  'resource.register.maos.support': 'Apple Silicon (M series), macOS 14+',
+  'resource.register.windows.support': 'win 10, win 11'
 };
+
+// ========== To-Do: Translate Keys (Remove After Translation) ==========
+// 1. 'resources.register.worker.step1': 'Click the <span class="bold-text">Copy Token</span> menu in the application.',
+// 2. 'resources.register.worker.step2': 'Click the <span class="bold-text">Quick Config</span> menu in the application.',
+// 3. 'resources.register.worker.step3': 'Click the <span class="bold-text">General</span> tab.',
+// 4. 'resources.register.worker.step4':  'Select <span class="bold-text">Worker</span> as the service role.',
+// 5. 'resources.register.worker.step5': 'Enter the <span class="bold-text">Server URL</span>: {url}.',
+// 6. 'resources.register.worker.step6': 'Paste the <span class="bold-text">Token</span>.',
+// 7. 'resources.register.worker.step7': 'Click <span class="bold-text">Restart</span> to apply the settings.',
+// 8. 'resources.register.install.title': 'Install GPUStack on {os}',
+// 9. 'resources.register.download':'Download and install the <a>installer</a>. Only supported: {versions}.',
+// 10. 'resource.register.maos.support': 'Apple Silicon (M series), macOS 14+',
+// 11. 'resource.register.windows.support': 'win 10, win 11'
+// ========== End of To-Do List ==========

@@ -27,5 +27,14 @@ export default {
   'dashboard.activeModels': '活跃模型',
   'dashboard.activeModels.name': '模型名称',
   'dashboard.runninginstances': '运行实例',
-  'dashboard.allocatevram': '已分配显存 / 内存'
+  'dashboard.allocatevram': '已分配显存 / 内存',
+  'dashboard.usage.selectuser': '选择用户',
+  'dashboard.usage.selectmodel': '选择模型',
+  'dashboard.usage.export': '导出数据',
+  'dashboard.usage.export.user': '用户',
+  'dashboard.usage.export.model': '模型',
+  'dashboard.usage.export.date': '日期',
+  'dashboard.usage.datePicker.last7days': '最近 7 天',
+  'dashboard.usage.datePicker.last30days': '最近 30 天',
+  'dashboard.usage.datePicker.last60days': '最近 60 天'
 };
