@@ -115,7 +115,7 @@ export default (props: any) => {
   const navigate = useNavigate();
   const intl = useIntl();
   const { clientRoutes, pluginManager } = useAppData();
-  // const [collapsed, setCollapsed] = useState(userSettings.collapsed || false);
+  const [collapsed, setCollapsed] = useState(userSettings.collapsed || false);
   const [collapseValue, setCollapseValue] = useState(false);
   const [collapseKeys, setCollapseKeys] = useState<Set<string>>(new Set());
 
@@ -283,38 +283,38 @@ export default (props: any) => {
     return () => clearTimeout(timeout);
   }, [initializeMenu, matchedRoute, location]);
 
-  const renderMenuHeader = useCallback(
-    (logo, title) => {
-      return (
-        <>
-          {logo}
-          {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
-            <Button
-              style={{ marginRight: collapsed ? 0 : -14 }}
-              size="small"
-              type={collapsed ? 'default' : 'text'}
-            >
-              <>
-                <MenuUnfoldOutlined
-                  style={{ display: collapsed ? 'block' : 'none' }}
-                />
-                <MenuFoldOutlined
-                  style={{ display: !collapsed ? 'block' : 'none' }}
-                />
-              </>
-            </Button>
-          </div> */}
-        </>
-      );
-    },
-    [collapsed]
-  );
+  // const renderMenuHeader = useCallback(
+  //   (logo, title) => {
+  //     return (
+  //       <>
+  //         {logo}
+  //         {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
+  //           <Button
+  //             style={{ marginRight: collapsed ? 0 : -14 }}
+  //             size="small"
+  //             type={collapsed ? 'default' : 'text'}
+  //           >
+  //             <>
+  //               <MenuUnfoldOutlined
+  //                 style={{ display: collapsed ? 'block' : 'none' }}
+  //               />
+  //               <MenuFoldOutlined
+  //                 style={{ display: !collapsed ? 'block' : 'none' }}
+  //               />
+  //             </>
+  //           </Button>
+  //         </div> */}
+  //       </>
+  //     );
+  //   },
+  //   [collapsed]
+  // );
 
   const renderMenuHeader = (logo, title) => {
     return (
       <>
         {logo}
-        <div className="collapse-wrap" onClick={handleToggleCollapse}>
+        {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
           <Button
             style={{ marginRight: collapsed ? 0 : -14, border: 'none' }}
             size="small"
@@ -333,7 +333,7 @@ export default (props: any) => {
               />
             </>
           </Button>
-        </div>
+        </div> */}
       </>
     );
   };
@@ -537,17 +537,15 @@ export default (props: any) => {
         formatMessage={formatMessage}
         menu={{
           locale: true,
-          type: 'group'
+          type: 'group',
         }}
-        splitMenus={true}
         logo={collapsed ? SLogoIcon : LogoIcon}
-        menuContentRender={menuContentRender}
+        menuItemRender={menuItemRender}
         disableContentMargin
         fixSiderbar
         fixedHeader
         {...runtimeConfig}
         actionsRender={actionRender}
-        ErrorBoundary={ErrorBoundary}
       >
         <Exception
           route={matchedRoute}

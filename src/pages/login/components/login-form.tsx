@@ -199,14 +199,8 @@ const LoginForm = () => {
               label={intl.formatMessage({ id: 'common.form.password' })}
             />
           </Form.Item>
-          <div
-            className="flex-center flex-between"
-            style={{
-              marginBottom: 24
-            }}
-          >
             <Form.Item noStyle name="autoLogin" valuePropName="checked">
-              <Checkbox style={{ marginLeft: 5 }}>
+              <Checkbox style={{ marginLeft: 5,marginBottom:24 }}>
                 <span style={{ color: 'var(--ant-color-text-secondary)' }}>
                   {intl.formatMessage({ id: 'common.login.rember' })}
                 </span>
@@ -220,7 +214,6 @@ const LoginForm = () => {
               >
                 {intl.formatMessage({ id: 'common.button.forgotpassword' })}
               </Button> */}
-            </div>
           </Form.Item>
           <Button
             htmlType="submit"

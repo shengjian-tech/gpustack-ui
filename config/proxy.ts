@@ -12,7 +12,7 @@ const proxyTableList = [
 export default function createProxyTable(target?: string) {
   const proxyTable = proxyTableList.reduce(
     (obj: Record<string, object>, api) => {
-      const newTarget = target || 'http://localhost';
+      const newTarget = target || 'http://112.81.86.58:7860';
       obj[`/${api}`] = {
         target: newTarget,
         changeOrigin: true,

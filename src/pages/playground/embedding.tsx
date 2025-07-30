@@ -131,7 +131,7 @@ const PlaygroundEmbedding: React.FC = () => {
         <div className="play-ground">
           <div className="chat">
             <GroundEmbedding
-              ref={ref}
+              ref={groundLeftRef}
               modelList={modelList}
               loaded={loaded}
             ></GroundEmbedding>

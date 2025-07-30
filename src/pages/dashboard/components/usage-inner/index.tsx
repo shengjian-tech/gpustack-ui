@@ -32,9 +32,9 @@ const UsageInner: FC<{ maxWidth: number }> = ({ maxWidth }) => {
         <p className={styles['title']}>{intl.formatMessage({ id: 'dashboard.usage' })}</p>
         <div style={{ width: '100%',padding:' 0 10px 10px 10px' }}>
           <RequestTokenInner
-            requestData={requestTokenData.requestData}
-            xAxisData={requestTokenData.xAxisData}
-            tokenData={requestTokenData.tokenData}
+            requestData={requestTokenData?.requestData}
+            xAxisData={requestTokenData?.xAxisData}
+            tokenData={requestTokenData?.tokenData}
           ></RequestTokenInner>
         </div>
       </div>

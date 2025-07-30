@@ -91,7 +91,7 @@ const BarChart: React.FC<ChartProps> = (props) => {
 
   return (
     <>
-      {!seriesData.length ? (
+      {!seriesData?.length ? (
         <EmptyData height={height} title={title}></EmptyData>
       ) : (
         <Chart

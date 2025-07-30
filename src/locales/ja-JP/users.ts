@@ -26,14 +26,8 @@ export default {
   'users.password.confirm.empty': '新しいパスワードを確認してください。',
   'users.password.confirm.error': '入力された2つのパスワードが一致しません。',
   'users.login.title': 'ログイン',
-<<<<<<< HEAD
   'users.version.islatest': 'AI Computing Power Cloud Platform {version} は最新バージョンです',
   'users.version.update': 'AI Computing Power Cloud Platform {version} が利用可能です'
-=======
-  'users.version.islatest': 'GPUStack {version} は最新バージョンです',
-  'users.version.update': 'GPUStack {version} が利用可能です',
-  'users.settings.title': 'User Settings'
->>>>>>> upstream/main
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

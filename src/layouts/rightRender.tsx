@@ -16,7 +16,8 @@ import {
   SunOutlined
 } from '@ant-design/icons';
 import { getAllLocales, history, setLocale } from '@umijs/max';
-import { Avatar, Menu, Spin,Dropdown,Button } from 'antd';
+import { Avatar, Menu, Spin, Dropdown, Button } from 'antd';
+import { QuestionCircleOutlined,GlobalOutlined } from '@ant-design/icons';
 import _ from 'lodash';
 import React from 'react';
 

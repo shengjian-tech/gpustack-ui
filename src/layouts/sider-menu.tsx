@@ -126,7 +126,7 @@ const SiderMenu: React.FC<SiderMenuProps> = (props) => {
   const { styles, cx } = useStyles();
   const location = useLocation();
   const [collapseKeys, setCollapseKeys] = useState<Set<string>>(new Set());
-  console.log('SiderMenu', props);
+  console.log('---menuData-----', menuData);
 
   const dividerStyles = useMemo(() => {
     if (collapsed) {

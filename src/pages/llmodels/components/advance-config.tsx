@@ -403,7 +403,7 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = (props) => {
             onDelete={handleDeleteBackendParameters}
             options={paramsConfig}
             description={
-              backendParamsTips.link && (
+              backendParamsTips?.link && (
                 <span>
                   {backend === backendOptionsMap.ascendMindie && (
                     <span>
