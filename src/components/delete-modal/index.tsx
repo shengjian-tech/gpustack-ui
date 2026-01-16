@@ -138,7 +138,7 @@ const DeleteModal = forwardRef((props, ref) => {
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
-      destroyOnClose={false}
+      destroyOnHidden={false}
       closeIcon={false}
       maskClosable={false}
       keyboard={false}
@@ -155,7 +155,7 @@ const DeleteModal = forwardRef((props, ref) => {
               ? intl.formatMessage({ id: config.cancelText })
               : intl.formatMessage({ id: 'common.button.cancel' })}
           </Button>
-          <Button type="primary" onClick={handleOk} size="middle">
+          <Button type="primary" onClick={handleOk} size="middle" danger>
             {config.okText
               ? intl.formatMessage({ id: config.okText })
               : intl.formatMessage({ id: 'common.button.delete' })}

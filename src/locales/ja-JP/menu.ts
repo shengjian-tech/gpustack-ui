@@ -6,6 +6,7 @@ export default {
   'menu.playground.chat': 'チャット',
   'menu.playground.speech': '音声',
   'menu.playground.text2images': '画像生成',
+  'menu.playground.video': '動画',
   'menu.compare': '比較',
   'menu.models': 'モデル',
   'menu.models.modelList': 'デプロイと管理',
@@ -25,7 +26,14 @@ export default {
   'menu.resources.modelfiles': 'Model Files',
   'menu.accessControl': 'Access Control',
   'menu.accessControl.apikeys': 'API Keys',
-  'menu.accessControl.users': 'Users'
+  'menu.accessControl.users': 'Users',
+  'menu.clusterManagement': 'Cluster Management',
+  'menu.clusterManagement.clusters': 'Clusters',
+  'menu.clusterManagement.credentials': 'Cloud Credentials',
+  'menu.models.userModels': 'My Models',
+  'menu.clusterManagement.clusterDetail': 'Cluster Detail',
+  'menu.clusterManagement.clusterCreate': 'Create Cluster',
+  'menu.resources.backendsList': 'Inference Backends'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -36,4 +44,11 @@ export default {
 // 5. 'menu.accessControl': 'Access Control',
 // 6. 'menu.accessControl.apikeys': 'API Keys',
 // 7. 'menu.accessControl.users': 'Users',
+// 8. 'menu.clusterManagement': 'Cluster Management',
+// 9. 'menu.clusterManagement.clusters': 'Clusters',
+// 10. 'menu.clusterManagement.credentials': 'Cloud Credentials',
+// 11. 'menu.models.userModels': 'My Models'
+// 12. 'menu.clusterManagement.clusterDetail': 'Cluster Detail',
+// 13. 'menu.clusterManagement.clusterCreate': 'Create Cluster',
+// 14. 'menu.resources.backendsList': 'Inference Backends'
 // ========== End of To-Do List ==========

@@ -76,7 +76,6 @@ export default [
     name: 'models',
     path: '/models',
     key: 'models',
-    access: 'canSeeAdmin',
     routes: [
       {
         path: '/models',
@@ -96,11 +95,21 @@ export default [
         name: 'deployment',
         path: '/models/deployments',
         key: 'modelDeployments',
-        icon: 'icon-model',
-        selectedIcon: 'icon-model-filled',
-        defaultIcon: 'icon-model',
+        icon: 'icon-rocket-launch1',
+        selectedIcon: 'icon-rocket-launch-fill',
+        defaultIcon: 'icon-rocket-launch1',
         access: 'canSeeAdmin',
         component: './llmodels/index'
+      },
+      {
+        name: 'userModels',
+        path: '/models/user-models',
+        key: 'userModels',
+        icon: 'icon-models',
+        selectedIcon: 'icon-models-filled',
+        defaultIcon: 'icon-models',
+        access: 'canSeeUser',
+        component: './llmodels/user-models'
       }
     ]
   },
@@ -133,6 +142,16 @@ export default [
         component: './resources/components/gpus'
       },
       {
+        name: 'backendsList',
+        path: '/resources/backends',
+        key: 'backendsList',
+        icon: 'icon-backend',
+        selectedIcon: 'icon-backend-filled',
+        defaultIcon: 'icon-backend',
+        access: 'canSeeAdmin',
+        component: './backends/index'
+      },
+      {
         name: 'modelfiles',
         path: '/resources/modelfiles',
         key: 'modelfiles',
@@ -140,6 +159,50 @@ export default [
         selectedIcon: 'icon-files-filled',
         defaultIcon: 'icon-files',
         component: './resources/components/model-files'
+      }
+    ]
+  },
+  {
+    name: 'clusterManagement',
+    path: '/cluster-management',
+    key: 'clusterManagement',
+    access: 'canSeeAdmin',
+    routes: [
+      {
+        path: '/cluster-management',
+        redirect: '/cluster-management/clusters/list'
+      },
+      {
+        name: 'clusters',
+        path: '/cluster-management/clusters/list',
+        key: 'clusters',
+        icon: 'icon-cluster2-outline',
+        selectedIcon: 'icon-cluster2-filled',
+        defaultIcon: 'icon-cluster2-outline',
+        component: './cluster-management/clusters',
+        subMenu: [
+          '/cluster-management/clusters/detail',
+          '/cluster-management/clusters/create'
+        ]
+      },
+      {
+        name: 'clusterDetail',
+        path: '/cluster-management/clusters/detail',
+        key: 'clusterDetail',
+        icon: 'icon-cluster2-outline',
+        selectedIcon: 'icon-cluster2-filled',
+        defaultIcon: 'icon-cluster2-outline',
+        hideInMenu: true,
+        component: './cluster-management/cluster-detail'
+      },
+      {
+        name: 'credentials',
+        path: '/cluster-management/credentials',
+        key: 'credentials',
+        icon: 'icon-credential-outline',
+        selectedIcon: 'icon-credential-filled',
+        defaultIcon: 'icon-credential-outline',
+        component: './cluster-management/credentials'
       }
     ]
   },

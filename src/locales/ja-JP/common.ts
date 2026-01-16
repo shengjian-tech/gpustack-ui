@@ -148,7 +148,7 @@ export default {
     'お使いのブラウザはクリップボードAPIをサポートしていません',
   'common.title.basicInfo': '基本情報',
   'common.help.need': 'ヘルプが必要ですか？',
-  'common.help.eg': '例:',
+  'common.help.eg': '例: {content}',
   'common.filter.label': 'フィルタ',
   'common.filter.isrequired.holder': '任意',
   'common.filter.isrequired.true': '必須',
@@ -247,11 +247,29 @@ export default {
   'common.appearance.theme': 'Theme',
   'common.page.wentwrong': 'Something went wrong.',
   'common.page.refresh.tips':
-    'Oops! Something went wrong. Try refreshing the page.',
+    'The page may need to be updated. Try refreshing it!',
   'common.tips.escape.disable':
     'Click Cancel or the X at the top right to close.',
   'common.button.clearSelection': 'Clear Selection',
-  'common.select.count': '{count} selected'
+  'common.select.count': '{count} selected',
+  'common.login.auth': 'Authenticating...',
+  'common.login.auth.failed': 'Authentication failed',
+  'common.login.password': 'Log in with Password',
+  'common.external.login': 'Log in with {type}',
+  'common.sso.noConfig':
+    'Single sign-on is not enabled on this system. Please contact your administrator.',
+  'common.button.edit.item': 'Edit {name}',
+  'common.button.terminal': 'Terminal',
+  'common.button.addItem': 'Add Item',
+  'common.help.default': 'Default: {content}',
+  'common.filter.status': 'Filter by status',
+  'common.form.rule.selectInput': 'Please select or enter a {name}',
+  'common.tag.experimental': 'Experimental',
+  'common.title.example': 'Example',
+  'common.button.dontshowagain': "Don't show again",
+  'common.sorter.tips.ascend': 'Click to sort ascending',
+  'common.sorter.tips.descend': 'Click to sort descending',
+  'common.sorter.tips.cancel': 'Click to cancel sorting'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -266,8 +284,25 @@ export default {
 // 9. 'common.button.forgotpassword': 'Forgot Password?'
 // 10.  'common.appearance.theme': 'Theme',
 // 11. 'common.page.wentwrong': 'Something went wrong.',
-// 12. 'common.page.refresh.tips': 'Oops! Something went wrong. Try refreshing the page.'
+// 12. 'common.page.refresh.tips': 'The page may need to be updated. Try refreshing it!',
 // 13. 'common.tips.escape.disable': 'Click Cancel or the X at the top right to close.'
 // 14. 'common.button.clearSelection': 'Clear Selection',
-// 15. 'common.select.count': '{count} selected'
+// 15. 'common.select.count': '{count} selected',
+// 16. 'common.login.auth': 'Authenticating...',
+// 17. 'common.login.auth.failed': 'Authentication failed',
+// 18. 'common.external.login': 'Log in with {type}'
+// 19. 'common.login.password': 'Log in with Password',
+// 20. 'common.sso.noConfig': 'Single sign-on is not enabled on this system. Please contact your administrator.'
+// 21.  'common.button.edit.item': 'Edit {name}',
+// 22. 'common.button.terminal': 'Terminal',
+// 23. 'common.button.addItem': 'Add Item',
+// 24. 'common.help.default': 'Default: {content}',
+// 25. 'common.filter.status': 'Filter by status'
+// 26. 'common.form.rule.selectInput': 'Please select or enter a {name}',
+// 27. 'common.tag.experimental': 'Experimental',
+// 28. 'common.title.example': 'Example',
+// 29. 'common.button.dontshowagain': "Don't show again",
+// 30.  'common.sorter.tips.ascend': 'Click to sort ascending',
+// 31.  'common.sorter.tips.descend': 'Click to sort descending',
+// 32.  'common.sorter.tips.cancel': 'Click to cancel sorting'
 // ========== End of To-Do List ==========

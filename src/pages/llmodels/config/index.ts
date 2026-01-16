@@ -1,102 +1,22 @@
 import { StatusMaps } from '@/config';
 import { EditOutlined } from '@ant-design/icons';
-import _ from 'lodash';
-
-export const ollamaModelOptions = [
-  {
-    label: 'qwen2.5-coder',
-    value: 'qwen2.5-coder',
-    name: 'qwen2.5-coder',
-    id: 'qwen2.5-coder',
-    tags: []
-  },
-  {
-    label: 'llama3.2',
-    value: 'llama3.2',
-    name: 'llama3.2',
-    id: 'llama3.2',
-    tags: ['Tools', '1B', '3B']
-  },
-  {
-    label: 'nomic-embed-text',
-    value: 'nomic-embed-text',
-    name: 'nomic-embed-text',
-    id: 'nomic-embed-text',
-    tags: []
-  },
-  {
-    label: 'qwen2.5',
-    value: 'qwen2.5',
-    name: 'qwen2.5',
-    tags: ['Tools', '0.5B', '1.5B', '3B', '7B', '14B', '32B', '72B'],
-    id: 'gemma2'
-  },
-  {
-    label: 'gemma2',
-    value: 'gemma2',
-    name: 'gemma2',
-    tags: ['2B', '9B', '27B'],
-    id: 'gemma2'
-  },
-  {
-    label: 'mistral-nemo',
-    value: 'mistral-nemo',
-    name: 'mistral-nemo',
-    tags: ['12B'],
-    id: 'mistral-nemo'
-  },
-  {
-    label: 'mistral-large',
-    value: 'mistral-large',
-    name: 'mistral-large',
-    tags: ['123B'],
-    id: 'mistral-large'
-  },
-  {
-    label: 'mistral',
-    value: 'mistral',
-    name: 'mistral',
-    tags: ['7B'],
-    id: 'mistral'
-  },
-  {
-    label: 'phi3.5',
-    value: 'phi3.5',
-    name: 'phi3.5',
-    tags: ['3B'],
-    id: 'phi3.5'
-  },
-  {
-    label: 'codellama',
-    value: 'codellama',
-    name: 'codellama',
-    tags: ['7B', '13B', '34B', '70B'],
-    id: 'codellama'
-  },
-  {
-    label: 'deepseek-coder-v2',
-    value: 'deepseek-coder-v2',
-    name: 'deepseek-coder-v2',
-    tags: ['16B', '236B'],
-    id: 'deepseek-coder-v2'
-  }
-];
+import { backendOptionsMap } from './backend-parameters';
 
 export const backendTipsList = [
   {
-    title: 'llama-box',
-    tips: 'models.form.backend.llamabox'
-  },
-  {
-    title: 'vLLM',
+    title: backendOptionsMap.vllm,
     tips: 'models.form.backend.vllm'
   },
   {
-    title: 'Ascend MindIE',
+    title: backendOptionsMap.SGLang,
+    tips: 'models.form.backend.sglang'
+  },
+  {
+    title: backendOptionsMap.ascendMindie,
     tips: 'models.form.backend.mindie'
   },
   {
-    title: 'vox-box',
+    title: backendOptionsMap.voxBox,
     tips: 'models.form.backend.voxbox'
   }
 ];
@@ -125,18 +45,12 @@ export const localPathTipsList = [
   }
 ];
 
-export const backendOptionsMap = {
-  llamaBox: 'llama-box',
-  vllm: 'vllm',
-  voxBox: 'vox-box',
-  ascendMindie: 'ascend-mindie'
-};
-
 export const backendLabelMap = {
   [backendOptionsMap.llamaBox]: 'llama-box',
   [backendOptionsMap.vllm]: 'vLLM',
   [backendOptionsMap.voxBox]: 'vox-box',
-  [backendOptionsMap.ascendMindie]: 'Ascend MindIE'
+  [backendOptionsMap.ascendMindie]: 'Ascend MindIE',
+  [backendOptionsMap.custom]: 'Custom'
 };
 
 export const backendParamsHolderTips = {
@@ -147,6 +61,10 @@ export const backendParamsHolderTips = {
   [backendOptionsMap.vllm]: {
     holder: 'models.form.backend_parameters.vllm.placeholder',
     tooltip: 'models.form.backend_parameters.vllm.tips'
+  },
+  [backendOptionsMap.SGLang]: {
+    holder: 'models.form.backend_parameters.sglang.placeholder',
+    tooltip: ''
   },
   [backendOptionsMap.voxBox]: null
 };
@@ -220,11 +138,6 @@ export const sourceOptions = [
     key: 'huggingface'
   },
   {
-    label: 'Ollama Library',
-    value: modelSourceMap.ollama_library_value,
-    key: 'ollama_library'
-  },
-  {
     label: 'ModelScope',
     value: modelSourceMap.modelscope_value,
     key: 'model_scope'
@@ -282,6 +195,48 @@ export const status: any = {
   [InstanceStatusMap.Unreachable]: StatusMaps.error
 };
 
+export const MyModelsStatusValueMap = {
+  Inactive: 'stopped',
+  Degrade: 'not_ready',
+  Active: 'ready'
+};
+
+export const MyModelsStatusMap = {
+  [MyModelsStatusValueMap.Inactive]: StatusMaps.inactive,
+  [MyModelsStatusValueMap.Degrade]: StatusMaps.error,
+  [MyModelsStatusValueMap.Active]: StatusMaps.success
+};
+
+export const MyModelsStatusLabelMap = {
+  [MyModelsStatusValueMap.Inactive]: 'models.mymodels.status.inactive',
+  [MyModelsStatusValueMap.Degrade]: 'models.mymodels.status.degrade',
+  [MyModelsStatusValueMap.Active]: 'models.mymodels.status.active'
+};
+
+export const ScheduleValueMap = {
+  Auto: 'auto',
+  Manual: 'manual',
+  SpecificGPUType: 'specific_gpu_type'
+};
+
+export const scheduleList = [
+  {
+    label: 'models.form.scheduletype.auto',
+    locale: true,
+    value: ScheduleValueMap.Auto
+  },
+  {
+    label: 'models.form.scheduletype.manual',
+    value: ScheduleValueMap.Manual,
+    locale: true
+  }
+  // {
+  //   label: 'models.form.scheduletype.gpuType',
+  //   value: ScheduleValueMap.SpecificGPUType,
+  //   locale: true
+  // }
+];
+
 export const ActionList = [
   {
     label: 'common.button.edit',
@@ -334,68 +289,19 @@ export const modelCategoriesMap = {
   llm: 'llm'
 };
 
-export const modelCategories = [
-  { label: 'common.options.auto', value: null, locale: true },
+export const categoryOptions = [
   { label: 'LLM', value: modelCategoriesMap.llm },
+  { label: 'Embedding', value: modelCategoriesMap.embedding },
+  { label: 'Reranker', value: modelCategoriesMap.reranker },
   { label: 'Image', value: modelCategoriesMap.image },
   { label: 'Text-to-Speech', value: modelCategoriesMap.text_to_speech },
-  { label: 'Speech-to-Text', value: modelCategoriesMap.speech_to_text },
-  { label: 'Embedding', value: modelCategoriesMap.embedding },
-  { label: 'Reranker', value: modelCategoriesMap.reranker }
+  { label: 'Speech-to-Text', value: modelCategoriesMap.speech_to_text }
 ];
 
-export const sourceRepoConfig = {
-  [modelSourceMap.huggingface_value]: {
-    repo_id: 'huggingface_repo_id',
-    file_name: 'huggingface_filename'
-  },
-
-  [modelSourceMap.modelscope_value]: {
-    repo_id: 'model_scope_model_id',
-    file_name: 'model_scope_file_path'
-  }
-};
-
-export const getSourceRepoConfigValue = (
-  source: string,
-  data: any
-): {
-  values: typeof data;
-} => {
-  const config: Record<string, any> = sourceRepoConfig[source] || {};
-  const result: Record<string, any> = {};
-  const omits: string[] = [];
-  Object.keys(config)?.forEach((key: string) => {
-    if (config[key]) {
-      result[config[key]] = data[key];
-      omits.push(key);
-    }
-  });
-  return {
-    values: { ...result, ..._.omit(data, omits) }
-  };
-};
-
-export const setSourceRepoConfigValue = (
-  source: string,
-  data: any
-): {
-  values: Record<string, any>;
-} => {
-  const config: Record<string, any> = sourceRepoConfig[source] || {};
-  const result: Record<string, any> = {};
-  const omits: string[] = [];
-  Object.keys(config)?.forEach((key: string) => {
-    if (config[key]) {
-      result[key] = data[config[key]];
-      omits.push(config[key]);
-    }
-  });
-
-  return {
-    values: { ...result, ..._.omit(data, omits) }
-  };
-};
+export const modelCategories = [
+  { label: 'common.options.auto', value: null, locale: true },
+  ...categoryOptions
+];
 
 export const getbackendParameters = (data: any) => {
   const backendParameters = data.backend_parameters || {};
@@ -424,15 +330,17 @@ export const modelLabels = [
   { label: 'Embedding', value: 'embedding_only' }
 ];
 
-// do not trigger form check compatibility
-export const excludeFields = [
-  'repo_id',
-  'file_name',
-  'replicas',
+// do not trigger form check compatibility when these fields change, maybe triggered manually
+export const DO_NOT_TRIGGER_CHECK_COMPATIBILITY = [
+  'model_scope_model_id',
+  'huggingface_repo_id',
+  'huggingface_filename',
+  'model_scope_file_path',
   'name',
   'description',
   'env',
   'source',
+  'cluster_id',
   'quantization',
   'size',
   'restart_on_error',
@@ -444,64 +352,31 @@ export const excludeFields = [
   'scheduleType',
   'placement_strategy',
   'backend',
-  'gpu_selector'
+  'gpu_selector.gpu_ids',
+  'run_command',
+  'image_name',
+  'extended_kv_cache.enabled',
+  'extended_kv_cache.ram_size',
+  'speculative_config.enabled',
+  'speculative_config.draft_model',
+  'max_context_len'
 ];
 
-// ingore fields when compare old and new data
-export const updateIgnoreFields = ['categories', 'replicas', 'description'];
-
-// if some fields need to trigger manual check, add them here
-export const updateExcludeFields = [
-  'repo_id',
-  'file_name',
-  'description',
-  'source',
-  'worker_selector',
-  'backend_parameters',
-  'local_path',
-  'backend_version',
-  'ollama_library_model_name',
-  'backend',
-  'gpu_selector',
-  'categories',
-  'env',
-  'replicas'
-];
-
-export const formFields = [
-  'name',
-  'repo_id',
-  'file_name',
-  'local_path',
-  'ollama_library_model_name',
-  'backend',
-  'replicas',
-  'source',
-  'description',
-  'worker_selector',
-  'cpu_offloading',
-  'distributed_inference_across_workers',
-  'gpu_selector',
-  'gpu_ids',
-  'categories',
-  'backend_version',
-  'env',
-  'scheduleType',
-  'restart_on_error'
-];
+// ignore to compare old and new data when these fields change in updating model
+export const DO_NOT_NOTIFY_RECREATE = ['categories', 'replicas', 'description'];
 
 export const defaultFormValues = {
   replicas: 1,
   description: '',
   categories: null,
   env: {},
-  scheduleType: 'auto',
+  scheduleType: ScheduleValueMap.Auto,
   placement_strategy: 'spread',
   gpu_ids: null,
   gpu_selector: {},
   worker_selector: {},
   backend_parameters: [],
-  backend_version: ''
+  backend_version: null
 };
 
 export const getBackendParamsTips = (backend: string) => {
@@ -517,7 +392,7 @@ export const getBackendParamsTips = (backend: string) => {
     return {
       backend: 'vLLM',
       releases: 'https://github.com/vllm-project/vllm/releases',
-      link: 'https://docs.vllm.ai/en/latest/configuration/engine_args.html',
+      link: 'https://docs.vllm.ai/en/stable/cli/serve.html',
       version: 'v0.8.5'
     };
   }
@@ -530,6 +405,15 @@ export const getBackendParamsTips = (backend: string) => {
     };
   }
 
+  if (backend === backendOptionsMap.SGLang) {
+    return {
+      backend: 'SGLang',
+      releases: '',
+      link: 'https://docs.sglang.ai/advanced_features/server_arguments.html',
+      version: 'v0.5.4'
+    };
+  }
+
   return {
     backend: 'vox-box',
     releases: 'https://github.com/gpustack/vox-box/releases',
@@ -537,3 +421,26 @@ export const getBackendParamsTips = (backend: string) => {
     version: 'v0.0.13'
   };
 };
+
+export const scheduleTypeTips = [
+  {
+    title: {
+      text: 'models.form.scheduletype.auto',
+      locale: true
+    },
+    tips: 'models.form.scheduletype.auto.tips'
+  },
+  {
+    title: {
+      text: 'models.form.scheduletype.manual',
+      locale: true
+    },
+    tips: 'models.form.scheduletype.manual.tips'
+  }
+];
+
+// transform to enum type
+export enum DeployFormKeyMap {
+  DEPLOYMENT = 'deployment',
+  CATALOG = 'catalog'
+}

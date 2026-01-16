@@ -44,8 +44,7 @@ export default {
   'resources.worker.add.step1':
     'Получить токен <span class="note-text">(Запустить на сервере)</span>',
   'resources.worker.add.step2': 'Зарегистрировать воркер',
-  'resources.worker.add.step2.tips':
-    '(Запустить на добавляемом воркере, <span class="bold-text">token</span> — это значение, полученное на первом шаге.)', // Translated
+  'resources.worker.add.step2.tips': '(Запустить на добавляемом воркере.)', // Translated
   'resources.worker.add.step3':
     'После успешной регистрации обновите список воркеров.',
   'resources.worker.container.supported': 'Только для Linux.',
@@ -69,6 +68,7 @@ export default {
   'resources.modelfiles.storagePath.holder': 'Ожидание завершения загрузки...',
   'resources.filter.worker': 'Фильтровать по узлу',
   'resources.filter.source': 'Фильтровать по источнику',
+  'resources.filter.status': 'Фильтровать по статусу',
   'resources.modelfiles.delete.tips': 'Также удалить файл с диска',
   'resources.modelfiles.copy.tips': 'Скопировать полный путь',
   'resources.filter.path': 'Фильтрация по пути',
@@ -90,9 +90,30 @@ export default {
   'resources.register.download':
     'Скачайте и установите <a href={url} target="_blank">инсталлятор</a>. Поддерживаемые версии: {versions}.',
   'resource.register.maos.support': 'Apple Silicon (серия M), macOS 14+',
-  'resource.register.windows.support': 'Windows 10, Windows 11'
+  'resource.register.windows.support': 'Windows 10, Windows 11',
+  'resources.model.instance': 'Модель экземпляра',
+  'resources.worker.download.privatekey': 'Скачать приватный ключ',
+  'resources.worker': 'Рабочий узел',
+  'resources.modelfiles.form.exsting': 'Загружено',
+  'resources.modelfiles.form.added': 'Добавлено',
+  'resources.worker.maintenance.title': 'System Maintenance',
+  'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
+  'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
+  'resources.worker.maintenance.remark': 'Remark',
+  'resources.worker.maintenance.remark.rules':
+    'Please enter maintenance remarks',
+  'resources.worker.maintenance.tips':
+    'When maintenance mode is enabled, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
+  'resources.worker.noCluster.tips':
+    'No available clusters. Please create a cluster before adding a node.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-
+// 2. 'resources.worker.maintenance.title': 'System Maintenance',
+// 3. 'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
+// 4. 'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
+// 5. 'resources.worker.maintenance.remark': 'Remark',
+// 6. 'resources.worker.maintenance.remark.rules': 'Please enter maintenance remarks',
+// 7. 'resources.worker.maintenance.tips': 'When maintenance mode is enabled, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
+// 8. 'resources.worker.noCluster.tips': 'No available clusters. Please create a cluster before adding a node.'
 // ========== End of To-Do List ==========

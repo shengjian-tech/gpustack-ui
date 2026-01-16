@@ -9,10 +9,11 @@ import echarts, { ECOption } from '.';
 
 const Chart: React.FC<{
   options: ECOption;
+  chartHeight?: number;
   height: number | string;
   width: number | string;
   ref?: any;
-}> = forwardRef(({ options, width, height }, ref) => {
+}> = forwardRef(({ options, width, height, chartHeight }, ref) => {
   const container = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.EChartsType>();
   const resizeable = useRef(false);
@@ -33,7 +34,7 @@ const Chart: React.FC<{
   };
 
   const setOption = (options: ECOption) => {
-    console.log('setOption', options);
+    if (!chart.current) return;
     chart.current?.clear();
     chart.current?.setOption(options, {
       notMerge: true,
@@ -107,8 +108,8 @@ const Chart: React.FC<{
     }
 
     return () => {
-      chart.current?.dispose();
       chart.current?.off('finished', handleOnFinished);
+      chart.current?.dispose();
     };
   }, []);
 
@@ -128,19 +129,20 @@ const Chart: React.FC<{
 
     if (container.current) {
       resizeObserver.current = new ResizeObserver(handleResize);
-
       resizeObserver.current.observe(container.current);
     }
     return () => {
-      if (container.current) {
-        resizeObserver.current?.unobserve(container.current);
-      }
+      resizeObserver.current?.disconnect();
+      resizeObserver.current = undefined;
     };
   }, []);
 
   return (
     <div className="chart-wrapper" style={{ width: width, height }}>
-      <div ref={container} style={{ width: width, height }}></div>
+      <div
+        ref={container}
+        style={{ width: width, height: chartHeight || height }}
+      ></div>
     </div>
   );
 });

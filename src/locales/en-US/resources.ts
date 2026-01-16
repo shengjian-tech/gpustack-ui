@@ -1,6 +1,7 @@
 export default {
   'resources.title': 'Resources',
-  'resources.nodes': 'Nodes',
+  'resources.nodes': 'Workers',
+  'resources.worker': 'Worker',
   'resources.button.create': 'Add Worker',
   'resources.button.edit': 'Edit Worker',
   'resources.button.edittags': 'Edit Labels',
@@ -44,8 +45,7 @@ export default {
   'resources.worker.add.step1':
     'Get Token <span class="note-text">(Run on the server)</span>',
   'resources.worker.add.step2': 'Register Worker',
-  'resources.worker.add.step2.tips':
-    '(Run on the worker to be added, <span class="bold-text">token</span> is the value obtained in the first step.)',
+  'resources.worker.add.step2.tips': '(Run on the worker to be added.)',
   'resources.worker.add.step3':
     'After success, refresh the workers list to view the new worker.',
   'resources.worker.container.supported': 'Do not support macOS or Windows.',
@@ -69,7 +69,8 @@ export default {
   'resources.modelfiles.storagePath.holder':
     'Waiting for the download to complete...',
   'resources.filter.worker': 'Filter by worker',
-  'resources.filter.source': 'Filter by Source',
+  'resources.filter.source': 'Filter by source',
+  'resources.filter.status': 'Filter by status',
   'resources.modelfiles.delete.tips': 'Also delete the file from disk',
   'resources.modelfiles.copy.tips': 'Copy Full Path',
   'resources.filter.path': 'Filter by path',
@@ -91,5 +92,19 @@ export default {
   'resources.register.download':
     'Download and install the <a href={url} target="_blank">installer</a>. Only supported: {versions}.',
   'resource.register.maos.support': 'Apple Silicon (M series), macOS 14+',
-  'resource.register.windows.support': 'win 10, win 11'
+  'resource.register.windows.support': 'win 10, win 11',
+  'resources.model.instance': 'Model Instance',
+  'resources.worker.download.privatekey': 'Download Private Key',
+  'resources.modelfiles.form.exsting': 'Downloaded',
+  'resources.modelfiles.form.added': 'Added',
+  'resources.worker.maintenance.title': 'System Maintenance',
+  'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
+  'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
+  'resources.worker.maintenance.remark': 'Remark',
+  'resources.worker.maintenance.remark.rules':
+    'Please enter maintenance remarks',
+  'resources.worker.maintenance.tips':
+    'When enter the maintenance mode, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
+  'resources.worker.noCluster.tips':
+    'No available clusters. Please create a cluster before adding a node.'
 };

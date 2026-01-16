@@ -1,13 +1,13 @@
-import ModalFooter from '@/components/modal-footer';
-import ScrollerModal from '@/components/scroller-modal';
+import IconFont from '@/components/icon-font';
 import SealInput from '@/components/seal-form/seal-input';
 import SealSelect from '@/components/seal-form/seal-select';
+import SealSwitch from '@/components/seal-form/seal-switch';
 import { PageAction, PasswordReg } from '@/config';
 import { PageActionType } from '@/config/types';
-import { UserOutlined, UserSwitchOutlined } from '@ant-design/icons';
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { Form, Select } from 'antd';
 import { useEffect } from 'react';
+import FormDrawer from '../../_components/form-drawer';
 import { UserRoles, UserRolesOptions } from '../config';
 import { FormData, ListItem } from '../config/types';
 
@@ -16,7 +16,7 @@ type AddModalProps = {
   action: PageActionType;
   open: boolean;
   onOk: (values: FormData) => void;
-  data?: ListItem;
+  data?: ListItem | null;
   onCancel: () => void;
 };
 const AddModal: React.FC<AddModalProps> = ({
@@ -27,6 +27,7 @@ const AddModal: React.FC<AddModalProps> = ({
   data,
   onCancel
 }) => {
+  const { initialState } = useModel('@@initialState') || {};
   const [form] = Form.useForm();
   const intl = useIntl();
 
@@ -34,16 +35,18 @@ const AddModal: React.FC<AddModalProps> = ({
     if (action === PageAction.EDIT && open) {
       form.setFieldsValue({
         ...data,
-        is_admin: data?.is_admin ? UserRoles.ADMIN : UserRoles.USER
+        is_admin: data?.is_admin ? UserRoles.ADMIN : UserRoles.USER,
+        is_active: !!data?.is_active
       });
     } else if (action === PageAction.CREATE && open) {
       form.setFieldsValue({
-        is_admin: UserRoles.USER
+        is_admin: UserRoles.USER,
+        is_active: true
       });
     }
   };
 
-  const handleSumit = () => {
+  const handleSubmit = () => {
     form.submit();
   };
 
@@ -52,21 +55,11 @@ const AddModal: React.FC<AddModalProps> = ({
   }, [open]);
 
   return (
-    <ScrollerModal
+    <FormDrawer
       title={title}
       open={open}
-      centered={true}
-      onOk={handleSumit}
       onCancel={onCancel}
-      destroyOnClose={true}
-      closeIcon={false}
-      maskClosable={false}
-      keyboard={false}
-      width={600}
-      styles={{}}
-      footer={
-        <ModalFooter onOk={handleSumit} onCancel={onCancel}></ModalFooter>
-      }
+      onSubmit={handleSubmit}
     >
       <Form name="addUserForm" form={form} onFinish={onOk} preserve={false}>
         <Form.Item<FormData>
@@ -94,24 +87,57 @@ const AddModal: React.FC<AddModalProps> = ({
             label={intl.formatMessage({ id: 'users.form.fullname' })}
           ></SealInput.Input>
         </Form.Item>
-        <Form.Item<FormData> name="is_admin" rules={[{ required: false }]}>
-          <SealSelect label={intl.formatMessage({ id: 'users.table.role' })}>
-            {UserRolesOptions.map((item) => {
-              return (
-                <Select.Option value={item.value} key={item.value}>
-                  {item.value === UserRoles.ADMIN ? (
-                    <UserSwitchOutlined className="size-16" />
-                  ) : (
-                    <UserOutlined className="size-16" />
-                  )}
-                  <span className="m-l-5">
-                    {intl.formatMessage({ id: item.label })}
-                  </span>
-                </Select.Option>
-              );
-            })}
-          </SealSelect>
-        </Form.Item>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ flex: 1 }}>
+            <Form.Item<FormData> name="is_admin" rules={[{ required: false }]}>
+              <SealSelect
+                label={intl.formatMessage({ id: 'users.table.role' })}
+                disabled={
+                  data?.id === initialState?.currentUser?.id &&
+                  action === PageAction.EDIT
+                }
+              >
+                {UserRolesOptions.map((item) => {
+                  return (
+                    <Select.Option value={item.value} key={item.value}>
+                      {item.value === UserRoles.ADMIN ? (
+                        <IconFont
+                          type="icon-manage_user"
+                          className="size-16"
+                        ></IconFont>
+                      ) : (
+                        <IconFont
+                          type="icon-user"
+                          className="size-16"
+                        ></IconFont>
+                      )}
+                      <span className="m-l-5">
+                        {intl.formatMessage({ id: item.label })}
+                      </span>
+                    </Select.Option>
+                  );
+                })}
+              </SealSelect>
+            </Form.Item>
+          </div>
+          {(data?.id !== initialState?.currentUser?.id ||
+            action === PageAction.CREATE) && (
+            <div style={{ flex: 1 }}>
+              <Form.Item<FormData>
+                name="is_active"
+                rules={[{ required: false }]}
+                valuePropName="checked"
+              >
+                <SealSwitch
+                  label={intl.formatMessage({ id: 'users.form.active' })}
+                  description={intl.formatMessage({
+                    id: 'users.form.active.description'
+                  })}
+                />
+              </Form.Item>
+            </div>
+          )}
+        </div>
 
         <Form.Item<FormData>
           name="password"
@@ -129,7 +155,7 @@ const AddModal: React.FC<AddModalProps> = ({
           ></SealInput.Password>
         </Form.Item>
       </Form>
-    </ScrollerModal>
+    </FormDrawer>
   );
 };
 

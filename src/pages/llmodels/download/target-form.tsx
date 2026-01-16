@@ -1,34 +1,70 @@
-import IconFont from '@/components/icon-font';
-import SealAutoComplete from '@/components/seal-form/auto-complete';
+import SealCascader from '@/components/seal-form/seal-cascader';
 import SealInput from '@/components/seal-form/seal-input';
 import SealSelect from '@/components/seal-form/seal-select';
 import TooltipList from '@/components/tooltip-list';
 import useAppUtils from '@/hooks/use-app-utils';
 import { ModelFileFormData as FormData } from '@/pages/resources/config/types';
 import { useIntl } from '@umijs/max';
-import { Form, Typography } from 'antd';
+import { Form } from 'antd';
 import _ from 'lodash';
-import React, { forwardRef, useImperativeHandle, useMemo } from 'react';
-import OllamaTips from '../components/ollama-tips';
-import {
-  localPathTipsList,
-  modelSourceMap,
-  ollamaModelOptions,
-  sourceOptions
-} from '../config';
+import minimatch from 'minimatch';
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo
+} from 'react';
+import { localPathTipsList, modelSourceMap, sourceOptions } from '../config';
+import { useGenerateWorkersModelFileOptions } from '../hooks';
+
+type EmptyObject = Record<never, never>;
+
+type CascaderOption<T extends object = EmptyObject> = {
+  label: string;
+  value: string | number;
+  parent?: boolean;
+  disabled?: boolean;
+  index?: number;
+  children?: CascaderOption<T>[];
+} & Partial<T>;
 
 interface TargetFormProps {
   ref?: any;
-  workersList: Global.BaseOption<number>[];
   source: string;
+  workerOptions: CascaderOption<{ state: string }>[];
+  workersList?: Global.BaseOption<
+    number,
+    { state: string; labels: Record<string, string>; cluster_id: number }
+  >[];
+  selectedModel?: Record<string, any>;
+  fileName?: string;
   onOk: (values: any) => void;
 }
 
 const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
-  const { onOk, source, workersList } = props;
+  const {
+    modelFileOptions,
+    getModelFileList,
+    generateWorkersModelFileOptions
+  } = useGenerateWorkersModelFileOptions();
+  const { onOk, source, workerOptions, workersList, selectedModel, fileName } =
+    props;
   const { getRuleMessage } = useAppUtils();
   const intl = useIntl();
   const [form] = Form.useForm();
+  const localPath = Form.useWatch('local_path', form);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        if (workersList && workersList?.length > 0) {
+          const modelFiles = await getModelFileList();
+          generateWorkersModelFileOptions(modelFiles, workersList || []);
+        }
+      } catch (error) {}
+    };
+    init();
+  }, [workersList]);
 
   useImperativeHandle(ref, () => ({
     form
@@ -36,7 +72,10 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
 
   const handleOk = (values: any) => {
     const data = _.pickBy(values, (val: string) => val);
-    onOk(data);
+    onOk({
+      ...data,
+      worker_id: data.worker_id?.[1]
+    });
   };
 
   const handleOnLocalPathBlur = (e: any) => {
@@ -47,6 +86,36 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
     form.setFieldsValue({
       local_path: value
     });
+  };
+
+  const renderOptionNode = (props: { data: any }) => {
+    const { data } = props;
+    const currentWorker = modelFileOptions.find(
+      (item) => item.value === data.value
+    );
+
+    const isExisting = currentWorker?.children?.some((child) => {
+      const isSameFile =
+        child.fileName === (fileName || localPath || '') ||
+        minimatch(child.fileName || '', fileName || '');
+
+      return child.repoId === (selectedModel?.name || '') && isSameFile;
+    });
+
+    const localeId = localPath
+      ? 'resources.modelfiles.form.added'
+      : 'resources.modelfiles.form.exsting';
+
+    return (
+      <span>
+        {data.label}
+        {isExisting && (
+          <span className="text-tertiary m-l-4">
+            [{intl.formatMessage({ id: localeId })}]
+          </span>
+        )}
+      </span>
+    );
   };
 
   const renderLocalPathFields = () => {
@@ -73,56 +142,7 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
     );
   };
 
-  const renderOllamaModelFields = () => {
-    return (
-      <>
-        <Form.Item<FormData>
-          name="ollama_library_model_name"
-          key="ollama_library_model_name"
-          rules={[
-            {
-              required: true,
-              message: getRuleMessage('input', 'models.table.name')
-            }
-          ]}
-        >
-          <SealAutoComplete
-            allowClear
-            filterOption
-            defaultActiveFirstOption
-            disabled={false}
-            options={ollamaModelOptions}
-            description={
-              <span>
-                <span>
-                  {intl.formatMessage({ id: 'models.form.ollamalink' })}
-                </span>
-                <Typography.Link
-                  className="flex-center"
-                  href="https://www.ollama.com/library"
-                  target="_blank"
-                >
-                  <IconFont
-                    type="icon-external-link"
-                    className="font-size-14"
-                  ></IconFont>
-                </Typography.Link>
-              </span>
-            }
-            label={intl.formatMessage({ id: 'model.form.ollama.model' })}
-            placeholder={intl.formatMessage({ id: 'model.form.ollamaholder' })}
-            required
-          ></SealAutoComplete>
-        </Form.Item>
-      </>
-    );
-  };
-
   const renderFieldsBySource = useMemo(() => {
-    if (props.source === modelSourceMap.ollama_library_value) {
-      return renderOllamaModelFields();
-    }
-
     if (props.source === modelSourceMap.local_path_value) {
       return renderLocalPathFields();
     }
@@ -132,14 +152,10 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
 
   return (
     <div>
-      {source === modelSourceMap.ollama_library_value && (
-        <OllamaTips></OllamaTips>
-      )}
       <Form
         form={form}
         onFinish={handleOk}
         preserve={false}
-        style={{ padding: '16px 24px' }}
         clearOnDestroy={true}
         initialValues={{
           source: source
@@ -171,17 +187,27 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
           rules={[
             {
               required: true,
-              message: getRuleMessage('select', 'worker', false)
+              message: getRuleMessage('select', 'resources.worker')
             }
           ]}
         >
-          {
-            <SealSelect
-              label="Worker"
-              options={workersList}
-              required
-            ></SealSelect>
-          }
+          <SealCascader
+            required
+            showSearch
+            expandTrigger="hover"
+            multiple={false}
+            classNames={{
+              popup: {
+                root: 'cascader-popup-wrapper gpu-selector'
+              }
+            }}
+            maxTagCount={1}
+            label={intl.formatMessage({ id: 'resources.worker' })}
+            options={workerOptions}
+            showCheckedStrategy="SHOW_CHILD"
+            optionNode={renderOptionNode}
+            getPopupContainer={(triggerNode) => triggerNode.parentNode}
+          ></SealCascader>
         </Form.Item>
         {source !== modelSourceMap.local_path_value && (
           <Form.Item<FormData>

@@ -1,6 +1,3 @@
-import { PlusOutlined } from '@ant-design/icons';
-import { useIntl } from '@umijs/max';
-import { Button } from 'antd';
 import _ from 'lodash';
 import React from 'react';
 import Wrapper from '../label-selector/wrapper';
@@ -8,19 +5,19 @@ import ListItem from './list-item';
 
 interface ListInputProps {
   dataList: string[];
-  label: React.ReactNode;
+  label?: React.ReactNode;
   description?: React.ReactNode;
   btnText?: string;
   options?: Global.HintOptions[];
   placeholder?: string;
   labelExtra?: React.ReactNode;
+  trim?: boolean;
   onChange: (data: string[]) => void;
   onBlur?: (e: any, index: number) => void;
   onDelete?: (index: number) => void;
 }
 
 const ListInput: React.FC<ListInputProps> = (props) => {
-  const intl = useIntl();
   const {
     dataList,
     label,
@@ -30,11 +27,11 @@ const ListInput: React.FC<ListInputProps> = (props) => {
     onDelete,
     btnText,
     options,
-    labelExtra
+    labelExtra,
+    trim = true
   } = props;
   const [list, setList] = React.useState<{ value: string; uid: number }[]>([]);
   const countRef = React.useRef(0);
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
 
   const updateCountRef = () => {
     countRef.current = countRef.current + 1;
@@ -65,9 +62,6 @@ const ListInput: React.FC<ListInputProps> = (props) => {
       uid: countRef.current
     });
     setList(values);
-    // setTimeout(() => {
-    //   buttonRef.current?.scrollIntoView?.({ behavior: 'smooth' });
-    // }, 100);
   };
 
   React.useEffect(() => {
@@ -85,7 +79,13 @@ const ListInput: React.FC<ListInputProps> = (props) => {
   }, [dataList]);
 
   return (
-    <Wrapper label={label} description={description} labelExtra={labelExtra}>
+    <Wrapper
+      label={label}
+      description={description}
+      labelExtra={labelExtra}
+      onAdd={handleOnAdd}
+      btnText={btnText}
+    >
       <>
         {_.map(list, (item: any, index: number) => {
           return (
@@ -97,29 +97,13 @@ const ListInput: React.FC<ListInputProps> = (props) => {
               onBlur={(e) => onBlur?.(e, index)}
               onRemove={() => handleOnRemove(index)}
               onChange={(val) => handleOnChange(val, index)}
+              trim={trim}
             />
           );
         })}
-        <div className="flex justify-center">
-          <Button
-            ref={buttonRef}
-            variant="filled"
-            color="default"
-            block
-            style={{
-              marginTop: 16
-            }}
-            onClick={handleOnAdd}
-          >
-            <PlusOutlined className="font-size-14" />{' '}
-            {intl.formatMessage({
-              id: btnText
-            })}
-          </Button>
-        </div>
       </>
     </Wrapper>
   );
 };
 
-export default React.memo(ListInput);
+export default ListInput;

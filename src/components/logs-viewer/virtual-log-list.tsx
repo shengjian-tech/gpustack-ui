@@ -1,10 +1,10 @@
 import useSetChunkFetch from '@/hooks/use-chunk-fetch';
+import { useMemoizedFn } from 'ahooks';
 import { Spin } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import React, {
   forwardRef,
-  memo,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -25,10 +25,17 @@ interface LogsViewerProps {
   tail?: number;
   enableScorllLoad?: boolean;
   diffHeight?: number;
+  isDownloading?: boolean;
 }
 
 const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
-  const { diffHeight, url, tail: defaultTail, enableScorllLoad = true } = props;
+  const {
+    diffHeight,
+    url,
+    tail: defaultTail,
+    enableScorllLoad = true,
+    isDownloading
+  } = props;
   const { pageSize, page, setPage, setTotalPage, totalPage } =
     useLogsPagination();
   const { setChunkFetch } = useSetChunkFetch();
@@ -64,9 +71,10 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
   };
 
   const setCurrentData = (lines: string[]) => {
+    console.log('setCurrentData', lines);
     const dataList = lines.map((line, index) => {
       return {
-        content: removeBracketsFromLine(line),
+        content: line,
         uid: `${pageRef.current}-${index}`
       };
     });
@@ -150,7 +158,8 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
     logParseWorker.current.postMessage({
       inputStr: data,
       page: pageRef.current,
-      reset: clearScreen.current
+      reset: clearScreen.current,
+      isDownloading: isDownloading
     });
     clearScreen.current = false;
   };
@@ -169,7 +178,7 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
     });
   };
 
-  const handleOnScroll = useCallback(
+  const handleOnScroll = useMemoizedFn(
     async (data: { isTop: boolean; isBottom: boolean }) => {
       const { isTop, isBottom } = data;
       setIsAtTop(isTop);
@@ -217,17 +226,7 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
       } else if (isBottom && page < totalPage) {
         // getNextPage();
       }
-    },
-    [
-      loading,
-      logs.length,
-      pageSize,
-      enableScorllLoad,
-      page,
-      totalPage,
-      setScrollPos,
-      createChunkConnection
-    ]
+    }
   );
 
   const debouncedScroll = useCallback(
@@ -247,7 +246,7 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
     return () => {
       chunkRequedtRef.current?.current?.abort?.();
     };
-  }, [url]);
+  }, [url, isDownloading]);
 
   useEffect(() => {
     debouncedScroll();
@@ -349,4 +348,4 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
   );
 });
 
-export default memo(LogsViewer);
+export default LogsViewer;

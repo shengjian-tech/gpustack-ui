@@ -62,7 +62,8 @@ export default {
   'playground.params.width': 'Width',
   'playground.params.height': 'Height',
   'playground.params.custom': 'Custom',
-  'playground.params.empty.tips': 'Generated images will appear here',
+  'playground.params.empty.tips': 'Generated images will appear here.',
+  'playground.video.empty.tips': 'Generated video will appear here.',
   'playground.params.standard': 'Standard',
   'playground.params.hd': 'HD',
   'playground.params.style.vivid': 'Vivid',
@@ -90,7 +91,7 @@ export default {
   'playground.audio.stoprecord': 'Stop Recording',
   'playground.audio.generating.tips': 'Generated text will appear here.',
   'playground.audio.uploadfile.tips':
-    'Upload an audio file, supported formats: {formats}',
+    'Upload an audio file, supported formats: {formats}.',
   'playground.input.multiplePaste': 'Batch Input Mode',
   'playground.input.multiplePaste.tips':
     'When enabled, pasted multi-line text will be automatically split by newline into separate entries in the form.',
@@ -156,5 +157,11 @@ export default {
   'playground.image.generate.error':
     'Something went wrong. The image could not be generated.',
   'playground.uploadfile.sizeError':
-    'File size exceeds the limit. Maximum allowed: {size}.'
+    'File size exceeds the limit. Maximum allowed: {size}.',
+  'playground.uploadImage.url.invalid':
+    'Please enter a direct image URL (e.g. https://.../image.png). Press ESC to cancel.',
+  'playground.uploadImage.url.holder': 'Enter an image URL',
+  'playground.uploadImage.url.button': 'Add Image from URL',
+  'playground.params.duration': 'Duration (seconds)',
+  'playground.params.resolution': 'Resolution'
 };

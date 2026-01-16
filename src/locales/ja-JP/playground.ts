@@ -62,7 +62,8 @@ export default {
   'playground.params.width': '幅',
   'playground.params.height': '高さ',
   'playground.params.custom': 'カスタム',
-  'playground.params.empty.tips': '生成された画像はここに表示されます',
+  'playground.params.empty.tips': '生成された画像はここに表示されます。',
+  'playground.video.empty.tips': '生成された動画はここに表示されます。',
   'playground.params.standard': '標準',
   'playground.params.hd': 'HD',
   'playground.params.style.vivid': '鮮やか',
@@ -159,11 +160,22 @@ export default {
   'playground.image.generate.error':
     'Something went wrong. The image could not be generated.',
   'playground.uploadfile.sizeError':
-    'File size exceeds the limit. Maximum allowed: {size}.'
+    'File size exceeds the limit. Maximum allowed: {size}.',
+  'playground.uploadImage.url.invalid':
+    'Please enter a direct image URL (e.g. https://.../image.png). Press ESC to cancel.',
+  'playground.uploadImage.url.holder': 'Enter an image URL',
+  'playground.uploadImage.url.button': 'Add Image from URL',
+  'playground.params.duration': 'Duration (seconds)',
+  'playground.params.resolution': 'Resolution'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
 // 1. 'playground.rerank.query.validate': 'The query is required.'
 // 2.  'playground.image.generate.error': 'Something went wrong. The image could not be generated.',
 // 3. 'playground.uploadfile.sizeError': 'File size exceeds the limit. Maximum allowed: {size}.'
+// 4. 'playground.uploadImage.url.invalid': 'Please enter a direct image URL(e.g. https://.../image.png). Press ESC to cancel.',
+// 5. 'playground.uploadImage.url.holder': 'Enter an image URL'
+// 6.  'playground.uploadImage.url.button': 'Add Image from URL',
+// 7. 'playground.params.duration': 'Duration (seconds)',
+// 8. 'playground.params.resolution': 'Resolution'
 // ========== End of To-Do List ==========

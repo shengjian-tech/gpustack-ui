@@ -20,14 +20,20 @@ export interface ListItem {
   name: string;
   description: string;
   id: number;
+  cluster_id: number;
   local_path?: string;
   created_at: string;
   updated_at: string;
+  access_policy: 'public' | 'authed' | 'allowed_users';
+  generic_proxy?: boolean;
   gpu_selector?: {
     gpu_ids: string[];
+    gpus_per_replica?: number;
   };
   worker_selector?: object;
 }
+
+export type DeployFormKey = 'deployment' | 'catalog';
 
 export type SourceType =
   | 'huggingface'
@@ -36,6 +42,8 @@ export type SourceType =
   | 'ollama_library';
 
 export interface FormData {
+  image_name?: string;
+  run_command?: string;
   backend: string;
   restart_on_error?: boolean;
   env?: Record<string, any>;
@@ -44,9 +52,7 @@ export interface FormData {
   categories?: string[];
   backend_parameters?: string[];
   backend_version?: string;
-  source: string;
-  repo_id: string;
-  file_name: string;
+  source: SourceType;
   huggingface_repo_id: string;
   huggingface_filename: string;
   s3_address: string;
@@ -55,8 +61,12 @@ export interface FormData {
   local_path?: string;
   model_scope_model_id?: string;
   model_scope_file_path?: string;
+  generic_proxy?: boolean;
   gpu_selector?: {
-    gpu_ids: string[];
+    gpu_ids?: string[];
+    gpu_type?: string;
+    gpu_count?: number;
+    gpus_per_replica?: number;
   };
   placement_strategy?: string;
   cpu_offloading?: boolean;
@@ -65,6 +75,24 @@ export interface FormData {
   name: string;
   replicas: number;
   description: string;
+  optimize_long_prompt: boolean;
+  enable_speculative_decoding: boolean;
+  cluster_id: number;
+  extended_kv_cache: {
+    enabled: boolean;
+    chunk_size: number;
+    ram_ratio: number;
+    ram_size: number;
+  };
+  speculative_config: {
+    enabled: boolean;
+    algorithm: string;
+    draft_model: string;
+    num_draft_tokens: number;
+    ngram_min_match_length: number;
+    ngram_max_match_length: number;
+  };
+  max_context_len: number;
 }
 
 interface ComputedResourceClaim {
@@ -82,8 +110,6 @@ export interface DistributedServerItem {
 }
 
 export interface DistributedServers {
-  rpc_servers: DistributedServerItem[];
-  ray_actors: DistributedServerItem[];
   subordinate_workers: DistributedServerItem[];
 }
 export interface ModelInstanceListItem {
@@ -112,6 +138,16 @@ export interface ModelInstanceListItem {
   id: number;
   created_at: string;
   updated_at: string;
+  draft_model_source: {
+    source: string;
+    huggingface_repo_id: string;
+    huggingface_filename: string;
+    model_scope_model_id: string;
+    model_scope_file_path: string;
+    local_path: string;
+  };
+  draft_model_download_progress: 0;
+  draft_model_resolved_path: string;
 }
 
 export interface ModelInstanceFormData {
@@ -149,11 +185,14 @@ export interface CatalogItem {
   name: string;
   id: number;
   description: string;
+  deployment_notes?: string;
   home: string;
   icon: string;
   categories: string[];
   capabilities: string[];
-  sizes: number[];
+  size: number;
+  size_unit: string;
+  activated_size: number;
   licenses: string[];
   release_date: string;
 }
@@ -174,10 +213,26 @@ export interface CatalogSpec {
   categories: any[];
   placement_strategy: string;
   cpu_offloading: boolean;
+  mode: string;
   distributed_inference_across_workers: boolean;
   worker_selector: Record<string, any>;
   gpu_selector: {
     gpu_ids: string[];
+    gpus_per_replica: number;
+  };
+  extended_kv_cache: {
+    enabled: boolean;
+    chunk_size: number;
+    max_local_cpu_size: number;
+    remote_url: string;
+  };
+  speculative_config: {
+    enabled: boolean;
+    algorithm: string;
+    draft_model: string;
+    num_draft_tokens: number;
+    ngram_min_match_length: number;
+    ngram_max_match_length: number;
   };
   backend: string;
   backend_version: string;
@@ -188,6 +243,7 @@ export interface CatalogSpec {
 
 export interface EvaluateSpec {
   source?: string;
+  cluster_id?: number;
   huggingface_repo_id?: string;
   huggingface_filename?: string;
   ollama_library_model_name?: string;
@@ -206,6 +262,7 @@ export interface EvaluateSpec {
   worker_selector?: Record<string, any>;
   gpu_selector?: {
     gpu_ids: string[];
+    gpus_per_replica: number;
   };
   backend?: string;
   backend_version?: string;
@@ -227,4 +284,65 @@ export interface EvaluateResult {
     ram: number;
     vram: number;
   };
+  cluster_id?: number;
+  resource_claim_by_cluster_id?: {
+    [key: number]: {
+      ram: number;
+      vram: number;
+    };
+  };
+}
+
+export interface BackendGroupOption {
+  value: string;
+  label: string;
+  title?: string;
+  default_backend_param: string[];
+  default_version: string;
+  isBuiltIn: boolean;
+  versions: { label: string; value: string; title?: string }[];
+}
+
+export interface BackendOption {
+  value: string;
+  label: string;
+  title?: string;
+  default_backend_param: string[];
+  default_version: string;
+  isBuiltIn: boolean;
+  versions: {
+    label: string;
+    value: string;
+    title?: string;
+    is_deprecated: boolean;
+  }[];
+}
+
+export interface AccessControlFormData {
+  access_policy: 'public' | 'authed' | 'allowed_users';
+  users: { id: number }[];
+}
+
+export interface BackendItem {
+  backend_name: string;
+  from_config: boolean;
+  default_version: string;
+  default_backend_param: string[];
+  is_built_in: boolean;
+  versions: {
+    version: string;
+    is_deprecated: boolean;
+  }[];
+}
+
+export interface DraftModelItem {
+  source: string;
+  huggingface_repo_id: string;
+  huggingface_filename: string;
+  ollama_library_model_name: string;
+  model_scope_model_id: string;
+  model_scope_file_path: string;
+  local_path: string;
+  name: string;
+  algorithm: string;
 }

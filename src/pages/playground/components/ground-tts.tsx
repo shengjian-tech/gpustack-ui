@@ -1,6 +1,7 @@
 import { setRouteCache } from '@/atoms/route-cache';
 import AlertInfo from '@/components/alert-info';
 import IconFont from '@/components/icon-font';
+import AutoComplete from '@/components/seal-form/auto-complete';
 import SealSelect from '@/components/seal-form/seal-select';
 import SpeechContent from '@/components/speech-content';
 import routeCachekey from '@/config/route-cachekey';
@@ -23,7 +24,7 @@ import { AUDIO_TEXT_TO_SPEECH_API, CHAT_API, textToSpeech } from '../apis';
 import { extractErrorMessage } from '../config';
 import { TTSParamsConfig as paramsConfig } from '../config/params-config';
 import { MessageItem, ParamsSchema } from '../config/types';
-import '../style/ground-left.less';
+import '../style/ground-llm.less';
 import '../style/system-message-wrap.less';
 import { TextToSpeechCode } from '../view-code/audio';
 import DynamicParams from './dynamic-params';
@@ -274,17 +275,20 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
 
   const renderExtra = useMemo(() => {
     return paramsConfig.map((item: ParamsSchema) => {
+      const comProps = {
+        ...item.attrs,
+        options: item.name === 'voice' ? voiceList : item.options,
+        label: item.label.isLocalized
+          ? intl.formatMessage({ id: item.label.text })
+          : item.label.text
+      };
       return (
         <Form.Item name={item.name} rules={item.rules} key={item.name}>
-          <SealSelect
-            {...item.attrs}
-            options={item.name === 'voice' ? voiceList : item.options}
-            label={
-              item.label.isLocalized
-                ? intl.formatMessage({ id: item.label.text })
-                : item.label.text
-            }
-          ></SealSelect>
+          {item.type === 'AutoComplete' ? (
+            <AutoComplete {...comProps} />
+          ) : (
+            <SealSelect {...comProps}></SealSelect>
+          )}
         </Form.Item>
       );
     });

@@ -1,23 +1,24 @@
 import { Form, Input } from 'antd';
 import type { TextAreaProps } from 'antd/es/input/TextArea';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { SealFormItemProps } from './types';
 import Wrapper from './wrapper';
 import InputWrapper from './wrapper/input';
 
-const LabelWrapper = styled.div`
+const LabelWrapper = styled.div.attrs({
+  className: 'seal-textarea-label'
+})`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: 2px;
   background-color: var(--ant-color-bg-container);
 `;
 
 interface InputTextareaProps extends TextAreaProps {
   scaleSize?: boolean;
+  alwaysFocus?: boolean; // it's order to display the placeholder
 }
 
 const SealTextArea: React.FC<InputTextareaProps & SealFormItemProps> = (
@@ -39,6 +40,7 @@ const SealTextArea: React.FC<InputTextareaProps & SealFormItemProps> = (
     addAfter,
     trim,
     scaleSize,
+    alwaysFocus,
     ...rest
   } = props;
   const [isFocus, setIsFocus] = useState(false);
@@ -65,53 +67,43 @@ const SealTextArea: React.FC<InputTextareaProps & SealFormItemProps> = (
     return focusRows;
   }, [props.autoSize, isFocus, scaleSize]);
 
-  const handleClickWrapper = useCallback(() => {
+  const handleClickWrapper = () => {
     if (!props.disabled && !isFocus) {
       inputRef.current?.focus?.({
         cursor: 'all'
       });
       setIsFocus(true);
     }
-  }, [props.disabled, isFocus]);
+  };
 
-  const handleChange = useCallback(
-    (e: any) => {
-      onChange?.(e);
-    },
-    [onChange]
-  );
+  const handleChange = (e: any) => {
+    onChange?.(e);
+  };
 
-  const handleOnFocus = useCallback(
-    (e: any) => {
-      setIsFocus(true);
-      onFocus?.(e);
-    },
-    [onFocus]
-  );
+  const handleOnFocus = (e: any) => {
+    setIsFocus(true);
+    onFocus?.(e);
+  };
 
-  const handleOnBlur = useCallback(
-    (e: any) => {
-      if (!inputRef.current?.resizableTextArea?.textArea?.value) {
-        setIsFocus(false);
-        onBlur?.(e);
-      }
-    },
-    [onBlur, scaleSize]
-  );
+  const handleOnBlur = (e: any) => {
+    if (!inputRef.current?.resizableTextArea?.textArea?.value) {
+      setIsFocus(false);
+    }
+    onBlur?.(e);
+  };
 
-  const handleInput = useCallback(
-    (e: any) => {
-      onInput?.(e);
-    },
-    [onInput]
-  );
+  const handleInput = (e: any) => {
+    onInput?.(e);
+  };
+
+  console.log('style=========', style, rest);
 
   return (
-    <InputWrapper>
+    <InputWrapper className="textarea-input-wrapper">
       <Wrapper
         status={status}
-        label={<LabelWrapper>{label}</LabelWrapper>}
-        isFocus={isFocus}
+        label={label && <LabelWrapper>{label}</LabelWrapper>}
+        isFocus={alwaysFocus || isFocus}
         required={required}
         description={description}
         className="seal-textarea-wrapper"
@@ -122,9 +114,11 @@ const SealTextArea: React.FC<InputTextareaProps & SealFormItemProps> = (
       >
         <Input.TextArea
           {...rest}
+          placeholder={placeholder}
+          spellCheck={rest.spellCheck ?? false}
           autoSize={autoSize}
           ref={inputRef}
-          style={{ minHeight: '80px', ...style }}
+          style={{ ...style }}
           className="seal-textarea"
           onFocus={handleOnFocus}
           onBlur={handleOnBlur}

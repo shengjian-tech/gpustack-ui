@@ -4,7 +4,7 @@ import { useIntl } from '@umijs/max';
 import { Modal } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import { MODELS_API } from '../apis';
-import { InstanceRealtimeLogStatus } from '../config';
+import { InstanceRealtimeLogStatus, InstanceStatusMap } from '../config';
 
 type ViewModalProps = {
   open: boolean;
@@ -12,14 +12,18 @@ type ViewModalProps = {
   id?: number | string;
   modelId?: number | string;
   tail?: number;
+  status?: string;
   onCancel: () => void;
 };
 
 const ViewLogsModal: React.FC<ViewModalProps> = (props) => {
   const intl = useIntl();
   const { setChunkRequest } = useSetChunkRequest();
-  const { open, url, onCancel, tail } = props || {};
+  const { open, url, onCancel, tail, status } = props || {};
   const [enableScorllLoad, setEnableScorllLoad] = useState(true);
+  const [isDownloading, setIsDownloading] = useState<boolean>(
+    status === InstanceStatusMap.Downloading
+  );
   const logsViewerRef = React.useRef<any>(null);
   const requestRef = React.useRef<any>(null);
   const contentRef = React.useRef<any>(null);
@@ -32,7 +36,9 @@ const ViewLogsModal: React.FC<ViewModalProps> = (props) => {
   const updateHandler = (list: any) => {
     const data = list?.find((item: any) => item.data?.id === props.id);
     // state in InstanceRealtimeLogStatus will not enable scorll load, because it is in the trasisition state
+
     if (data) {
+      setIsDownloading(data?.data?.state === InstanceStatusMap.Downloading);
       setEnableScorllLoad(
         () => !InstanceRealtimeLogStatus.includes(data?.data?.state)
       );
@@ -70,6 +76,9 @@ const ViewLogsModal: React.FC<ViewModalProps> = (props) => {
         url: `${MODELS_API}/${props.modelId}/instances`,
         handler: updateHandler
       });
+    } else {
+      logsViewerRef.current?.abort();
+      requestRef.current?.current?.cancel?.();
     }
 
     return () => {
@@ -92,7 +101,7 @@ const ViewLogsModal: React.FC<ViewModalProps> = (props) => {
       open={open}
       centered={true}
       onCancel={handleCancel}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       closeIcon={true}
       maskClosable={false}
       keyboard={true}
@@ -111,6 +120,7 @@ const ViewLogsModal: React.FC<ViewModalProps> = (props) => {
           url={url}
           tail={tail}
           enableScorllLoad={enableScorllLoad}
+          isDownloading={isDownloading}
           params={{
             follow: true
           }}

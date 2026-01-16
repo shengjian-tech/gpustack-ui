@@ -1,14 +1,18 @@
 import { isNotEmptyValue } from '@/utils/index';
 import { useIntl } from '@umijs/max';
 import type { SelectProps } from 'antd';
-import { Form, Select } from 'antd';
+import { Form } from 'antd';
 import { cloneDeep } from 'lodash';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import BaseSelect from './base/select';
+import NotFoundContent from './components/not-found-content';
 import { SealFormItemProps } from './types';
 import Wrapper from './wrapper';
 import SelectWrapper from './wrapper/select';
 
-const SealSelect: React.FC<SelectProps & SealFormItemProps> = (props) => {
+const SealSelect: React.FC<
+  SelectProps & SealFormItemProps & { footer?: React.ReactNode }
+> = (props) => {
   const {
     label,
     placeholder,
@@ -18,18 +22,23 @@ const SealSelect: React.FC<SelectProps & SealFormItemProps> = (props) => {
     options,
     allowNull,
     isInFormItems = true,
+    notFoundContent = null,
+    loading,
+    footer,
     ...rest
   } = props;
   const intl = useIntl();
   const [isFocus, setIsFocus] = useState(false);
   const inputRef = useRef<any>(null);
-  const boxRef = useRef<any>(null);
+
   let status = '';
 
   // the status can be controlled by Form.Item
   if (isInFormItems) {
     const statusData = Form?.Item?.useStatus?.();
     status = statusData?.status || '';
+  } else {
+    status = props.status || '';
   }
 
   const _options = useMemo(() => {
@@ -46,7 +55,10 @@ const SealSelect: React.FC<SelectProps & SealFormItemProps> = (props) => {
   }, [options, intl]);
 
   useEffect(() => {
-    if (isNotEmptyValue(props.value) || (allowNull && props.value === null)) {
+    if (
+      isNotEmptyValue(props.value) ||
+      (allowNull && (props.value === null || props.value === undefined))
+    ) {
       setIsFocus(true);
     }
   }, [props.value, allowNull]);
@@ -64,7 +76,7 @@ const SealSelect: React.FC<SelectProps & SealFormItemProps> = (props) => {
     } else {
       setIsFocus(false);
     }
-    props.onChange?.(val, options);
+    props.onChange?.(val || null, options);
   };
 
   const handleOnFocus = (e: any) => {
@@ -93,17 +105,23 @@ const SealSelect: React.FC<SelectProps & SealFormItemProps> = (props) => {
         disabled={props.disabled}
         onClick={handleClickWrapper}
       >
-        <Select
+        <BaseSelect
           {...rest}
+          footer={footer}
           ref={inputRef}
           options={children ? null : _options}
           onFocus={handleOnFocus}
           onBlur={handleOnBlur}
           onChange={handleChange}
-          notFoundContent={null}
+          notFoundContent={
+            <NotFoundContent
+              loading={loading}
+              notFoundContent={notFoundContent}
+            />
+          }
         >
           {children}
-        </Select>
+        </BaseSelect>
       </Wrapper>
     </SelectWrapper>
   );

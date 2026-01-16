@@ -1,11 +1,22 @@
+import { COLOR_PRIMARY } from './index';
+
 export default {
   'root-entry-name': 'variable',
-  cssVar: true,
   hashed: false,
   components: {
     Input: {
       inputFontSize: 14,
       inputFontSizeLG: 14
+    },
+    InputNumber: {
+      handleWidth: 32
+    },
+    Tag: {
+      defaultBg: '#fafafa'
+    },
+    Steps: {
+      descriptionMaxWidth: 200,
+      iconSizeSM: 20
     },
     Table: {
       headerBorderRadius: 4,
@@ -14,7 +25,10 @@ export default {
       cellFontSize: 14,
       rowSelectedHoverBg: 'rgb(249 249 249)',
       rowHoverBg: 'rgb(249 249 249)',
-      rowSelectedBg: 'transparent'
+      rowSelectedBg: 'transparent',
+      headerSortActiveBg: 'transparent',
+      headerSortHoverBg: 'transparent',
+      headerBg: 'none'
     },
     Button: {
       contentFontSizeLG: 14,
@@ -32,7 +46,7 @@ export default {
       iconSize: 16,
       iconMarginInlineEnd: 12,
       itemBorderRadius: 4,
-      itemSelectedColor: '#007BFF',
+      itemSelectedColor: COLOR_PRIMARY,
       itemHeight: 32,
       groupTitleColor: 'rgba(0,0,0,1)',
       itemHoverColor: 'rgba(0,0,0,1)',
@@ -54,27 +68,34 @@ export default {
       colorBgSpotlight: '#3e3e3e'
     },
     Cascader: {
-      dropdownHeight: 240
+      dropdownHeight: 240,
+      optionSelectedFontWeight: 400
     },
     Slider: {
       handleSize: 8,
       handleSizeHover: 8,
+      railSize: 4,
+      handleActiveOutlineColor: '#B4B4B4', // disable default outline
+      handleActiveColor: '#D0D0D0', // same as the rail color
+      handleColor: '#D0D0D0', // same as the rail color
+      handleHoverColor: '#B4B4B4', // same as the rail hover color
       trackBg: 'rgba(0,0,0,0.15)',
-      handleColor: 'rgba(0,0,0,0.2)',
-      trackHoverBg: 'rgba(0,0,0,0.25)',
-      handleActiveColor: 'rgba(0,0,0,0.3)',
+      trackHoverBg: '#B4B4B4',
       dotActiveBorderColor: 'rgba(0,0,0,0.25)',
-      handleActiveOutlineColor: 'rgba(0,0,0,0.25)',
       dotBorderColor: 'rgba(0,0,0,0.25)'
+    },
+    Descriptions: {
+      itemPaddingBottom: 8
     }
   },
   token: {
     darkMode: false,
     fontFamily:
       "Helvetica Neue, -apple-system, BlinkMacSystemFont, Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
-    colorText: 'rgba(0,0,0,1)',
-    colorPrimary: '#007BFF',
+    colorText: '#1F1F1F',
+    colorPrimary: COLOR_PRIMARY,
     colorSuccess: '#54cc98',
+    colorBorder: '#d3d0d9',
     borderRadius: 4,
     borderRadiusSM: 2,
     colorBgContainer: '#fff',

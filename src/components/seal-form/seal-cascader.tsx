@@ -1,3 +1,4 @@
+import IconFont from '@/components/icon-font';
 import { isNotEmptyValue } from '@/utils/index';
 import { useIntl } from '@umijs/max';
 import type { CascaderAutoProps } from 'antd';
@@ -20,10 +21,10 @@ const tag = (props: any) => {
 const renderTag = (props: any) => {
   return (
     <AutoTooltip
-      className="m-r-4"
       closable={props.closable}
       onClose={props.onClose}
       maxWidth={240}
+      style={{ marginRight: 4 }}
       filled
     >
       {tag(props)}
@@ -33,10 +34,11 @@ const renderTag = (props: any) => {
 
 const OptionNodes = (props: {
   data: any;
+  notFoundContent?: React.ReactNode;
   optionNode: React.FC<{ data: any }>;
 }) => {
   const intl = useIntl();
-  const { data, optionNode: OptionNode } = props;
+  const { data, optionNode: OptionNode, notFoundContent } = props;
   if (data.value === '__EMPTY__') {
     return (
       <Empty
@@ -48,15 +50,17 @@ const OptionNodes = (props: {
           justifyContent: 'center',
           alignItems: 'center'
         }}
-        description={intl.formatMessage({
-          id: 'common.search.empty'
-        })}
+        description={
+          notFoundContent ||
+          intl.formatMessage({
+            id: 'common.search.empty'
+          })
+        }
       ></Empty>
     );
   }
   let width: any = {
-    maxWidth: 140,
-    minWidth: 140
+    maxWidth: 140
   };
   if (!data.parent) {
     width = undefined;
@@ -85,6 +89,7 @@ const SealCascader: React.FC<
     allowNull,
     isInFormItems = true,
     optionNode,
+    notFoundContent,
     tagRender,
     ...rest
   } = props;
@@ -141,9 +146,10 @@ const SealCascader: React.FC<
   };
 
   const handleOnBlur = (e: any) => {
-    if (allowNull && props.value === null) {
+    const noVal = !props.value || props.value.length === 0;
+    if (allowNull && noVal) {
       setIsFocus(true);
-    } else if (!props.value) {
+    } else if (noVal) {
       setIsFocus(false);
     }
     props.onBlur?.(e);
@@ -168,11 +174,13 @@ const SealCascader: React.FC<
       >
         <Cascader
           {...rest}
+          suffixIcon={<IconFont type="icon-down"></IconFont>}
           optionRender={
             optionNode
               ? (data) => (
                   <OptionNodes
                     data={data}
+                    notFoundContent={notFoundContent}
                     optionNode={optionNode}
                   ></OptionNodes>
                 )
@@ -185,7 +193,7 @@ const SealCascader: React.FC<
           onBlur={handleOnBlur}
           onChange={handleChange}
           notFoundContent={null}
-          onDropdownVisibleChange={handleDropdownVisibleChange}
+          onOpenChange={handleDropdownVisibleChange}
         ></Cascader>
       </Wrapper>
     </SelectWrapper>

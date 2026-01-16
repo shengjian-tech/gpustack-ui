@@ -1,5 +1,4 @@
 import IconFont from '@/components/icon-font';
-import SimpleOverlay from '@/components/simple-overlay';
 import { SearchOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { Button, Empty, Spin } from 'antd';
@@ -61,7 +60,12 @@ const SearchResult: React.FC<SearchResultProps> = (props) => {
     if (networkError) {
       return (
         <Empty
-          imageStyle={{ height: 'auto', marginTop: '20px' }}
+          styles={{
+            image: {
+              height: 'auto',
+              marginTop: '20px'
+            }
+          }}
           image={
             <IconFont
               type="icon-networkerror"
@@ -98,7 +102,12 @@ const SearchResult: React.FC<SearchResultProps> = (props) => {
     }
     return (
       <Empty
-        imageStyle={{ height: 'auto', marginTop: '20px' }}
+        styles={{
+          image: {
+            height: 'auto',
+            marginTop: '20px'
+          }
+        }}
         image={
           <SearchOutlined
             className="font-size-16"
@@ -111,7 +120,7 @@ const SearchResult: React.FC<SearchResultProps> = (props) => {
   }, [networkError, source, intl]);
 
   return (
-    <SimpleOverlay style={{ height: 'calc(100vh - 224px)' }}>
+    <>
       <div style={{ ...props.style }} className="search-result-wrap">
         <Spin spinning={props.loading}>
           <div style={{ minHeight: 200 }}>
@@ -157,7 +166,7 @@ const SearchResult: React.FC<SearchResultProps> = (props) => {
           </div>
         </Spin>
       </div>
-    </SimpleOverlay>
+    </>
   );
 };
 

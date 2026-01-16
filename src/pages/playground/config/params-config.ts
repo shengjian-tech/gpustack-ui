@@ -1,6 +1,6 @@
 import { ParamsSchema } from './types';
 
-export interface ImageSizeItem {
+export interface SizeOption {
   label: string;
   value: string;
   width: number;
@@ -32,7 +32,7 @@ export const imageSizeOptions: {
 
 export const TTSParamsConfig: ParamsSchema[] = [
   {
-    type: 'Select',
+    type: 'AutoComplete',
     name: 'voice',
     options: [],
     label: {
@@ -41,7 +41,7 @@ export const TTSParamsConfig: ParamsSchema[] = [
     },
     rules: [
       {
-        required: true,
+        required: false,
         message: 'Voice is required'
       }
     ]
@@ -125,6 +125,9 @@ export const ImageParamsConfig: ParamsSchema[] = [
       min: 1,
       max: 4
     },
+    formItemAttrs: {
+      hidden: true
+    },
     rules: [
       {
         required: false
@@ -164,6 +167,9 @@ export const ImageCountConfig: ParamsSchema[] = [
       min: 1,
       max: 4
     },
+    formItemAttrs: {
+      hidden: true
+    },
     rules: [
       {
         required: false
@@ -191,6 +197,23 @@ export const ImageSizeConfig: ParamsSchema[] = [
         required: false
       }
     ]
+  },
+  {
+    type: 'Select',
+    name: 'response_format',
+    formItemAttrs: {
+      hidden: true
+    },
+    options: [{ label: 'b64_json', value: 'b64_json' }],
+    label: {
+      text: 'Response Format',
+      isLocalized: false
+    },
+    rules: [
+      {
+        required: false
+      }
+    ]
   }
 ];
 
@@ -205,6 +228,9 @@ export const ImageEidtParamsConfig: ParamsSchema[] = [
     attrs: {
       min: 1,
       max: 4
+    },
+    formItemAttrs: {
+      hidden: true
     },
     rules: [
       {
@@ -283,7 +309,7 @@ export const ImageconstExtraConfig: ParamsSchema[] = [
   }
 ];
 
-export const ImageAdvancedParamsConfig: ParamsSchema[] = [
+const advancedConfig = [
   {
     type: 'Select',
     name: 'sample_method',
@@ -432,20 +458,10 @@ export const ImageAdvancedParamsConfig: ParamsSchema[] = [
         required: false
       }
     ]
-  },
-  {
-    type: 'Switch',
-    name: 'preview',
-    label: {
-      text: 'Preview',
-      isLocalized: false
-    },
-    rules: [
-      {
-        required: false
-      }
-    ]
-  },
+  }
+];
+
+export const ImageAdvancedParamsConfig: ParamsSchema[] = [
   {
     type: 'InputNumber',
     name: 'seed',
@@ -488,7 +504,7 @@ export const ImageAdvancedParamsConfig: ParamsSchema[] = [
   }
 ];
 
-export const ImageCustomSizeConfig: ParamsSchema[] = [
+export const CustomSizeConfig: ParamsSchema[] = [
   {
     type: 'Slider',
     name: 'width',

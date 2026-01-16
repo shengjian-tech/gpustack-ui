@@ -35,7 +35,7 @@ const Resources = () => {
   const items: TabsProps['items'] = [
     {
       key: 'workers',
-      label: 'Workers',
+      label: 'resources.nodes',
       children: <Workers />
     },
     {

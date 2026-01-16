@@ -1,23 +1,18 @@
 import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import {
+  CustomSizeConfig,
   ImageCountConfig,
-  ImageCustomSizeConfig,
   ImageSizeConfig,
-  ImageSizeItem,
   ImageconstExtraConfig,
   ImageAdvancedParamsConfig as ImgAdvancedParamsConfig,
+  SizeOption,
   imageSizeOptions as imageSizeList
 } from '@/pages/playground/config/params-config';
+import { generateRandomNumber } from '@/utils';
 import { useSearchParams } from '@umijs/max';
-import { Form } from 'antd';
+import { useMemoizedFn } from 'ahooks';
 import _ from 'lodash';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ParamsSchema } from '../config/types';
 import {
   IMG_METAKEYS,
@@ -132,37 +127,34 @@ export const useInitLLmMeta = (
     return fields?.join(',');
   }, [paramsConfig]);
 
-  const handleOnModelChange = useCallback(
-    (val: string) => {
-      if (!val) return;
-      const model = modelList.find((item) => item.value === val);
-      const { form: initialData, meta } = extractLLMMeta(model?.meta);
-      setModelMeta(meta);
-      setInitialValues({
-        ...initialData,
-        model: val
-      });
-      setParams({
-        ...initialData,
-        model: val
-      });
-      const config = defaultParamsConfig.map((item) => {
-        return {
-          ...item,
-          attrs:
-            item.name === 'max_tokens'
-              ? { ...item.attrs, max: meta.max_tokens }
-              : {
-                  ...item.attrs
-                }
-        };
-      });
-      setParamsConfig(config);
-    },
-    [modelList, defaultParamsConfig]
-  );
+  const handleOnModelChange = useMemoizedFn((val: string) => {
+    if (!val) return;
+    const model = modelList.find((item) => item.value === val);
+    const { form: initialData, meta } = extractLLMMeta(model?.meta);
+    setModelMeta(meta);
+    setInitialValues({
+      ...initialData,
+      model: val
+    });
+    setParams({
+      ...initialData,
+      model: val
+    });
+    const config = defaultParamsConfig.map((item) => {
+      return {
+        ...item,
+        attrs:
+          item.name === 'max_tokens'
+            ? { ...item.attrs, max: meta.max_tokens }
+            : {
+                ...item.attrs
+              }
+      };
+    });
+    setParamsConfig(config);
+  });
 
-  const handleOnValuesChange = useCallback(
+  const handleOnValuesChange = useMemoizedFn(
     (changeValues: Record<string, any>, allValues: Record<string, any>) => {
       if (changeValues.model) {
         handleOnModelChange(changeValues.model);
@@ -171,8 +163,7 @@ export const useInitLLmMeta = (
         setParams(allValues);
         setInitialValues(allValues);
       }
-    },
-    [handleOnModelChange]
+    }
   );
 
   useEffect(() => {
@@ -219,16 +210,18 @@ export const useInitImageMeta = (
   const [searchParams] = useSearchParams();
   const [modelMeta, setModelMeta] = useState<any>({});
   const [isOpenaiCompatible, setIsOpenaiCompatible] = useState<boolean>(false);
-  const [imageSizeOptions, setImageSizeOptions] = React.useState<
-    ImageSizeItem[]
-  >([]);
+  const [imageSizeOptions, setImageSizeOptions] = React.useState<SizeOption[]>(
+    []
+  );
   const [basicParamsConfig, setBasicParamsConfig] = React.useState<
     ParamsSchema[]
   >([...ImageCountConfig, ...ImageSizeConfig]);
+  const initialSeed = generateRandomNumber();
 
   const [initialValues, setInitialValues] = useState<any>({
     ...imgInitialValues,
     ...advancedFieldsDefaultValus,
+    seed: initialSeed,
     model: ''
   });
   const [paramsConfig, setParamsConfig] = useState<ParamsSchema[]>([
@@ -240,6 +233,7 @@ export const useInitImageMeta = (
   const [parameters, setParams] = useState<any>({
     ...imgInitialValues,
     ...advancedFieldsDefaultValus,
+    seed: initialSeed,
     model: ''
   });
 
@@ -252,11 +246,6 @@ export const useInitImageMeta = (
     ...openaiCompatibleFieldsDefaultValus,
     ...advancedFieldsDefaultValus
   });
-  const randomSeed = Form.useWatch('random_seed', form.current?.form);
-
-  const watchFields = useMemo(() => {
-    return ['random_seed'];
-  }, [randomSeed]);
 
   const getNewImageSizeOptions = (metaData: any) => {
     const { max_height, max_width } = metaData || {};
@@ -286,30 +275,31 @@ export const useInitImageMeta = (
 
   const generateImageParamsConfig = (
     currentModel: any,
-    sizeOptions: ImageSizeItem[]
+    sizeOptions: SizeOption[]
   ) => {
     if (sizeOptions.length) {
       const sizeConfig = ImageSizeConfig.map((item) => {
-        return {
-          ...item,
-          options: sizeOptions
-        };
+        if (item.name === 'size') {
+          return {
+            ...item,
+            options: sizeOptions
+          };
+        }
+        return item;
       });
       return [...ImageCountConfig, ...sizeConfig];
     }
     const { max_height, max_width } = currentModel.meta || {};
-    const customSizeConfig = _.cloneDeep(ImageCustomSizeConfig).map(
-      (item: any) => {
-        const max = item.name === 'height' ? max_height : max_width;
-        return {
-          ...item,
-          attrs: {
-            ...item.attrs,
-            max: max || item.attrs.max
-          }
-        };
-      }
-    );
+    const customSizeConfig = _.cloneDeep(CustomSizeConfig).map((item: any) => {
+      const max = item.name === 'height' ? max_height : max_width;
+      return {
+        ...item,
+        attrs: {
+          ...item.attrs,
+          max: max || item.attrs.max
+        }
+      };
+    });
     return [...ImageCountConfig, ...customSizeConfig];
   };
 
@@ -342,7 +332,7 @@ export const useInitImageMeta = (
     if (values.size === 'custom') {
       return [
         ...basicParamsConfig,
-        ...ImageCustomSizeConfig,
+        ...CustomSizeConfig,
         ...(values.isOpenaiCompatible
           ? ImageconstExtraConfig
           : ImageAdvancedParamsConfig)
@@ -406,36 +396,36 @@ export const useInitImageMeta = (
     return fields?.join(',');
   }, [paramsConfig]);
 
-  const handleOnModelChange = useCallback(
-    (val: string) => {
-      if (!val) return;
-      const model = modelList.find((item) => item.value === val);
-      const { form: initialData, sizeOptions } = extractIMGMeta(model?.meta);
-      const newParamsConfig = generateImageParamsConfig(model, sizeOptions);
+  const handleOnModelChange = useMemoizedFn((val: string) => {
+    if (!val) return;
+    const model = modelList.find((item) => item.value === val);
+    const { form: initialData, sizeOptions } = extractIMGMeta(model?.meta);
+    const newParamsConfig = generateImageParamsConfig(model, sizeOptions);
 
-      if (!isOpenaiCompatible) {
-        setParamsConfig([...newParamsConfig, ...ImageAdvancedParamsConfig]);
-      } else {
-        setParamsConfig(newParamsConfig);
-      }
-      setBasicParamsConfig(newParamsConfig);
-      setImageSizeOptions(sizeOptions);
-      setModelMeta(model?.meta || {});
-      setInitialValues({
-        ...initialData,
-        model: val
-      });
-      setParams({
-        ...initialData,
-        model: val
-      });
-      updateCacheFormData(initialData);
-    },
-    [modelList, isOpenaiCompatible]
-  );
+    if (!isOpenaiCompatible) {
+      setParamsConfig([...newParamsConfig, ...ImageAdvancedParamsConfig]);
+    } else {
+      setParamsConfig(newParamsConfig);
+    }
+    setBasicParamsConfig(newParamsConfig);
+    setImageSizeOptions(sizeOptions);
+    setModelMeta(model?.meta || {});
+    setInitialValues({
+      ...initialData,
+      seed: parameters.seed,
+      model: val
+    });
+    setParams({
+      ...initialData,
+      seed: parameters.seed,
+      model: val
+    });
+    updateCacheFormData(initialData);
+  });
 
-  const handleOnValuesChange = useCallback(
+  const handleOnValuesChange = useMemoizedFn(
     (changeValues: Record<string, any>, allValues: Record<string, any>) => {
+      console.log('changeValues', changeValues);
       // model change will reset all values
       if (changeValues.model) {
         handleOnModelChange(changeValues.model);
@@ -445,7 +435,7 @@ export const useInitImageMeta = (
       if (changeValues.size && changeValues.size === 'custom') {
         setParamsConfig([
           ...basicParamsConfig,
-          ...ImageCustomSizeConfig,
+          ...CustomSizeConfig,
           ...(!isOpenaiCompatible
             ? ImageAdvancedParamsConfig
             : ImageconstExtraConfig)
@@ -469,17 +459,24 @@ export const useInitImageMeta = (
         ]);
         setParams(allValues);
         updateCacheFormData(changeValues);
+      } else if (_.isBoolean(changeValues.random_seed)) {
+        const seed = changeValues.random_seed
+          ? generateRandomNumber()
+          : parameters.seed;
+
+        setParams({
+          ...allValues,
+          seed: seed
+        });
+        form.current?.form?.setFieldsValue({
+          seed: seed
+        });
+        updateCacheFormData(changeValues);
       } else {
         setParams(allValues);
         updateCacheFormData(changeValues);
       }
-    },
-    [
-      handleOnModelChange,
-      parameters.size,
-      basicParamsConfig,
-      isOpenaiCompatible
-    ]
+    }
   );
 
   useEffect(() => {
@@ -503,7 +500,6 @@ export const useInitImageMeta = (
     form,
     modelMeta,
     formFields,
-    watchFields,
     paramsConfig,
     initialValues,
     parameters,
@@ -517,7 +513,7 @@ export const useInitImageMeta = (
     imgInitialValues,
     ImageCountConfig,
     ImageSizeConfig,
-    ImageCustomSizeConfig,
+    CustomSizeConfig,
     ImageconstExtraConfig
   };
 };

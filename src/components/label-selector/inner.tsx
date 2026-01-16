@@ -1,14 +1,14 @@
-import { PlusOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button } from 'antd';
 import _ from 'lodash';
-import React, { useRef } from 'react';
+import React, { useEffect } from 'react';
+import AutoCompleteItem from './autocomplete-item';
 import LabelItem from './label-item';
 import Wrapper from './wrapper';
 interface LabelSelectorProps {
   labels: Record<string, any>;
   label?: string;
   btnText?: string;
+  isAutoComplete?: boolean;
   labelList: Array<{ key: string; value: string }>;
   onLabelListChange: (list: { key: string; value: string }[]) => void;
   onChange?: (labels: Record<string, any>) => void;
@@ -16,6 +16,7 @@ interface LabelSelectorProps {
   onBlur?: (e: any, type: string, index: number) => void;
   onDelete?: (index: number) => void;
   description?: React.ReactNode;
+  disabled?: boolean;
 }
 
 const Inner: React.FC<LabelSelectorProps> = ({
@@ -26,13 +27,17 @@ const Inner: React.FC<LabelSelectorProps> = ({
   onPaste,
   onBlur,
   onDelete,
+  disabled,
   label,
   btnText,
-  description
+  description,
+  isAutoComplete
 }) => {
   const intl = useIntl();
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('labels changed in Inner', labels);
+  }, [labels]);
 
   const updateLabels = (list: { key: string; value: string }[]) => {
     const newLabels = _.reduce(
@@ -75,42 +80,49 @@ const Inner: React.FC<LabelSelectorProps> = ({
   };
 
   return (
-    <Wrapper label={label} description={description}>
+    <Wrapper
+      label={label}
+      description={description}
+      onAdd={handleAddLabel}
+      disabled={disabled}
+      btnText={btnText}
+    >
       <>
-        {labelList?.map((item: any, index: number) => {
-          return (
-            <LabelItem
-              key={index}
-              label={item}
-              seperator=":"
-              labelList={labelList}
-              onDelete={() => handleOnDelete(index)}
-              onChange={(obj) => handleOnChange(index, obj)}
-              onPaste={(e) => onPaste?.(e, index)}
-              onBlur={(e: any, type: string) => onBlur?.(e, type, index)}
-            />
-          );
-        })}
-        <div className="flex justify-center">
-          <Button
-            ref={buttonRef}
-            type="text"
-            block
-            style={{
-              marginTop: 16,
-              backgroundColor: 'var(--ant-color-fill-secondary)'
-            }}
-            onClick={handleAddLabel}
-          >
-            <PlusOutlined className="font-size-14" />{' '}
-            {intl.formatMessage({
-              id: btnText || 'common.button.addSelector'
+        {isAutoComplete
+          ? labelList?.map((item: any, index: number) => {
+              return (
+                <AutoCompleteItem
+                  disabled={disabled}
+                  key={index}
+                  label={item}
+                  seperator=":"
+                  labels={labels}
+                  labelList={labelList}
+                  onDelete={() => handleOnDelete(index)}
+                  onChange={(obj) => handleOnChange(index, obj)}
+                  onPaste={(e) => onPaste?.(e, index)}
+                  onBlur={(e: any, type: string) => onBlur?.(e, type, index)}
+                />
+              );
+            })
+          : labelList?.map((item: any, index: number) => {
+              return (
+                <LabelItem
+                  disabled={disabled}
+                  key={index}
+                  label={item}
+                  seperator=":"
+                  labelList={labelList}
+                  onDelete={() => handleOnDelete(index)}
+                  onChange={(obj) => handleOnChange(index, obj)}
+                  onPaste={(e) => onPaste?.(e, index)}
+                  onBlur={(e: any, type: string) => onBlur?.(e, type, index)}
+                />
+              );
             })}
-          </Button>
-        </div>
       </>
     </Wrapper>
   );
 };
 
-export default React.memo(Inner);
+export default Inner;

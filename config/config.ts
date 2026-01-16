@@ -1,9 +1,9 @@
 import { defineConfig } from '@umijs/max';
 import keepAlive from './keep-alive';
+import { compressionPluginConfig, monacoPluginConfig } from './plugins';
 import proxy from './proxy';
 import routes from './routes';
 import { getBranchInfo } from './utils';
-const CompressionWebpackPlugin = require('compression-webpack-plugin');
 
 const versionInfo = getBranchInfo();
 process.env.VERSION = JSON.stringify(versionInfo);
@@ -56,21 +56,15 @@ export default defineConfig({
           config.output
             .filename(`js/[name].${t}.js`)
             .chunkFilename(`js/[name].${t}.chunk.js`);
-          config
-            .plugin('compression-webpack-plugin')
-            .use(CompressionWebpackPlugin, [
-              {
-                filename: '[path][base].gz',
-                algorithm: 'gzip',
-                test: /\.(js|css|html|svg)$/,
-                threshold: 10240,
-                minRatio: 0.8
-              }
-            ]);
+          compressionPluginConfig(config);
+          monacoPluginConfig(config);
         }
       }
-    : {}),
-
+    : {
+        chainWebpack(config) {
+          monacoPluginConfig(config);
+        }
+      }),
   favicons: ['/static/favicon.png'],
   jsMinifier: 'terser',
   cssMinifier: 'cssnano',
@@ -84,6 +78,9 @@ export default defineConfig({
   model: {},
   initialState: {},
   request: {},
+  routePrefetch: {
+    defaultPrefetch: 'intent'
+  },
   keepalive: keepAlive,
   locale: {
     antd: true,

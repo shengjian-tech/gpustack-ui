@@ -1,4 +1,5 @@
 import SealInput from '@/components/seal-form/seal-input';
+import { Global } from '@/config/global';
 import { MinusOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { Button, Tooltip } from 'antd';
@@ -15,8 +16,9 @@ interface LabelItemProps {
   keyAddon?: React.ReactNode;
   valueAddon?: React.ReactNode;
   seperator?: string;
-  onDelete?: () => void;
   labelList: { key: string; value: string }[];
+  disabled?: boolean;
+  onDelete?: () => void;
   onChange?: (params: { key: string; value: string }) => void;
   onPaste?: (e: any) => void;
   onBlur?: (e: any, type: string) => void;
@@ -27,6 +29,7 @@ const LabelItem: React.FC<LabelItemProps> = ({
   seperator,
   keyAddon,
   valueAddon,
+  disabled,
   onChange,
   onDelete,
   onPaste,
@@ -82,6 +85,7 @@ const LabelItem: React.FC<LabelItemProps> = ({
             title={intl.formatMessage({ id: 'resources.table.key.tips' })}
           >
             <SealInput.Input
+              disabled={disabled}
               checkStatus="success"
               label={intl.formatMessage({ id: 'common.input.key' })}
               value={label.key}
@@ -96,6 +100,8 @@ const LabelItem: React.FC<LabelItemProps> = ({
       <div className="label-value">
         {valueAddon ?? (
           <SealInput.Input
+            trim={false}
+            disabled={disabled}
             checkStatus={label.value ? 'success' : ''}
             label={intl.formatMessage({ id: 'common.input.value' })}
             value={label.value}
@@ -104,17 +110,19 @@ const LabelItem: React.FC<LabelItemProps> = ({
           ></SealInput.Input>
         )}
       </div>
-      <Button
-        size="small"
-        className="btn"
-        type="default"
-        shape="circle"
-        onClick={onDelete}
-      >
-        <MinusOutlined />
-      </Button>
+      {!disabled && (
+        <Button
+          size="small"
+          className="btn"
+          type="default"
+          shape="circle"
+          onClick={onDelete}
+        >
+          <MinusOutlined />
+        </Button>
+      )}
     </div>
   );
 };
 
-export default React.memo(LabelItem);
+export default LabelItem;

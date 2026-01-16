@@ -1,3 +1,4 @@
+import { GPUSTACK_API_BASE_URL } from '@/config/settings';
 import { convertFileSize } from '@/utils';
 import { throttle } from 'lodash';
 import qs from 'query-string';
@@ -168,7 +169,7 @@ const useSetChunkFetch = () => {
     axiosToken.current = new AbortController();
     try {
       const response = await fetch(
-        `v1${url}?${qs.stringify({
+        `${GPUSTACK_API_BASE_URL}${url}?${qs.stringify({
           ...params,
           watch: watch === undefined ? true : watch
         })}`,

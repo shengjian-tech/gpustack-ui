@@ -5,7 +5,7 @@ export default {
   'common.button.editmode': 'Edit mode',
   'common.button.shortcut': 'Keyboard Shortcut',
   'common.button.add': 'Add',
-  'common.button.login': 'Log In',
+  'common.button.login': 'Log in',
   'common.button.select': 'Select',
   'common.button.selected': 'Selected',
   'common.button.continue': 'Continue',
@@ -147,7 +147,7 @@ export default {
   'common.copy.notSupport': 'Your browser does not support Clipboard API',
   'common.title.basicInfo': 'Basic',
   'common.help.need': 'Need help?',
-  'common.help.eg': 'e.g.,',
+  'common.help.eg': 'e.g., {content}',
   'common.filter.label': 'Filters',
   'common.filter.isrequired.holder': 'Optional',
   'common.filter.isrequired.true': 'Required',
@@ -247,9 +247,27 @@ export default {
   'common.appearance.theme': 'Theme',
   'common.page.wentwrong': 'Something went wrong.',
   'common.page.refresh.tips':
-    'Oops! Something went wrong. Try refreshing the page.',
+    'The page may need to be updated. Try refreshing it!',
   'common.tips.escape.disable':
     'Click Cancel or the X at the top right to close.',
   'common.button.clearSelection': 'Clear Selection',
-  'common.select.count': '{count} selected'
+  'common.select.count': '{count} selected',
+  'common.login.auth': 'Authenticating...',
+  'common.login.auth.failed': 'Authentication failed',
+  'common.login.password': 'Log in with Password',
+  'common.external.login': 'Log in with {type}',
+  'common.sso.noConfig':
+    'Single sign-on is not enabled on this system. Please contact your administrator.',
+  'common.button.edit.item': 'Edit {name}',
+  'common.button.terminal': 'Terminal',
+  'common.button.addItem': 'Add Item',
+  'common.help.default': 'Default: {content}',
+  'common.filter.status': 'Filter by status',
+  'common.form.rule.selectInput': 'Please select or enter a {name}',
+  'common.tag.experimental': 'Experimental',
+  'common.title.example': 'Example',
+  'common.button.dontshowagain': "Don't show again",
+  'common.sorter.tips.ascend': 'Click to sort ascending',
+  'common.sorter.tips.descend': 'Click to sort descending',
+  'common.sorter.tips.cancel': 'Click to cancel sorting'
 };

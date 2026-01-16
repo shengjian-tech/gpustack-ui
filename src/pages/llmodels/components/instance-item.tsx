@@ -16,6 +16,7 @@ import {
   DownloadOutlined,
   HddFilled,
   InfoCircleOutlined,
+  PieChartFilled,
   ThunderboltFilled
 } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
@@ -25,18 +26,23 @@ import _ from 'lodash';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { MODEL_INSTANCE_API } from '../apis';
-import {
-  InstanceStatusMap,
-  InstanceStatusMapValue,
-  backendOptionsMap,
-  status
-} from '../config';
+import { InstanceStatusMap, InstanceStatusMapValue, status } from '../config';
+import { backendOptionsMap } from '../config/backend-parameters';
+import { generateSource } from '../config/button-actions';
 import {
   DistributedServerItem,
   DistributedServers,
   ModelInstanceListItem
 } from '../config/types';
 import '../style/instance-item.less';
+
+interface InstanceItemProps {
+  instanceData: ModelInstanceListItem;
+  workerList: WorkerListItem[];
+  modelData?: any;
+  defaultOpenId: string;
+  handleChildSelect: (val: string, item: ModelInstanceListItem) => void;
+}
 
 const fieldList = [
   {
@@ -51,12 +57,7 @@ const fieldList = [
   }
 ];
 
-const downloadList: ColumnProps[] = [
-  {
-    title: 'Worker',
-    key: 'worker_name',
-    width: 200
-  },
+const statusColumn: ColumnProps[] = [
   {
     title: 'models.table.download.progress',
     locale: true,
@@ -79,6 +80,32 @@ const downloadList: ColumnProps[] = [
     }
   }
 ];
+const downloadList: ColumnProps[] = [
+  {
+    title: 'resources.worker',
+    locale: true,
+    key: 'worker_name',
+    width: 280
+  },
+  ...statusColumn
+];
+
+const draftModelDownloadList: ColumnProps[] = [
+  {
+    title: 'models.form.draftModel',
+    locale: true,
+    key: 'draft_model',
+    style: {
+      wordBreak: 'break-word'
+    },
+    width: 280
+  },
+  ...statusColumn
+];
+
+const calcTotalVram = (vram: Record<string, number>) => {
+  return _.sum(_.values(vram));
+};
 
 const WorkerInfo = (props: {
   title: React.ReactNode;
@@ -98,9 +125,11 @@ const WorkerInfo = (props: {
         open={open}
         onOpenChange={setOpen}
         title={props.title}
-        overlayInnerStyle={{
-          width: 'max-content',
-          maxWidth: '400px'
+        styles={{
+          container: {
+            width: 'max-content',
+            maxWidth: '400px'
+          }
         }}
       >
         <span className="server-info">
@@ -122,7 +151,7 @@ const RenderRayactorDownloading = (props: {
   workerList: WorkerListItem[];
 }) => {
   const { severList, instanceData, workerList } = props;
-  if (!severList.length) {
+  if (!severList.length && !instanceData.draft_model_download_progress) {
     return null;
   }
   const list = _.map(severList, (item: any) => {
@@ -142,14 +171,33 @@ const RenderRayactorDownloading = (props: {
     }
   ];
 
+  const draftModelList = [];
+  if (instanceData.draft_model_download_progress > 0) {
+    draftModelList.push({
+      draft_model: generateSource(instanceData.draft_model_source),
+      download_progress: _.round(instanceData.draft_model_download_progress, 2)
+    });
+  }
+
   return (
     <div>
-      <SimpleTabel
-        columns={downloadList}
-        dataSource={[...mainWorker, ...list]}
-        rowKey="worker_name"
-        theme="light"
-      ></SimpleTabel>
+      {severList.length > 0 && (
+        <SimpleTabel
+          columns={downloadList}
+          dataSource={[...mainWorker, ...list]}
+          rowKey="worker_name"
+          theme="light"
+        ></SimpleTabel>
+      )}
+
+      {draftModelList.length > 0 && (
+        <SimpleTabel
+          columns={draftModelDownloadList}
+          dataSource={[...draftModelList]}
+          rowKey="worker_name"
+          theme="light"
+        ></SimpleTabel>
+      )}
     </div>
   );
 };
@@ -165,21 +213,30 @@ const RenderWorkerDownloading = (props: {
   const severList: DistributedServerItem[] =
     distributed_servers?.subordinate_workers || [];
 
-  if (
+  const isWorkerNotDownloading =
     instanceData.state !== InstanceStatusMap.Downloading ||
     !severList.length ||
-    backend === backendOptionsMap.llamaBox
-  ) {
+    backend === backendOptionsMap.llamaBox;
+
+  const isDraftModeNotDownloading =
+    !instanceData.draft_model_download_progress ||
+    instanceData.draft_model_download_progress >= 100;
+
+  if (isWorkerNotDownloading && isDraftModeNotDownloading) {
     return null;
   }
   return (
     <Tooltip
       arrow={true}
-      overlayInnerStyle={{
-        width: 300,
-        backgroundColor: 'var(--color-spotlight-bg)'
+      styles={{
+        container: {
+          width: 360,
+          backgroundColor: 'var(--color-spotlight-bg)'
+        }
       }}
-      overlayClassName="light-downloading-tooltip"
+      classNames={{
+        root: 'light-downloading-tooltip'
+      }}
       title={
         <RenderRayactorDownloading
           severList={severList}
@@ -195,7 +252,9 @@ const RenderWorkerDownloading = (props: {
         strokeColor="var(--ant-color-success)"
         percent={
           _.find(severList, (item: any) => item.download_progress < 100)
-            ?.download_progress || 0
+            ?.download_progress ||
+          instanceData.draft_model_download_progress ||
+          0
         }
       />
     </Tooltip>
@@ -248,14 +307,6 @@ const InstanceStatusTag = (
     </>
   );
 };
-
-interface InstanceItemProps {
-  instanceData: ModelInstanceListItem;
-  workerList: WorkerListItem[];
-  modelData?: any;
-  defaultOpenId: string;
-  handleChildSelect: (val: string, item: ModelInstanceListItem) => void;
-}
 
 const childActionList = [
   {
@@ -322,7 +373,7 @@ const distributeCols: ColumnProps[] = [
     locale: true,
     key: 'gpu_index',
     render: ({ row }) => {
-      const list = _.sortBy(row.gpu_index, (item: number) => item);
+      const list = row.gpu_index?.sort((a: number, b: number) => a - b) || [];
       return row.is_main ? (
         <>
           {renderGpuIndexs(list)}
@@ -427,13 +478,29 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
         <div className="flex-center">
           <IconFont type="icon-filled-gpu" className="m-r-5" />
           {intl.formatMessage({ id: 'models.table.gpuindex' })}: [
-          {_.join(instanceData.gpu_indexes?.sort?.(), ',')}]
+          {_.join(
+            instanceData.gpu_indexes?.sort?.((a, b) => a - b),
+            ','
+          )}
+          ]
         </div>
         <div className="flex-center">
           <ThunderboltFilled className="m-r-5" />
           {intl.formatMessage({ id: 'models.form.backend' })}:{' '}
-          {modelData?.backend || ''}
-          {modelData.backend_version ? `(${modelData.backend_version})` : ''}
+          {instanceData?.backend || modelData?.backend || ''}
+          {instanceData.backend_version || modelData?.backend_version
+            ? `(${instanceData.backend_version || modelData?.backend_version})`
+            : ''}
+        </div>
+        <div className="flex-center">
+          <PieChartFilled className="m-r-5" />
+          {intl.formatMessage({ id: 'models.table.vram.allocated' })}:{' '}
+          {convertFileSize(
+            instanceData.computed_resource_claim?.vram
+              ? calcTotalVram(instanceData.computed_resource_claim?.vram)
+              : 0,
+            1
+          )}
         </div>
       </div>
     );
@@ -442,14 +509,12 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
     instanceData.worker_ip,
     instanceData.port,
     instanceData.gpu_indexes,
+    instanceData?.backend,
+    instanceData?.backend_version,
     modelData?.backend,
     modelData?.backend_version,
     intl
   ]);
-
-  const calcTotalVram = (vram: Record<string, number>) => {
-    return _.sum(_.values(vram));
-  };
 
   const renderDistributedServer = (severList: any[]) => {
     const list = _.map(severList, (item: any) => {
@@ -461,6 +526,8 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
         is_main: false,
         vram: calcTotalVram(item.computed_resource_claim?.vram || {}),
         gpu_index: _.keys(item.computed_resource_claim?.vram)
+          .map((i: string) => Number(i))
+          .sort((a: number, b: number) => a - b)
       };
     });
 
@@ -471,7 +538,9 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
         port: '',
         vram: calcTotalVram(instanceData.computed_resource_claim?.vram || {}),
         is_main: true,
-        gpu_index: instanceData.gpu_indexes
+        gpu_index: instanceData.gpu_indexes?.sort(
+          (a: number, b: number) => a - b
+        )
       }
     ];
 
@@ -493,39 +562,41 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
     if (!severList.length) {
       return null;
     }
-
     return (
       <TooltipOverlayScroller
         toolTipProps={{
-          trigger: 'hover',
-          overlayInnerStyle: {
-            width: 'max-content',
-            maxWidth: '520px',
-            minWidth: '400px'
+          styles: {
+            container: {
+              width: 'max-content',
+              maxWidth: '520px',
+              minWidth: '400px'
+            }
           }
         }}
         title={renderDistributedServer(severList)}
       >
-        <ThemeTag
-          opacity={0.75}
-          color="processing"
-          style={{
-            marginRight: 0,
-            display: 'flex',
-            alignItems: 'center',
-            maxWidth: '100%',
-            minWidth: 50,
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            borderRadius: 12
-          }}
-        >
-          <InfoCircleOutlined className="m-r-5" />
-          {intl.formatMessage({
-            id: 'models.table.acrossworker'
-          })}
-        </ThemeTag>
+        <span>
+          <ThemeTag
+            opacity={0.75}
+            color="processing"
+            style={{
+              marginRight: 0,
+              display: 'flex',
+              alignItems: 'center',
+              maxWidth: '100%',
+              minWidth: 50,
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              borderRadius: 12
+            }}
+          >
+            <InfoCircleOutlined className="m-r-5" />
+            {intl.formatMessage({
+              id: 'models.table.acrossworker'
+            })}
+          </ThemeTag>
+        </span>
       </TooltipOverlayScroller>
     );
   };
@@ -533,6 +604,7 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
   const renderOffloadInfo = useMemo(() => {
     const total_layers = instanceData.computed_resource_claim?.total_layers;
     const offload_layers = instanceData.computed_resource_claim?.offload_layers;
+
     if (total_layers === offload_layers || !total_layers) {
       return null;
     }
@@ -554,7 +626,11 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
     };
     return (
       <Tooltip
-        overlayInnerStyle={{ paddingInline: 12 }}
+        styles={{
+          container: {
+            paddingInline: 12
+          }
+        }}
         title={
           <InfoColumn fieldList={fieldList} data={offloadData}></InfoColumn>
         }
@@ -626,7 +702,7 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
                 style={{
                   paddingLeft: '58px',
                   flexWrap: 'wrap',
-                  gap: '5px'
+                  gap: '8px'
                 }}
                 className="flex align-center"
               >
@@ -638,8 +714,8 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
             </Col>
             <Col span={4}>
               <span
-                style={{ paddingLeft: '62px', gap: 4 }}
-                className="flex-center justify-center"
+                style={{ paddingLeft: '40px', gap: 4 }}
+                className="flex-center"
               >
                 <InstanceStatusTag
                   instanceData={instanceData}
@@ -674,4 +750,4 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
     </>
   );
 };
-export default React.memo(InstanceItem);
+export default InstanceItem;

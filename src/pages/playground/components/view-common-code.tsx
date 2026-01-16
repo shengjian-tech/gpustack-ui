@@ -1,9 +1,8 @@
-import EditorWrap from '@/components/editor-wrap';
-import HighlightCode from '@/components/highlight-code';
 import { BulbOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { Button, Modal } from 'antd';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import CommandViewer from '../../_components/command-viewer';
 
 type ViewModalProps = {
   title?: string;
@@ -25,36 +24,36 @@ const langMap = {
 const langOptions = [
   { label: 'Curl', value: langMap.shell },
   { label: 'Python', value: langMap.python },
-  { label: 'Nodejs', value: langMap.javascript }
+  { label: 'Node.js', value: langMap.javascript }
 ];
 
 const ViewCodeModal: React.FC<ViewModalProps> = (props) => {
   const { title, open, onCancel, viewCodeContent } = props || {};
 
   const intl = useIntl();
-  const [lang, setLang] = useState<string>(langMap.shell);
-
-  const codeValue = useMemo(() => {
-    if (lang === langMap.shell) {
-      return viewCodeContent?.curlCode;
-    }
-    if (lang === langMap.javascript) {
-      return viewCodeContent?.nodeJsCode;
-    }
-    if (lang === langMap.python) {
-      return viewCodeContent?.pythonCode;
-    }
-    return '';
-  }, [lang, viewCodeContent]);
+  const [codeValue, setCodeValue] = useState<string>(viewCodeContent?.curlCode);
 
   const handleOnChangeLang = (value: string | number) => {
-    setLang(value as string);
+    if (value === langMap.shell) {
+      setCodeValue(viewCodeContent?.curlCode);
+    }
+    if (value === langMap.javascript) {
+      setCodeValue(viewCodeContent?.nodeJsCode);
+    }
+    if (value === langMap.python) {
+      setCodeValue(viewCodeContent?.pythonCode);
+    }
   };
 
   const handleClose = () => {
-    setLang(langMap.shell);
     onCancel();
   };
+
+  useEffect(() => {
+    if (open) {
+      setCodeValue(viewCodeContent?.curlCode);
+    }
+  }, [open]);
 
   return (
     <>
@@ -63,39 +62,26 @@ const ViewCodeModal: React.FC<ViewModalProps> = (props) => {
         open={open}
         centered={true}
         onCancel={handleClose}
-        destroyOnClose={true}
+        destroyOnHidden={true}
         closeIcon={true}
         maskClosable={false}
         keyboard={false}
         width={600}
         footer={null}
       >
-        <div style={{ marginBottom: '10px' }}>
+        <div style={{ marginBottom: '8px' }}>
           {intl.formatMessage({ id: 'playground.viewcode.info' })}
         </div>
         <div>
-          <EditorWrap
+          <CommandViewer
+            code={codeValue}
             copyText={codeValue}
-            langOptions={langOptions}
+            options={langOptions}
             defaultValue={langMap.shell}
-            showHeader={true}
-            onChangeLang={handleOnChangeLang}
-            styles={{
-              wrapper: {
-                backgroundColor: 'var(--color-editor-dark)'
-              }
-            }}
-          >
-            <HighlightCode
-              height={380}
-              theme="dark"
-              code={codeValue}
-              lang={lang}
-              copyable={false}
-            ></HighlightCode>
-          </EditorWrap>
+            onChange={handleOnChangeLang}
+          ></CommandViewer>
           <div
-            style={{ marginTop: 10, display: 'flex', alignItems: 'baseline' }}
+            style={{ marginTop: 8, display: 'flex', alignItems: 'baseline' }}
           >
             <BulbOutlined className="m-r-8" />
             <span>
@@ -128,4 +114,4 @@ const ViewCodeModal: React.FC<ViewModalProps> = (props) => {
   );
 };
 
-export default React.memo(ViewCodeModal);
+export default ViewCodeModal;

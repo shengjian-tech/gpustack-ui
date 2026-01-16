@@ -46,22 +46,32 @@ export default function useUserSettings() {
     });
   };
 
-  useEffect(() => {
-    setHtmlThemeAttr(userSettings.theme);
-  }, [userSettings.theme]);
+  const initTheme = () => {
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+      .matches
+      ? 'realDark'
+      : 'light';
+    if (userSettings.mode === 'auto' && systemTheme !== userSettings.theme) {
+      setTheme('auto');
+    }
+  };
 
   useEffect(() => {
-    if (userSettings.mode !== 'auto') return;
+    initTheme();
+  }, [userSettings.theme, userSettings.mode]);
 
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
+      // The theme follows the system preference, when the mode is set to 'auto'
+      if (userSettings.mode !== 'auto') return;
       setTheme('auto');
     };
     mediaQuery.addEventListener('change', handleChange);
     return () => {
       mediaQuery.removeEventListener('change', handleChange);
     };
-  }, [userSettings.mode]);
+  }, [userSettings.mode, userSettings.theme]);
 
   return {
     userSettings,

@@ -26,7 +26,7 @@ import { EDIT_IMAGE_API } from '../apis';
 import { EDIT_IMAGE_ACCEPT, scaleImageSize } from '../config';
 import { useInitImageMeta } from '../hooks/use-init-meta';
 import useTextImage from '../hooks/use-text-image';
-import '../style/ground-left.less';
+import '../style/ground-llm.less';
 import '../style/system-message-wrap.less';
 import { generateImageCode, generateOpenaiImageCode } from '../view-code/image';
 import DynamicParams from './dynamic-params';
@@ -77,7 +77,6 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
     setParamsConfig,
     form,
     modelMeta,
-    watchFields,
     formFields,
     paramsConfig,
     initialValues,
@@ -165,23 +164,12 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
   };
 
   const generateParams = () => {
-    // preview
-    let stream_options: Record<string, any> = {
-      stream_options_chunk_size: 16 * 1024,
-      stream_options_chunk_result: true
-    };
-
-    if (parameters.preview) {
-      stream_options = {
-        stream_options_preview_faster: true
-      };
-    }
-
     const params = {
       ..._.omitBy(finalParameters, (value: string) => !value),
-      seed: parameters.random_seed ? generateRandomNumber() : parameters.seed,
-      stream: true,
-      ...stream_options,
+      seed: parameters.random_seed
+        ? generateRandomNumber()
+        : parameters.seed || null,
+      stream: false,
       prompt: currentPrompt
     };
     return params;
@@ -468,7 +456,7 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
             {imageList.length > 0 && (
               <>
                 <Divider
-                  type="vertical"
+                  orientation="vertical"
                   style={{
                     margin: '0 30px',
                     height: 80
@@ -531,7 +519,6 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
           <div className="box">
             <DynamicParams
               ref={form}
-              watchFields={watchFields}
               formFields={formFields}
               parametersTitle={
                 <div className="flex-between flex-center">

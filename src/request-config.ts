@@ -2,8 +2,10 @@ import { userAtom } from '@/atoms/user';
 import { clearAtomStorage } from '@/atoms/utils';
 import { RequestConfig, history } from '@umijs/max';
 import { message } from 'antd';
+import { DEFAULT_ENTER_PAGE } from './config/settings';
 
-const NoBaseURLAPIs = ['/auth', '/v1-openai', '/version', '/proxy', '/update'];
+//  these APIs do not via the GPUSTACK_API_BASE_URL
+const NoBaseURLAPIs = ['/auth', '/v1', '/version', '/proxy', '/update'];
 
 export const requestConfig: RequestConfig = {
   errorConfig: {
@@ -12,7 +14,10 @@ export const requestConfig: RequestConfig = {
     },
     errorHandler: (error: any, opts: any) => {
       const { message: errorMessage, response } = error;
-      const errMsg = response?.data?.message || errorMessage;
+      const errMsg =
+        response?.data?.error?.message ||
+        response?.data?.message ||
+        errorMessage;
 
       if (!opts?.skipErrorHandler && response?.status) {
         message.error(errMsg);
@@ -20,7 +25,7 @@ export const requestConfig: RequestConfig = {
       if (response?.status === 401) {
         clearAtomStorage(userAtom);
 
-        history.push('/login', { replace: true });
+        history.push(DEFAULT_ENTER_PAGE.login, { replace: true });
       }
     }
   },

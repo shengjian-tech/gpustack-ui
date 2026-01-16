@@ -21,7 +21,7 @@ import React, {
 import { CREAT_IMAGE_API } from '../apis';
 import { useInitImageMeta } from '../hooks/use-init-meta';
 import useTextImage from '../hooks/use-text-image';
-import '../style/ground-left.less';
+import '../style/ground-llm.less';
 import '../style/system-message-wrap.less';
 import { generateImageCode, generateOpenaiImageCode } from '../view-code/image';
 import DynamicParams from './dynamic-params';
@@ -49,7 +49,6 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
     handleToggleParamsStyle,
     setParams,
     form,
-    watchFields,
     formFields,
     paramsConfig,
     initialValues,
@@ -140,25 +139,12 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
   };
 
   const generateParams = () => {
-    // preview
-    let stream_options: Record<string, any> = {
-      chunk_size: 16 * 1024,
-      chunk_results: true
-    };
-
-    if (parameters.preview) {
-      stream_options = {
-        preview_faster: true
-      };
-    }
-
     const params = {
       ..._.omitBy(finalParameters, (value: string) => !value),
-      seed: parameters.random_seed ? generateRandomNumber() : parameters.seed,
-      stream: true,
-      stream_options: {
-        ...stream_options
-      },
+      seed: parameters.random_seed
+        ? generateRandomNumber()
+        : parameters.seed || null,
+      stream: false,
       prompt: currentPrompt
     };
     return params;
@@ -169,6 +155,7 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
       await form.current?.form?.validateFields();
       if (!parameters.model) return;
       const params = generateParams();
+      console.log('generateParams:', params);
       setParams({
         ...parameters,
         seed: params.seed
@@ -287,7 +274,6 @@ const GroundImages: React.FC<MessageProps> = forwardRef((props, ref) => {
         <div className="box">
           <DynamicParams
             ref={form}
-            watchFields={watchFields}
             formFields={formFields}
             parametersTitle={
               <div className="flex-between flex-center">

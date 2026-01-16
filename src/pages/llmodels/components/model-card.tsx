@@ -2,6 +2,7 @@ import IconFont from '@/components/icon-font';
 import MarkdownViewer from '@/components/markdown-viewer';
 import SimpleOverlay from '@/components/simple-overlay';
 import ThemeTag from '@/components/tags-wrapper/theme-tag';
+import { GPUSTACK_API_BASE_URL } from '@/config/settings';
 import useRequestToken from '@/hooks/use-request-token';
 import {
   DownOutlined,
@@ -174,8 +175,6 @@ const ModelCard: React.FC<{
       setModelData(null);
       setReadmeText(null);
       handleOnCollapse(null);
-      // setIsGGUF(false);
-      // setIsGGUFModel(false);
     }
   };
 
@@ -205,8 +204,6 @@ const ModelCard: React.FC<{
       setModelData(null);
       setReadmeText(null);
       handleOnCollapse(null);
-      // setIsGGUF(false);
-      // setIsGGUFModel(false);
     }
   };
 
@@ -281,7 +278,7 @@ const ModelCard: React.FC<{
         return '';
       }
       if (modelSource === modelSourceMap.modelscope_value) {
-        return `https://modelscope.cn/api/v1/models/${modelData?.name}/repo?Revision=${modelData?.Revision}&View=true&FilePath=${imgSrc}`;
+        return `https://modelscope.cn/api/${GPUSTACK_API_BASE_URL}/models/${modelData?.name}/repo?Revision=${modelData?.Revision}&View=true&FilePath=${imgSrc}`;
       }
       if (modelSource === modelSourceMap.huggingface_value) {
         return `https://huggingface.co/${modelData?.id}/resolve/main/${imgSrc}`;
@@ -315,7 +312,7 @@ const ModelCard: React.FC<{
 
   return (
     <>
-      <TitleWrapper>
+      <TitleWrapper style={{ paddingInline: 24 }}>
         <div className="title">{modelData?.id || modelData?.name} </div>
         {generateModelLink()}
       </TitleWrapper>
@@ -396,7 +393,7 @@ const ModelCard: React.FC<{
           <div style={{ minHeight: 200 }}>
             {readmeText && (
               <>
-                <TitleWrapper>
+                <TitleWrapper style={{ paddingInline: 24 }}>
                   <span className="title">README.md</span>
                 </TitleWrapper>
                 <div className="card-wrapper">

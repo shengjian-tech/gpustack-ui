@@ -1,11 +1,17 @@
 export default {
   'users.title': 'Users',
-  'users.button.create': 'New User',
+  'users.button.create': 'Add User',
   'users.form.edit': 'Edit User',
-  'users.form.create': 'New User',
+  'users.form.create': 'Add User',
   'users.table.username': 'User Name',
   'users.table.role': 'Role',
+  'users.table.status': 'Status',
+  'users.status.active': 'Active',
+  'users.status.inactive': 'Inactive',
+  'users.form.active': 'Active Account',
+  'users.form.active.description': 'Enable or disable this user account',
   'users.form.fullname': 'Full Name',
+  'users.form.source': 'Source',
   'users.table.user': 'users',
   'users.form.admin': 'Admin',
   'users.form.user': 'User',
@@ -13,12 +19,12 @@ export default {
   'users.form.currentpassword': 'Current Password',
   'users.form.updatepassword': 'Modify Password',
   'users.form.rule.password':
-    'Contains uppercase and lowercase letters, numbers, and special characters(!@#$%^&*_+), 6 to 12 characters in length, no spaces allowed.',
+    'Contains uppercase and lowercase letters, numbers, and special characters(!@#$%^&*_+), 6 to 64 characters in length, no spaces allowed.',
   'users.password.uppcase': 'At least one uppercase letter',
   'users.password.lowercase': 'At least one lowercase letter',
   'users.password.number': 'At least one number',
   'users.password.special': 'At least one special character',
-  'users.password.length': 'Length between 6 and 12 characters',
+  'users.password.length': 'Length between 6 and 64 characters',
   'users.password.modify.title': 'Modify Password',
   'users.password.modify.description':
     "For your account's security, please change your initial password.",
@@ -27,5 +33,11 @@ export default {
   'users.password.confirm.error': 'The two passwords entered do not match.',
   'users.login.title': 'Log in to',
   'users.version.islatest': 'AI Computing Power Cloud Platform {version} is the latest version',
-  'users.version.update': 'AI Computing Power Cloud Platform {version} is available'
+  'users.version.update': 'AI Computing Power Cloud Platform {version} is available',
+  'users.settings.title': 'User Settings',
+  'users.status.activate': 'Activate Account',
+  'users.status.deactivate': 'Deactivate Account',
+  'users.status.inactiveAccount': 'Inactive Account',
+  'users.login.getInitialPassword':
+    'Run the following command on your server to retrieve the initial admin password.'
 };

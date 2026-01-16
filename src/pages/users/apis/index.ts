@@ -5,7 +5,7 @@ export const USERS_API = '/users';
 
 export async function queryUsersList(params: Global.SearchParams) {
   return request<Global.PageResponse<ListItem>>(`${USERS_API}`, {
-    methos: 'GET',
+    method: 'GET',
     params
   });
 }
@@ -27,5 +27,15 @@ export async function updateUser(params: { data: FormData }) {
 export async function deleteUser(id: number) {
   return request(`${USERS_API}/${id}`, {
     method: 'DELETE'
+  });
+}
+
+export async function updateUserStatus(params: {
+  id: number;
+  data: { is_active: boolean };
+}) {
+  return request(`${USERS_API}/${params.id}/activation`, {
+    method: 'PATCH',
+    data: params.data
   });
 }

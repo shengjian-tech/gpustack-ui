@@ -29,6 +29,7 @@ interface AutoTooltipProps extends Omit<TagProps, 'title'> {
 }
 
 const StyledTag = styled(Tag)`
+  margin: 0;
   &.tag-filled {
     border: none;
     background-color: var(--ant-color-fill-secondary);
@@ -106,7 +107,7 @@ const AutoTooltip: React.FC<AutoTooltipProps> = ({
     <TooltipOverlayScroller
       toolTipProps={{
         ...tooltipProps,
-        destroyTooltipOnHide: false
+        destroyOnHidden: false
       }}
       title={isOverflowing || showTitle ? title || children : false}
     >
@@ -117,12 +118,13 @@ const AutoTooltip: React.FC<AutoTooltipProps> = ({
       ) : (
         <StyledTag
           {...tagProps}
+          variant="outlined"
           className={`${tagProps.className || ''} ${filled ? 'tag-filled' : ''}`}
           ref={contentRef}
           style={{
-            ...tagStyle,
             paddingInline: tagProps.closable ? '8px 22px' : 8,
-            borderRadius: radius
+            borderRadius: radius,
+            ...tagStyle
           }}
           closeIcon={
             tagProps.closable ? (
@@ -146,4 +148,4 @@ const AutoTooltip: React.FC<AutoTooltipProps> = ({
   );
 };
 
-export default React.memo(AutoTooltip);
+export default AutoTooltip;

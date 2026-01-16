@@ -1,4 +1,6 @@
+type PageActionType = 'create' | 'update' | 'view' | 'edit';
 declare namespace Global {
+  type WithFalse<T> = T | false;
   interface Pagination {
     page: number;
     perPage?: number;
@@ -20,20 +22,28 @@ declare namespace Global {
     full_name: string;
     require_password_change: boolean;
     id: number;
+    source: string;
+    avatar_url: string;
   }
+  type EmptyObject = Record<never, never>;
 
-  interface BaseListItem<T> {
+  type BaseListItem<T, U extends object = EmptyObject> = {
     key: string;
     locale?: boolean;
     value: T;
-  }
+  } & Partial<U>;
 
-  interface BaseOption<T> {
+  type BaseOption<T, U extends object = EmptyObject> = {
     label: string;
     locale?: boolean;
     value: T;
     meta?: Record<string, any>;
-  }
+  } & Partial<U>;
+
+  type BaseOptionGroup<T, U extends object = EmptyObject> = {
+    label: string;
+    options?: BaseOption<T, U>[];
+  };
 
   interface HintOptions {
     label: string;
@@ -41,9 +51,33 @@ declare namespace Global {
     opts?: Array<BaseOption<string | number>>;
   }
 
+  interface InitialStateType {
+    fetchUserInfo: () => Promise<UserInfo>;
+    currentUser?: UserInfo;
+  }
+
   type SearchParams = Pagination & { search?: string };
 
   type MessageType = 'transition' | 'warning' | 'danger' | 'success' | 'info';
+
+  interface ScrollerModalProps<T = unknown, U = unknown> {
+    title?: string;
+    action?: PageActionType;
+    open: boolean;
+    currentData?: T | null;
+    onOk?: (values: U) => void;
+    onCancel: () => void;
+  }
+
+  interface ActionItem {
+    label: string;
+    key: string;
+    icon: React.ReactNode;
+    locale?: boolean;
+    props?: {
+      danger?: boolean;
+    };
+  }
 }
 
 interface Window {

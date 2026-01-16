@@ -32,13 +32,13 @@ import React, {
   useState
 } from 'react';
 import styled from 'styled-components';
-import { rerankerQuery } from '../apis';
+import { RERANKER_API, rerankerQuery } from '../apis';
 import { extractErrorMessage } from '../config';
 import { rerankerSamples } from '../config/samples';
 import { ParamsSchema } from '../config/types';
 import { LLM_METAKEYS } from '../hooks/config';
 import { useInitLLmMeta } from '../hooks/use-init-meta';
-import '../style/ground-left.less';
+import '../style/ground-llm.less';
 import '../style/rerank.less';
 import '../style/system-message-wrap.less';
 import { generateRerankCode } from '../view-code/rerank';
@@ -201,7 +201,7 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
 
   const viewCodeContent = useMemo(() => {
     return generateRerankCode({
-      api: '/v1/rerank',
+      api: RERANKER_API,
       parameters: {
         ..._.pick(parameters, ['model', ..._.split(formFields, ',')]),
         query: queryValue,
@@ -247,21 +247,16 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
           ></div>
         </div>
         <span className="flex-center hover-hidden rank-tag">
-          <Tag color={'geekblue'} bordered={false}>
+          <Tag color={'geekblue'} variant="filled">
             {intl.formatMessage({ id: 'playground.rerank.rank' })}: {data.rank}
           </Tag>
-          <Tag color={'gold'} bordered={false}>
+          <Tag color={'gold'} variant="filled">
             {intl.formatMessage({ id: 'playground.rerank.score' })}:{' '}
             {_.round(data.score, 2)}
           </Tag>
         </span>
       </div>
     );
-  };
-
-  const handleStopConversation = () => {
-    requestToken.current?.cancel?.();
-    setLoading(false);
   };
 
   const submitMessage = async (query: string) => {
@@ -507,9 +502,12 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
             )}
           </SearchInputWrapper>
         </div>
-        <div className="center" ref={scroller}>
+        <div className="center" ref={scroller} style={{ marginTop: 16 }}>
           <div className="documents">
-            <div className="flex-between m-b-8 doc-header">
+            <div
+              className="flex-between m-b-8 doc-header"
+              style={{ marginTop: 0 }}
+            >
               <h3 className="m-l-10 flex-between flex-center font-size-14 line-24 m-b-0">
                 <span>
                   {intl.formatMessage({ id: 'playground.embedding.documents' })}

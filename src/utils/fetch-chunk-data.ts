@@ -1,30 +1,38 @@
 import { throttle } from 'lodash';
 import qs from 'query-string';
 
-const extractStreamRegx = /data:\s*({.*?})(?=\n|$)/g;
+const extractStreamRegx = /(data|error):\s*({.*?})(?=\n|$)/g;
 
-const extractJSON = (dataStr: string) => {
-  let match;
+const extractJSON = (
+  dataStr: string
+): { results: any[]; remaining: string } => {
   const results: any[] = [];
+  if (!dataStr) return { results, remaining: '' };
 
-  if (!dataStr) {
-    return results;
-  }
-  while ((match = extractStreamRegx.exec(dataStr)) !== null) {
-    try {
-      const jsonData = JSON.parse(match[1]);
-      results.push(jsonData);
-    } catch (error) {
-      console.error('JSON parse error:', error, 'for match:', match[1]);
+  const parts = dataStr.split(/\n\n/);
+  let remaining = '';
 
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    if (!part) continue;
+    if (!part.startsWith('data:') && !part.startsWith('error:')) {
+      remaining += part;
       continue;
+    }
+
+    const jsonStr = part.slice(5).trim();
+    try {
+      const parsed = JSON.parse(jsonStr);
+      results.push(parsed);
+    } catch {
+      remaining += part;
     }
   }
 
-  return results;
+  return { results, remaining };
 };
 
-const errorHandler = async (res: any) => {
+export const errorHandler = async (res: any) => {
   try {
     const data = await res.json();
     return {
@@ -80,7 +88,7 @@ export const fetchChunkedData = async (params: {
   };
 };
 
-const createFormData = (data: any): FormData => {
+export const createFormData = (data: any): FormData => {
   const formData = new FormData();
 
   const appendToFormData = (key: string, value: any) => {
@@ -162,32 +170,41 @@ export const readStreamData = async (
   }, throttleDelay);
 
   let isReading = true;
+  let textBuffer = ''; // cache incomplete line
 
   while (isReading) {
     const { done, value } = await reader.read();
 
-    if (done) {
-      isReading = false;
-      bufferManager.flush();
-      break;
-    }
-
     try {
-      const chunk = decoder.decode(value, { stream: true });
+      textBuffer += decoder.decode(value, { stream: true });
 
-      if (chunk.startsWith('error:')) {
-        const errorStr = chunk.slice(7).trim();
+      if (textBuffer.startsWith('error:')) {
+        const errorStr = textBuffer.slice(7).trim();
         const jsonData = JSON.parse(errorStr);
         bufferManager.add({ error: jsonData });
+        textBuffer = ''; // Clear buffer after processing error
       } else {
-        extractJSON(chunk).forEach((data) => {
+        const { results, remaining } = extractJSON(textBuffer);
+        results.forEach((data) => {
           bufferManager.add(data);
         });
+        textBuffer = remaining; // Clear buffer after processing
       }
 
       throttledCallback();
     } catch (error) {
       bufferManager.add({ error });
+    }
+
+    if (done) {
+      textBuffer += decoder.decode();
+      if (textBuffer) {
+        const { results, remaining } = extractJSON(textBuffer);
+        results.forEach((data) => bufferManager.add(data));
+      }
+      bufferManager.flush();
+      isReading = false;
+      break;
     }
   }
 };

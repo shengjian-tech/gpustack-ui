@@ -7,7 +7,7 @@ import {
 import { Tag } from 'antd';
 import { modelCategoriesMap } from '../config';
 
-const categoryConfig = {
+export const categoryConfig = {
   [modelCategoriesMap.reranker]: {
     icon: <IconFont type="icon-rank1" />,
     color: 'cyan',
@@ -15,7 +15,7 @@ const categoryConfig = {
   },
   [modelCategoriesMap.embedding]: {
     icon: <IconFont type="icon-cube" />,
-    color: 'purple',
+    color: 'magenta',
     label: 'Embedding'
   },
   [modelCategoriesMap.text_to_speech]: {
@@ -53,6 +53,7 @@ const ModelTag: React.FC<ModelTagProps> = ({ categoryKey, size }) => {
   return (
     <Tag
       icon={config.icon}
+      variant="outlined"
       style={{
         height: size,
         margin: 0,

@@ -1,8 +1,8 @@
+import BaseSelect from '@/components/seal-form/base/select';
 import useUserSettings from '@/hooks/use-user-settings';
 import langConfigMap from '@/locales/lang-config-map';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { getAllLocales, setLocale, useIntl } from '@umijs/max';
-import { Select } from 'antd';
 import _ from 'lodash';
 import React from 'react';
 import styled from 'styled-components';
@@ -30,8 +30,6 @@ const SettingsItem = styled.div`
 const Appearance: React.FC = () => {
   const { setTheme, userSettings } = useUserSettings();
 
-  console.log('userSettings', userSettings);
-
   const intl = useIntl();
   const allLocals = getAllLocales();
 
@@ -57,8 +55,6 @@ const Appearance: React.FC = () => {
     setTheme(value);
   };
 
-  console.log('allLocals', allLocals);
-
   const languageOptions = allLocals.map((locale) => ({
     value: locale,
     label: _.get(langConfigMap, [locale, 'label'])
@@ -70,25 +66,26 @@ const Appearance: React.FC = () => {
         <span className="label">
           <span>{intl.formatMessage({ id: 'common.appearance.theme' })}</span>
         </span>
-        <Select
+        <BaseSelect
+          defaultValue={'light'}
           value={userSettings.mode}
           options={ThemeOptions}
           onChange={handleOnChange}
           style={{ width: 200 }}
-        ></Select>
+        ></BaseSelect>
       </SettingsItem>
       <SettingsItem>
         <span className="label">
           <span>{intl.formatMessage({ id: 'common.settings.language' })}</span>
         </span>
-        <Select
+        <BaseSelect
           value={intl.locale}
           options={languageOptions}
           onChange={(value) => {
             setLocale(value, false);
           }}
           style={{ width: 200 }}
-        ></Select>
+        ></BaseSelect>
       </SettingsItem>
     </Wrapper>
   );

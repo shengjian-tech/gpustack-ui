@@ -1,57 +1,23 @@
-import IconFont from '@/components/icon-font';
+import icons from '@/components/icon-font/icons';
 import HotKeys from '@/config/hotkeys';
-import {
-  ApiOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  EditOutlined,
-  ExperimentOutlined,
-  RetweetOutlined,
-  ThunderboltOutlined
-} from '@ant-design/icons';
-import _ from 'lodash';
 import React from 'react';
 import { modelCategoriesMap, modelSourceMap } from './index';
-
-const icons = {
-  EditOutlined: React.createElement(EditOutlined),
-  ExperimentOutlined: React.createElement(ExperimentOutlined),
-  DeleteOutlined: React.createElement(DeleteOutlined),
-  ThunderboltOutlined: React.createElement(ThunderboltOutlined),
-  RetweetOutlined: React.createElement(RetweetOutlined),
-  DownloadOutlined: React.createElement(DownloadOutlined),
-  ApiOutlined: React.createElement(ApiOutlined),
-  Stop: React.createElement(IconFont, { type: 'icon-stop1' }),
-  Play: React.createElement(IconFont, { type: 'icon-outline-play' }),
-  Catalog: React.createElement(IconFont, { type: 'icon-catalog' }),
-  HF: React.createElement(IconFont, { type: 'icon-huggingface' }),
-  Ollama: React.createElement(IconFont, { type: 'icon-ollama' }),
-  ModelScope: React.createElement(IconFont, { type: 'icon-tu2' }),
-  LocalPath: React.createElement(IconFont, { type: 'icon-hard-disk' }),
-  Launch: React.createElement(IconFont, { type: 'icon-rocket-launch' })
-};
 
 export const modalConfig: Record<
   string,
   { show: boolean; width: string | number; source: any; isGGUF?: boolean }
 > = {
-  huggingface: {
+  [modelSourceMap.huggingface_value]: {
     show: true,
     width: 'calc(100vw - 220px)',
     source: modelSourceMap.huggingface_value
   },
-  ollama_library: {
-    show: true,
-    width: 600,
-    isGGUF: true,
-    source: modelSourceMap.ollama_library_value
-  },
-  modelscope: {
+  [modelSourceMap.modelscope_value]: {
     show: true,
     width: 'calc(100vw - 220px)',
     source: modelSourceMap.modelscope_value
   },
-  local_path: {
+  [modelSourceMap.local_path_value]: {
     show: true,
     width: 600,
     source: modelSourceMap.local_path_value
@@ -73,10 +39,20 @@ export const ActionList: ActionItem[] = [
     key: 'edit',
     icon: icons.EditOutlined
   },
+  // {
+  //   label: 'common.button.detail',
+  //   key: 'details',
+  //   icon: icons.FileTextOutlined
+  // },
   {
     label: 'models.openinplayground',
     key: 'chat',
     icon: icons.ExperimentOutlined
+  },
+  {
+    label: 'common.button.start',
+    key: 'start',
+    icon: icons.Play
   },
   {
     label: 'models.table.button.apiAccessInfo',
@@ -84,14 +60,14 @@ export const ActionList: ActionItem[] = [
     icon: icons.ApiOutlined
   },
   {
+    label: 'models.button.accessSettings',
+    key: 'accessControl',
+    icon: icons.Permission
+  },
+  {
     label: 'common.button.stop',
     key: 'stop',
     icon: icons.Stop
-  },
-  {
-    label: 'common.button.start',
-    key: 'start',
-    icon: icons.Play
   },
   {
     label: 'common.button.delete',
@@ -129,21 +105,21 @@ export const onLineSourceOptions = [
     label: 'Hugging Face',
     locale: false,
     value: modelSourceMap.huggingface_value,
-    key: 'huggingface',
+    key: modelSourceMap.huggingface_value,
     icon: icons.HF
   },
   {
     label: 'ModelScope',
     locale: false,
     value: modelSourceMap.modelscope_value,
-    key: 'modelscope',
+    key: modelSourceMap.modelscope_value,
     icon: icons.ModelScope
   },
   {
     label: 'models.form.localPath',
     locale: true,
     value: modelSourceMap.local_path_value,
-    key: 'local_path',
+    key: modelSourceMap.local_path_value,
     icon: icons.LocalPath
   }
 ];
@@ -175,28 +151,11 @@ export const generateSource = (record: any) => {
   return '';
 };
 
-export const setModelActionList = (record: any) => {
-  return _.filter(ActionList, (action: any) => {
-    if (action.key === 'chat' || action.key === 'api') {
-      return record.ready_replicas > 0;
-    }
-    if (action.key === 'start') {
-      return record.replicas === 0;
-    }
-
-    if (action.key === 'stop') {
-      return record.replicas > 0;
-    }
-
-    return true;
-  });
-};
-
 export const modelFileActions = [
   {
     label: 'common.button.deploy',
     key: 'deploy',
-    icon: icons.Launch
+    icon: icons.Deployment
   },
   {
     label: 'resources.modelfiles.retry.download',

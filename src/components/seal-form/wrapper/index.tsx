@@ -154,8 +154,11 @@ export const Label = styled.div.attrs<{
 `;
 
 // inner
-const Inner = styled.div`
+const Inner = styled.div.attrs({
+  className: '__inner__'
+})`
   width: 100%;
+  display: flex;
 `;
 
 const Extra = styled.div`
@@ -167,9 +170,13 @@ const Extra = styled.div`
 
 const AddAfter = styled.div`
   position: relative;
-  color: var(--ant-color-text-quaternary);
+  color: var(--ant-color-text-tertiary);
   font-size: var(--font-size-base);
-  padding-right: calc(var(--ant-padding-sm) - 1px);
+  padding-inline: calc(var(--ant-padding-sm) - 1px);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background-color: var(--ant-color-fill-secondary);
 `;
 
 // for wrapper
@@ -224,7 +231,12 @@ const Wrapper: FC<WrapperProps> = ({
         onClick={onClick}
       >
         {label && (
-          <Label $isFocus={isFocus} $hasPrefix={hasPrefix} onClick={onClick}>
+          <Label
+            $isFocus={isFocus}
+            $hasPrefix={hasPrefix}
+            onClick={onClick}
+            className="label-wrapper"
+          >
             <LabelInfo
               label={label}
               required={required}

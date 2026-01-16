@@ -1,11 +1,15 @@
-import useSetChunkRequest from '@/hooks/use-chunk-request';
+import { WatchEventType } from '@/config';
+import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
+import useSetChunkRequest, {
+  createAxiosToken
+} from '@/hooks/use-chunk-request';
 import useTableRowSelection from '@/hooks/use-table-row-selection';
-import useTableSort from '@/hooks/use-table-sort';
 import useUpdateChunkedList from '@/hooks/use-update-chunk-list';
 import { handleBatchRequest } from '@/utils';
 import _ from 'lodash';
 import qs from 'query-string';
 import { useEffect, useRef, useState } from 'react';
+import { useTableMultiSort } from './use-table-sort';
 
 type EventsType = 'CREATE' | 'UPDATE' | 'DELETE' | 'INSERT';
 
@@ -14,13 +18,30 @@ type WatchConfig =
   | { watch: true; API: string; polling?: false | undefined }
   | { polling: true; watch: false | undefined; API?: string };
 
-export default function useTableFetch<ListItem>(
+/**
+ *
+ * @param contentForDelete i18n key for delete confirmation modal content
+ * @param fetchAPI API function to fetch data, should return a promise with Global.PageResponse<T>
+ * @param deleteAPI API function to delete an item, should return a promise
+ * @param defaultData default data list
+ * @param events events to watch for chunked updates, default: ['UPDATE', 'DELETE']
+ * @param defaultQueryParams default query parameters for fetching data
+ * @param isInfiniteScroll whether to use infinite scroll mode , use in card list
+ * @param API use to create chunked request url when watch is true
+ * @param watch whether to watch for chunked updates
+ * @param polling whether to enable polling for data fetching
+ * @returns
+ */
+export default function useTableFetch<T>(
   options: {
-    fetchAPI: (params: any) => Promise<Global.PageResponse<ListItem>>;
+    fetchAPI: (params: any, options?: any) => Promise<Global.PageResponse<T>>;
     deleteAPI?: (id: number, params?: any) => Promise<any>;
     contentForDelete?: string;
     defaultData?: any[];
     events?: EventsType[];
+    defaultQueryParams?: Record<string, any>;
+    isInfiniteScroll?: boolean;
+    updateManually?: boolean;
   } & WatchConfig
 ) {
   const {
@@ -31,21 +52,31 @@ export default function useTableFetch<ListItem>(
     polling = false,
     watch,
     defaultData = [],
-    events = ['UPDATE', 'DELETE']
+    events = ['UPDATE', 'DELETE'],
+    defaultQueryParams = {},
+    isInfiniteScroll = false,
+    updateManually
   } = options;
   const pollingRef = useRef<any>(null);
   const chunkRequedtRef = useRef<any>(null);
   const modalRef = useRef<any>(null);
   const rowSelection = useTableRowSelection();
-  const { sortOrder, setSortOrder } = useTableSort({
-    defaultSortOrder: 'descend'
-  });
+  const { sortOrder, handleMultiSortChange } = useTableMultiSort();
+  const axiosTokenRef = useRef<string | null>(null);
+
+  // ======= to resolve worker upate issue =======
+  const shouldUpdateRef = useRef(false);
+  const loadendRef = useRef(false);
+  const currentWatchParamsRef = useRef<any>(null);
+  // ============================================
+
+  // for skeleton loading
   const [extraStatus, setExtraStatus] = useState<Record<string, any>>({
     firstLoad: true
   });
 
   const [dataSource, setDataSource] = useState<{
-    dataList: ListItem[];
+    dataList: T[];
     loading: boolean;
     loadend: boolean;
     total: number;
@@ -60,7 +91,9 @@ export default function useTableFetch<ListItem>(
   const [queryParams, setQueryParams] = useState<any>({
     page: 1,
     perPage: 10,
-    search: ''
+    search: '',
+    sort_by: '',
+    ...defaultQueryParams
   });
 
   const { setChunkRequest } = useSetChunkRequest();
@@ -83,41 +116,37 @@ export default function useTableFetch<ListItem>(
 
   const debounceSetExtraStatus = _.debounce(setExtraStatus, 3000);
 
-  const updateHandler = (list: any) => {
-    _.each(list, (data: any) => {
-      updateChunkedList(data);
-    });
-  };
-
-  const createModelsChunkRequest = async (params?: any) => {
-    if (!API || !watch) return;
-    chunkRequedtRef.current?.current?.cancel?.();
-    try {
-      const query = _.omit(params || queryParams, ['page', 'perPage']);
-
-      chunkRequedtRef.current = setChunkRequest({
-        url: `${API}?${qs.stringify(_.pickBy(query, (val: any) => !!val))}`,
-        handler: updateHandler
-      });
-    } catch (error) {
-      // ignore
-    }
-  };
-
-  const fetchData = async (params?: { query: any }, polling = false) => {
+  const fetchData = async (
+    externalParams?: { query: Record<string, any>; loadmore?: boolean },
+    polling = false
+  ) => {
     if (!polling) {
       setDataSource((pre) => {
         pre.loading = true;
         return { ...pre };
       });
     }
-    const { query } = params || {};
+    const { query, loadmore } = externalParams || {};
     try {
       const params = {
         ..._.pickBy(query || queryParams, (val: any) => !!val)
       };
-      const res = await fetchAPI(params);
-
+      currentWatchParamsRef.current = {
+        query: { ...params }
+      };
+      axiosTokenRef.current?.cancel?.();
+      axiosTokenRef.current = createAxiosToken();
+      const res = await fetchAPI(params, {
+        token: axiosTokenRef.current.token
+      });
+      shouldUpdateRef.current = false;
+      loadendRef.current = true;
+      if (!dataSource.loadend) {
+        // add a delay to avoid flash
+        await new Promise((resolve) => {
+          setTimeout(resolve, 200);
+        });
+      }
       if (
         !res.items.length &&
         params.page > res.pagination.totalPage &&
@@ -127,24 +156,44 @@ export default function useTableFetch<ListItem>(
           ...params,
           page: res.pagination.totalPage
         };
-        const newRes = await fetchAPI(newParams);
+        currentWatchParamsRef.current = {
+          query: { ...newParams }
+        };
+        const newRes = await fetchAPI(newParams, {
+          token: axiosTokenRef.current.token
+        });
+
         setDataSource({
-          dataList: newRes.items || [],
+          dataList: loadmore
+            ? [...dataSource.dataList, ...(newRes.items || [])]
+            : newRes.items || [],
           loading: false,
           loadend: true,
           total: newRes.pagination.total,
           totalPage: newRes.pagination.totalPage
         });
+
+        if (isInfiniteScroll) {
+          setQueryParams(newParams);
+        }
         return;
       }
 
       setDataSource({
-        dataList: res.items || [],
+        dataList: loadmore
+          ? [...dataSource.dataList, ...(res.items || [])]
+          : res.items || [],
         loading: false,
         loadend: true,
         total: res.pagination.total,
         totalPage: res.pagination.totalPage
       });
+      if (isInfiniteScroll && query?.page) {
+        setQueryParams({
+          ...queryParams,
+          ...query
+        });
+      }
     } catch (error) {
       console.log('error', error);
       setDataSource({
@@ -154,10 +203,54 @@ export default function useTableFetch<ListItem>(
         total: dataSource.total,
         totalPage: dataSource.totalPage
       });
+      loadendRef.current = true;
+      shouldUpdateRef.current = false;
     } finally {
       debounceSetExtraStatus({
         firstLoad: false
       });
+    }
+  };
+
+  // @ts-ignore
+  const debounceFetchData = _.debounce(
+    (params: any) => fetchData(params, true),
+    300
+  );
+
+  const updateHandler = (list: any) => {
+    _.each(list, (data: any) => {
+      updateChunkedList(data);
+    });
+    shouldUpdateRef.current = list.some(
+      (data: any) =>
+        data.type === WatchEventType.DELETE ||
+        data.type === WatchEventType.CREATE
+    );
+
+    // ======= to resolve worker upate issue =======
+    // when worker list change (create/delete), fetch data again to update the list
+    if (shouldUpdateRef.current && updateManually && loadendRef.current) {
+      debounceFetchData(currentWatchParamsRef.current || undefined);
+    }
+    // ============================================
+  };
+
+  const createModelsChunkRequest = async (params?: any) => {
+    if (!API || !watch) return;
+    shouldUpdateRef.current = false;
+    chunkRequedtRef.current?.current?.cancel?.();
+    try {
+      const currentParams = params || queryParams;
+
+      const query = _.omit(currentParams, ['page', 'perPage']);
+
+      chunkRequedtRef.current = setChunkRequest({
+        url: `${API}?${qs.stringify(_.pickBy(query, (val: any) => !!val))}`,
+        handler: updateHandler
+      });
+    } catch (error) {
+      // ignore
     }
   };
 
@@ -179,22 +272,47 @@ export default function useTableFetch<ListItem>(
     }, 5000);
   };
 
-  const handleQueryChange = (params: any) => {
-    setQueryParams({
-      ...queryParams,
-      ...params
-    });
-    fetchData({ query: { ...queryParams, ...params } });
+  // for filters change
+  const handleQueryChange = async (
+    params: any,
+    options?: {
+      paginate?: boolean;
+    }
+  ) => {
+    loadendRef.current = false;
+    const newQueryParams = { ...queryParams, ...params };
+    setQueryParams(newQueryParams);
+    await fetchData({ query: newQueryParams });
+    if (watch && !options?.paginate) {
+      createModelsChunkRequest(newQueryParams);
+    }
   };
 
   const handlePageChange = (page: number, pageSize: number) => {
-    handleQueryChange({ page, perPage: pageSize || 10 });
+    handleQueryChange({ page, perPage: pageSize || 10 }, { paginate: true });
   };
 
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    setSortOrder(sorter.order);
+  const handleTableChange = (
+    pagination: any,
+    filters: any,
+    sorter: any,
+    extra: any
+  ) => {
+    if (extra.action === 'sort') {
+      const sortKeys = handleMultiSortChange(sorter);
+      const newQueryParams = {
+        ...queryParams,
+        page: 1,
+        sort_by: sortKeys.join(',')
+      };
+      setQueryParams(newQueryParams);
+      fetchData({
+        query: newQueryParams
+      });
+    }
   };
 
+  // for refresh button
   const handleSearch = () => {
     fetchData();
   };
@@ -204,16 +322,12 @@ export default function useTableFetch<ListItem>(
       page: 1,
       search: e.target.value
     });
-    createModelsChunkRequest({
-      ...queryParams,
-      search: e.target.value
-    });
   }, 350);
 
   const handleNameChange = debounceUpdateFilter;
 
   const handleDelete = (
-    row: ListItem & { name: string; id: number },
+    row: T & { name: string; id: number },
     options?: any
   ) => {
     modalRef.current?.show({
@@ -226,7 +340,11 @@ export default function useTableFetch<ListItem>(
         await deleteAPI?.(row.id, {
           ...modalRef.current?.configuration
         });
-        fetchData();
+
+        // ======== to avoid fetch data twice, because of debounceFetchData has been run =======
+        if (!updateManually) {
+          fetchData();
+        }
       }
     });
   };
@@ -256,6 +374,16 @@ export default function useTableFetch<ListItem>(
     });
   };
 
+  const loadMore = (nextPage: number) => {
+    fetchData({
+      query: {
+        ...queryParams,
+        page: nextPage
+      },
+      loadmore: true
+    });
+  };
+
   useEffect(() => {
     if (dataSource.loadend) {
       fetchAPIWithPolling(queryParams);
@@ -277,6 +405,7 @@ export default function useTableFetch<ListItem>(
     init();
     return () => {
       chunkRequedtRef.current?.cancel?.();
+      axiosTokenRef.current?.cancel?.();
       cacheDataListRef.current = [];
     };
   }, []);
@@ -288,6 +417,8 @@ export default function useTableFetch<ListItem>(
     queryParams,
     modalRef,
     extraStatus,
+    TABLE_SORT_DIRECTIONS,
+    debounceFetchData,
     setQueryParams,
     handleDelete,
     handleDeleteBatch,
@@ -296,6 +427,7 @@ export default function useTableFetch<ListItem>(
     handleTableChange,
     handleSearch,
     handleQueryChange,
+    loadMore,
     handleNameChange
   };
 }

@@ -1,28 +1,23 @@
 import TableContext from '@/components/seal-table/table-context';
+import { TableOrder } from '@/components/seal-table/types';
 import useSetChunkRequest from '@/hooks/use-chunk-request';
+import { useTableMultiSort } from '@/hooks/use-table-sort';
 import useUpdateChunkedList from '@/hooks/use-update-chunk-list';
-import { queryWorkersList } from '@/pages/resources/apis';
-import { ListItem as WokerListItem } from '@/pages/resources/config/types';
-import { IS_FIRST_LOGIN, readState } from '@/utils/localstore';
+import { useMemoizedFn } from 'ahooks';
 import _ from 'lodash';
 import qs from 'query-string';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   MODELS_API,
   MODEL_INSTANCE_API,
-  queryCatalogItemSpec,
-  queryCatalogList,
   queryModelsInstances,
   queryModelsList
 } from './apis';
 import TableList from './components/table-list';
-import { backendOptionsMap } from './config';
 import { ListItem } from './config/types';
-import { useGenerateModelFileOptions } from './hooks';
 
-const Models: React.FC = () => {
-  const { getModelFileList, generateModelFileOptions } =
-    useGenerateModelFileOptions();
+const Models: React.FC<{ clusterId?: number }> = ({ clusterId }) => {
+  const { sortOrder, handleMultiSortChange } = useTableMultiSort();
   const { setChunkRequest, createAxiosToken } = useSetChunkRequest();
   const { setChunkRequest: setModelInstanceChunkRequest } =
     useSetChunkRequest();
@@ -41,9 +36,6 @@ const Models: React.FC = () => {
     total: 0
   });
 
-  const [catalogList, setCatalogList] = useState<any[]>([]);
-  const [workerList, setWorkerList] = useState<WokerListItem[]>([]);
-  const [modelFileOptions, setModelFileOptions] = useState<any[]>([]);
   const chunkRequedtRef = useRef<any>();
   const chunkInstanceRequedtRef = useRef<any>();
   const isPageHidden = useRef(false);
@@ -53,7 +45,10 @@ const Models: React.FC = () => {
     page: 1,
     perPage: 10,
     search: '',
-    categories: []
+    cluster_id: clusterId || 0,
+    categories: [],
+    state: '',
+    sort_by: ''
   });
 
   const { updateChunkedList, cacheDataListRef } = useUpdateChunkedList({
@@ -81,13 +76,12 @@ const Models: React.FC = () => {
     setDataList: setModelInstances
   });
 
-  const getAllModelInstances = useCallback(async () => {
+  const getAllModelInstances = useMemoizedFn(async () => {
     try {
       instancesToken.current?.cancel?.();
       instancesToken.current = createAxiosToken();
       const params = {
-        page: 1,
-        perPage: 100
+        page: -1
       };
       const res: any = await queryModelsInstances(params, {
         token: instancesToken.current.token
@@ -97,9 +91,9 @@ const Models: React.FC = () => {
     } catch (error) {
       // ignore
     }
-  }, []);
+  });
 
-  const fetchData = useCallback(
+  const fetchData = useMemoizedFn(
     async (params?: {
       loadingVal?: boolean;
       query?: {
@@ -107,6 +101,7 @@ const Models: React.FC = () => {
         perPage: number;
         search: string;
         categories: any[];
+        sort_by: string;
       };
     }) => {
       const { loadingVal, query } = params || {};
@@ -124,6 +119,7 @@ const Models: React.FC = () => {
           cancelToken: axiosToken.token
         });
 
+        // if the current page is beyond total page, fetch again
         if (
           !res.items.length &&
           params.page > res.pagination.totalPage &&
@@ -164,26 +160,24 @@ const Models: React.FC = () => {
           });
         }
       }
-    },
-    [queryParams]
+    }
   );
 
-  const handlePageChange = useCallback(
+  const handleQueryChange = (params: any) => {
+    setQueryParams({
+      ...queryParams,
+      ...params
+    });
+    fetchData({ query: { ...queryParams, ...params } });
+  };
+
+  const handlePageChange = useMemoizedFn(
     (page: number, pageSize: number | undefined) => {
-      setQueryParams({
-        ...queryParams,
+      handleQueryChange({
         page: page,
         perPage: pageSize || 10
       });
-      fetchData({
-        query: {
-          ...queryParams,
-          page: page,
-          perPage: pageSize || 10
-        }
-      });
-    },
-    [queryParams]
+    }
   );
 
   const updateHandler = (list: any) => {
@@ -199,8 +193,13 @@ const Models: React.FC = () => {
     });
   };
 
-  const createModelsChunkRequest = useCallback(
-    async (params?: { search: string; categories: any[] }) => {
+  const createModelsChunkRequest = useMemoizedFn(
+    async (params?: {
+      search: string;
+      categories: any[];
+      cluster_id: number;
+      state?: string;
+    }) => {
       const search = params?.search || queryParams.search;
       const categories = params?.categories || queryParams.categories;
       chunkRequedtRef.current?.current?.cancel?.();
@@ -216,12 +215,12 @@ const Models: React.FC = () => {
       } catch (error) {
         // ignore
       }
-    },
-    [queryParams.categories, queryParams.search]
+    }
   );
 
-  const createModelsInstanceChunkRequest = useCallback(async () => {
+  const createModelsInstanceChunkRequest = useMemoizedFn(async () => {
     chunkInstanceRequedtRef.current?.current?.cancel?.();
+    cacheInsDataListRef.current = [];
     try {
       chunkInstanceRequedtRef.current = setModelInstanceChunkRequest({
         url: `${MODEL_INSTANCE_API}`,
@@ -231,85 +230,122 @@ const Models: React.FC = () => {
     } catch (error) {
       // ignore
     }
-  }, [updateInstanceHandler]);
+  });
 
-  const handleOnViewLogs = useCallback(() => {
+  const handleOnViewLogs = useMemoizedFn(() => {
     isPageHidden.current = true;
     chunkRequedtRef.current?.current?.cancel?.();
     cacheDataListRef.current = [];
     cacheInsDataListRef.current = [];
     chunkInstanceRequedtRef.current?.current?.cancel?.();
     instancesToken.current?.cancel?.();
-  }, []);
+  });
 
-  const handleOnCancelViewLogs = useCallback(async () => {
+  const handleOnCancelViewLogs = useMemoizedFn(async () => {
     isPageHidden.current = false;
-    await getAllModelInstances();
-    await createModelsInstanceChunkRequest();
-    await createModelsChunkRequest();
     fetchData({
       loadingVal: false
     });
-  }, [fetchData, createModelsChunkRequest, createModelsInstanceChunkRequest]);
+    await getAllModelInstances();
+    await createModelsInstanceChunkRequest();
+    await createModelsChunkRequest();
+  });
 
-  const handleSearchBySilent = useCallback(async () => {
+  const handleSearchBySilent = useMemoizedFn(async () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 300);
     });
     fetchData({
       loadingVal: false
     });
-  }, [fetchData]);
+  });
 
-  const handleSearch = useCallback(
-    async (params?: any) => {
-      await fetchData(params);
-    },
-    [fetchData]
-  );
+  const handleSearch = useMemoizedFn(async (params?: any) => {
+    await fetchData(params);
+  });
 
   const debounceUpdateFilter = _.debounce((e: any) => {
-    setQueryParams({
-      ...queryParams,
+    handleQueryChange({
       page: 1,
       search: e.target.value
+    });
+    createModelsChunkRequest({
+      search: e.target.value,
+      categories: queryParams.categories,
+      cluster_id: queryParams.cluster_id || 0
+    });
+  }, 350);
+
+  const handleNameChange = useMemoizedFn(debounceUpdateFilter);
+
+  const handleCategoryChange = async (value: any) => {
+    handleQueryChange({
+      page: 1,
+      categories: value
+    });
+    createModelsChunkRequest({
+      search: queryParams.search,
+      cluster_id: queryParams.cluster_id || 0,
+      categories: value
+    });
+  };
+
+  const handleOnStatusChange = async (value: string | undefined) => {
+    handleQueryChange({
+      page: 1,
+      state: value
+    });
+    createModelsChunkRequest({
+      search: queryParams.search,
+      categories: queryParams.categories,
+      cluster_id: queryParams.cluster_id || 0,
+      state: value
+    });
+  };
+
+  const handleClusterChange = async (value: number) => {
+    handleQueryChange({
+      page: 1,
+      cluster_id: value
+    });
+    createModelsChunkRequest({
+      search: queryParams.search,
+      categories: queryParams.categories,
+      cluster_id: value
+    });
+  };
+
+  const handleOnSortChange = (order: TableOrder | Array<TableOrder>) => {
+    let orderList = Array.isArray(order) ? order : [order];
+    if (orderList[0].columnKey === 'replicas') {
+      orderList.push({
+        columnKey: 'ready_replicas',
+        order: orderList[0].order
+      });
+    }
+    const sortKeys = handleMultiSortChange(orderList);
+    setQueryParams((pre: any) => {
+      return {
+        ...pre,
+        page: 1,
+        sort_by: sortKeys.join(',')
+      };
     });
     fetchData({
       query: {
         ...queryParams,
         page: 1,
-        search: e.target.value
+        sort_by: sortKeys.join(',')
       }
     });
-    createModelsChunkRequest({
-      search: e.target.value,
-      categories: queryParams.categories
-    });
-  }, 350);
+  };
 
-  const handleNameChange = useCallback(debounceUpdateFilter, [queryParams]);
-
-  const handleCategoryChange = useCallback(
-    async (value: any) => {
-      setQueryParams({
-        ...queryParams,
-        page: 1,
-        categories: value
-      });
-      fetchData({
-        query: {
-          ...queryParams,
-          page: 1,
-          categories: value
-        }
-      });
-      createModelsChunkRequest({
-        search: queryParams.search,
-        categories: value
-      });
-    },
-    [queryParams]
-  );
+  const handleDeleteInstanceFromCache = (id: number) => {
+    cacheInsDataListRef.current = cacheInsDataListRef.current.filter(
+      (item) => item.id !== id
+    );
+    setModelInstances(cacheInsDataListRef.current);
+  };
 
   useEffect(() => {
     let timer: any = null;
@@ -334,66 +370,9 @@ const Models: React.FC = () => {
       }
     };
 
-    // get worker list
-    const getWorkerList = async (): Promise<any> => {
-      try {
-        const data = await queryWorkersList({ page: 1, perPage: 100 });
-        return data;
-      } catch (error) {
-        // ingore
-        return {};
-      }
-    };
-
-    // get catalog list
-    const getCataLogList = async () => {
-      const isFirstLogin = readState(IS_FIRST_LOGIN);
-      if (!isFirstLogin) {
-        return;
-      }
-      try {
-        const res: any = await queryCatalogList({
-          search: 'DeepSeek R1',
-          page: 1
-        });
-        if (!res?.items?.length) {
-          return [];
-        }
-        const name = _.toLower(res?.items[0]?.name).replace(/\s/g, '-') || '';
-        const catalogSpecs: any = await queryCatalogItemSpec({
-          id: res?.items[0]?.id
-        });
-        const list = catalogSpecs?.items?.map((item: any) => {
-          item.name = name;
-          return item;
-        });
-        const deepseekr1dstill = _.toLower('DeepSeek-R1-Distill-Qwen-1.5B');
-        const resultList = list?.filter((item: any) => {
-          return (
-            item.backend === backendOptionsMap.llamaBox &&
-            (_.toLower(item?.huggingface_repo_id)?.indexOf(deepseekr1dstill) >
-              -1 ||
-              _.toLower(item?.model_scope_model_id)?.indexOf(deepseekr1dstill) >
-                -1)
-          );
-        });
-        return resultList || [];
-      } catch (error) {
-        // ignore
-        return [];
-      }
-    };
-
     const init = async () => {
-      const [modelRes, workerRes, modelFileList] = await Promise.all([
-        getTableData(),
-        getWorkerList(),
-        getModelFileList()
-      ]);
-      const dataList = generateModelFileOptions(
-        modelFileList,
-        workerRes.items || []
-      );
+      const [modelRes] = await Promise.all([getTableData()]);
+
       setDataSource({
         dataList: modelRes.items || [],
         loading: false,
@@ -401,8 +380,6 @@ const Models: React.FC = () => {
         total: modelRes.pagination?.total || 0,
         deletedIds: []
       });
-      setWorkerList(workerRes.items || []);
-      setModelFileOptions(dataList);
 
       clearTimeout(timer);
       timer = setTimeout(() => {
@@ -422,20 +399,20 @@ const Models: React.FC = () => {
     };
   }, []);
 
-  const setDisableExpand = useCallback((record: any) => {
+  const setDisableExpand = useMemoizedFn((record: any) => {
     return !record?.replicas;
-  }, []);
+  });
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         isPageHidden.current = false;
-        await getAllModelInstances();
-        await createModelsInstanceChunkRequest();
-        await createModelsChunkRequest();
         fetchData({
           loadingVal: false
         });
+        await getAllModelInstances();
+        await createModelsInstanceChunkRequest();
+        await createModelsChunkRequest();
       } else {
         isPageHidden.current = true;
         chunkRequedtRef.current?.current?.cancel?.();
@@ -462,8 +439,10 @@ const Models: React.FC = () => {
     >
       <TableList
         dataSource={dataSource.dataList}
+        onStatusChange={handleOnStatusChange}
         handleNameChange={handleNameChange}
         handleCategoryChange={handleCategoryChange}
+        handleClusterChange={handleClusterChange}
         handleSearch={handleSearch}
         handlePageChange={handlePageChange}
         handleDeleteSuccess={fetchData}
@@ -472,14 +451,14 @@ const Models: React.FC = () => {
         onCancelViewLogs={handleOnCancelViewLogs}
         onStop={handleSearchBySilent}
         onStart={handleSearchBySilent}
+        onTableSort={handleOnSortChange}
+        onDeleteInstanceFromCache={handleDeleteInstanceFromCache}
+        sortOrder={sortOrder}
         queryParams={queryParams}
         loading={dataSource.loading}
         loadend={dataSource.loadend}
         total={dataSource.total}
         deleteIds={dataSource.deletedIds}
-        workerList={workerList}
-        modelFileOptions={modelFileOptions}
-        catalogList={catalogList}
       ></TableList>
     </TableContext.Provider>
   );

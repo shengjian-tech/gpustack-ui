@@ -4,6 +4,7 @@ export default {
   'dashboard.workers.desc': 'Distributed task processors',
   'dashboard.models': 'Models',
   'dashboard.models.desc': 'Deployed model instances',
+  'dashboard.clusters': 'Clusters',
   'dashboard.totalgpus': 'GPUs',
   'dashboard.totalgpus.desc': 'Accelerated computing units',
   'dashboard.allocategpus': 'Allocated GPUs',

@@ -2,19 +2,52 @@ import AutoTooltip from '@/components/auto-tooltip';
 import CopyButton from '@/components/copy-button';
 import IconFont from '@/components/icon-font';
 import ScrollerModal from '@/components/scroller-modal';
+import { OPENAI_COMPATIBLE } from '@/config/settings';
+import {
+  AUDIO_SPEECH_TO_TEXT_API,
+  AUDIO_TEXT_TO_SPEECH_API,
+  CHAT_API,
+  CREAT_IMAGE_API,
+  EMBEDDING_API,
+  MODEL_PROXY,
+  RERANKER_API
+} from '@/pages/playground/apis';
 import { BulbOutlined } from '@ant-design/icons';
 import { useIntl, useNavigate } from '@umijs/max';
 import { Button, Tag } from 'antd';
 import _ from 'lodash';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { modelCategoriesMap } from '../config';
+import { ListItem } from '../config/types';
+import useGenericProxy from '../hooks/use-generic-proxy';
+
+const API_MAP: Record<string, { api: string }> = {
+  [modelCategoriesMap.embedding]: {
+    api: EMBEDDING_API
+  },
+  [modelCategoriesMap.llm]: {
+    api: CHAT_API
+  },
+  [modelCategoriesMap.image]: {
+    api: CREAT_IMAGE_API
+  },
+  [modelCategoriesMap.text_to_speech]: {
+    api: AUDIO_TEXT_TO_SPEECH_API
+  },
+  [modelCategoriesMap.speech_to_text]: {
+    api: AUDIO_SPEECH_TO_TEXT_API
+  },
+  [modelCategoriesMap.reranker]: {
+    api: RERANKER_API
+  }
+};
 
 const ApiAccessInfoWrapper = styled.div`
   display: grid;
   padding-left: 20px;
   grid-template-columns: max-content 1fr max-content;
-  gap: 12px 0px;
+  gap: 8px 0px;
   justify-items: start;
   align-items: center;
   .label {
@@ -40,7 +73,7 @@ const Tips = styled.div`
     gap: 8px;
   }
   dd {
-    margin-bottom: 16px;
+    margin-bottom: 0;
   }
 `;
 
@@ -56,15 +89,21 @@ const CreateButton = styled(Button)`
 
 interface ApiAccessInfoProps {
   open: boolean;
-  data: any;
+  data: ListItem;
   onClose: () => void;
 }
 
 const ApiAccessInfo = ({ open, data, onClose }: ApiAccessInfoProps) => {
   const intl = useIntl();
   const navigate = useNavigate();
+  const { GenericProxyCommandCode, openProxyModal } = useGenericProxy();
 
-  const endPoint = `${window.location.origin}/v1`;
+  const endPoint = useMemo(() => {
+    if (!data.generic_proxy) {
+      return `${window.location.origin}/${OPENAI_COMPATIBLE}`;
+    }
+    return `${window.location.origin}${MODEL_PROXY}/<YOUR_API_PATH>`;
+  }, [data]);
 
   const isRanker = useMemo(() => {
     return _.includes(data.categories, modelCategoriesMap.reranker);
@@ -73,6 +112,13 @@ const ApiAccessInfo = ({ open, data, onClose }: ApiAccessInfoProps) => {
   const handleClose = () => {
     onClose();
   };
+
+  useEffect(() => {
+    if (open && data.generic_proxy) {
+      openProxyModal(data);
+    }
+  }, [open, data, openProxyModal]);
+
   return (
     <ScrollerModal
       open={open}
@@ -80,28 +126,12 @@ const ApiAccessInfo = ({ open, data, onClose }: ApiAccessInfoProps) => {
         top: '20%'
       }}
       title={intl.formatMessage({ id: 'models.table.button.apiAccessInfo' })}
-      width={550}
-      destroyOnClose
+      width={600}
+      destroyOnHidden
       closable={true}
       maskClosable={false}
       onOk={handleClose}
       onCancel={handleClose}
-      styles={{
-        content: {
-          padding: '0 0 16px 0'
-        },
-        header: {
-          padding: 'var(--ant-modal-content-padding)',
-          paddingBottom: '0'
-        },
-        body: {
-          padding: '16px 24px 32px'
-        },
-        footer: {
-          padding: '16px 24px',
-          margin: '0'
-        }
-      }}
       footer={null}
     >
       <Tips>
@@ -109,28 +139,39 @@ const ApiAccessInfo = ({ open, data, onClose }: ApiAccessInfoProps) => {
           <dt>
             <BulbOutlined />
           </dt>
-          <dd>
-            {intl.formatMessage({
-              id: 'models.table.button.apiAccessInfo.tips'
-            })}
-          </dd>
+          <dd
+            dangerouslySetInnerHTML={{
+              __html: data.generic_proxy
+                ? intl.formatMessage({
+                    id: 'models.table.genericProxy'
+                  })
+                : intl.formatMessage({
+                    id: 'models.table.button.apiAccessInfo.tips'
+                  })
+            }}
+          ></dd>
         </dl>
       </Tips>
+
       <ApiAccessInfoWrapper>
         <span className="label">
           {intl.formatMessage({ id: 'models.table.apiAccessInfo.endpoint' })}
         </span>
         <span className="value">
-          <AutoTooltip ghost maxWidth={180}>
+          <AutoTooltip ghost maxWidth={data.generic_proxy ? 400 : 240}>
             {endPoint}
           </AutoTooltip>
-          <APITAG color="geekblue">
-            {intl.formatMessage({
-              id: isRanker
-                ? 'models.table.apiAccessInfo.jinaCompatible'
-                : 'models.table.apiAccessInfo.openaiCompatible'
-            })}
-          </APITAG>
+          {!data.generic_proxy && (
+            <APITAG color="geekblue">
+              {isRanker
+                ? intl.formatMessage({
+                    id: 'models.table.apiAccessInfo.jinaCompatible'
+                  })
+                : intl.formatMessage({
+                    id: 'models.table.apiAccessInfo.openaiCompatible'
+                  })}
+            </APITAG>
+          )}
         </span>
         <span className="copy-btn">
           <CopyButton text={endPoint} type="link" size="small"></CopyButton>
@@ -167,6 +208,11 @@ const ApiAccessInfo = ({ open, data, onClose }: ApiAccessInfoProps) => {
           </CreateButton>
         </span>
       </ApiAccessInfoWrapper>
+      {data.generic_proxy && (
+        <div style={{ paddingLeft: 20, marginTop: 12 }}>
+          {GenericProxyCommandCode}
+        </div>
+      )}
     </ScrollerModal>
   );
 };

@@ -5,10 +5,17 @@ import { Button, Divider, Tooltip } from 'antd';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import 'simplebar-react/dist/simplebar.min.css';
+import styled from 'styled-components';
 import CopyButton from '../copy-button';
 import { TooltipOverlayScroller } from '../overlay-scroller';
 import CopyStyle from './copy-btn.less';
 import './index.less';
+
+const Text = styled.span`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 
 const linkReg = /<a (.*?)>(.*?)<\/a>/g;
 export const StatusMaps = {
@@ -20,6 +27,7 @@ export const StatusMaps = {
 };
 
 type StatusTagProps = {
+  style?: React.CSSProperties;
   statusValue: {
     status: StatusType;
     text: string;
@@ -29,6 +37,7 @@ type StatusTagProps = {
   download?: {
     percent: number;
   };
+  suffix?: React.ReactNode;
   maxTooltipWidth?: number;
   extra?: React.ReactNode;
   actions?: {
@@ -41,12 +50,13 @@ type StatusTagProps = {
 };
 
 const StatusTag: React.FC<StatusTagProps> = ({
+  style,
   statusValue,
   download,
   extra,
   actions = [],
   maxTooltipWidth = 250,
-  type = 'tag'
+  suffix
 }) => {
   const { text, status } = statusValue;
 
@@ -69,7 +79,7 @@ const StatusTag: React.FC<StatusTagProps> = ({
     if (link) {
       return statusValue.message?.replace(
         linkReg,
-        '<a $1 target="_blank">$2</a>'
+        `<a $1 target="_blank">$2</a>`
       );
     }
     return statusValue.message;
@@ -86,7 +96,7 @@ const StatusTag: React.FC<StatusTagProps> = ({
         </>
       );
     }
-    return <span>{text}</span>;
+    return <Text>{text}</Text>;
   };
 
   const renderTitle = useMemo(() => {
@@ -140,6 +150,7 @@ const StatusTag: React.FC<StatusTagProps> = ({
       </div>
     );
   }, [statusValue]);
+
   return (
     <span
       className={classNames('status-tag', {
@@ -147,7 +158,8 @@ const StatusTag: React.FC<StatusTagProps> = ({
       })}
       style={{
         color: statusColor?.text,
-        border: `1px solid ${statusColor?.border || statusColor?.text}`
+        border: `1px solid ${statusColor?.border || statusColor?.text}`,
+        ...style
       }}
     >
       {statusValue.message ? (
@@ -157,18 +169,20 @@ const StatusTag: React.FC<StatusTagProps> = ({
             autoHide: 'never'
           }}
           toolTipProps={{
-            destroyTooltipOnHide: true
+            destroyOnHidden: true
           }}
         >
           <span className="txt err">
-            <span className="m-r-5">
-              <InfoCircleOutlined />
-            </span>
+            <InfoCircleOutlined />
             {renderContent()}
+            {suffix && <span>{suffix}</span>}
           </span>
         </TooltipOverlayScroller>
       ) : (
-        <span className="txt">{renderContent()}</span>
+        <span className="txt">
+          {renderContent()}
+          {suffix && <span>{suffix}</span>}
+        </span>
       )}
     </span>
   );

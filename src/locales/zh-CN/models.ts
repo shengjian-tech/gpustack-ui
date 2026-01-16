@@ -15,9 +15,9 @@ export default {
   'models.form.configurations': '配置',
   'models.form.s3address': 'S3 地址',
   'models.form.partialoffload.tips':
-    '启用 CPU 卸载时，如果 GPU 资源不足，则模型的一部分层将被卸载到 CPU 上，在没有 GPU 可用时，会使用纯 CPU 推理。',
+    '启用 CPU 卸载后，GPU 不足时 GPUStack 会自动使用 CPU 内存。请确保推理后端已正确配置为混合 CPU+GPU 或纯 CPU 推理。',
   'models.form.distribution.tips':
-    '允许在单个 Worker 资源不足时，将部分计算卸载到一个或多个远程 Worker。',
+    '允许在单个节点资源不足时，将部分计算卸载到一个或多个远程节点。',
   'models.openinplayground': '在 Playground 中打开',
   'models.instances': '实例',
   'models.table.replicas.edit': '调整副本数',
@@ -48,14 +48,15 @@ export default {
   'models.form.scheduletype': '调度方式',
   'models.form.scheduletype.auto': '自动',
   'models.form.scheduletype.manual': '手动',
+  'models.form.scheduletype.gpu': '指定 GPU',
+  'models.form.scheduletype.gpuType': '指定 GPU 类型',
   'models.form.scheduletype.auto.tips':
-    '自动根据当前资源情况部署模型实例到合适的 GPU/Worker。',
-  'models.form.scheduletype.manual.tips':
-    '手动调度可指定模型实例部署的 GPU/Worker。',
+    '自动根据当前资源情况部署模型实例到合适的 GPU 上。',
+  'models.form.scheduletype.manual.tips': '可指定模型实例部署的 GPU。',
   'models.form.manual.schedule': '手动调度',
   'models.table.gpuindex': 'GPU 序号',
   'models.table.backend': '后端',
-  'models.table.acrossworker': '跨 Worker 推理',
+  'models.table.acrossworker': '跨节点推理',
   'models.table.cpuoffload': 'CPU 卸载',
   'models.table.layers': '层',
   'models.form.backend': '后端',
@@ -68,10 +69,13 @@ export default {
   'models.form.ollamalink':
     '在 <a href="https://www.ollama.com/library" target="_blank">Ollama Library</a> 中查找',
   'models.form.backend_parameters.llamabox.placeholder':
-    '例如，--ctx-size=8192',
+    '例如，--ctx-size=8192（参数名和值用 = 号或空格分隔）',
   'models.form.backend_parameters.vllm.placeholder':
-    '例如，--max-model-len=8192',
-  'models.form.backend_parameters.vllm.tips': '更多 {backend} 参数说明查看',
+    '例如，--max-model-len=8192（参数名和值用 = 号或空格分隔）',
+  'models.form.backend_parameters.sglang.placeholder':
+    '例如，--context-length=8192（参数名和值用 = 号或空格分隔）',
+  'models.form.backend_parameters.vllm.tips':
+    '更多 {backend} 参数说明查看<a href={link} target="_blank">这里</a>。',
   'models.logs.pagination.prev': '上一 {lines} 行',
   'models.logs.pagination.next': '下一 {lines} 行',
   'models.logs.pagination.last': '最后一页',
@@ -84,13 +88,13 @@ export default {
   'models.form.gpuselector': 'GPU 选择器',
   'models.form.backend.llamabox':
     '用于 GGUF 格式模型，支持 Linux, macOS 和 Windows。',
-  'models.form.backend.vllm': '用于非 GGUF 格式模型，仅支持 Linux。',
-  'models.form.backend.voxbox':
-    '用于非 GGUF 格式的语音模型，仅支持 NVIDIA GPU 与 CPU。',
-  'models.form.backend.mindie':
-    '用于非 GGUF 格式模型，仅支持昇腾 910B 和 310P。',
+  'models.form.backend.vllm':
+    '内置支持 NVIDIA、AMD、昇腾、海光、天数智芯和沐曦设备。',
+  'models.form.backend.voxbox': '仅支持 NVIDIA GPU 和 CPU。',
+  'models.form.backend.mindie': '仅支持昇腾 NPU。',
+  'models.form.backend.sglang': '内置支持 NVIDIA/AMD GPU 和昇腾 NPU。',
   'models.form.search.gguftips':
-    '当 macOS 或 Windows 作 Worker 时勾选 GGUF（搜索语音模型时取消勾选）',
+    '当 macOS 或 Windows 作节点时勾选 GGUF（搜索语音模型时取消勾选）',
   'models.form.button.addlabel': '添加标签',
   'models.filter.category': '按类别筛选',
   'models.list.more.logs': '查看更多',
@@ -98,12 +102,12 @@ export default {
   'models.localpath.gguf.tips.title': 'GGUF 格式模型',
   'models.localpat.safe.tips.title': 'safetensors 格式模型',
   'models.localpath.shared.tips.title': '分片的 GGUF 格式模型',
-  'models.localpath.gguf.tips': '指向模型文件，例如 /data/models/model.gguf',
+  'models.localpath.gguf.tips': '指向模型文件，例如 /data/models/model.gguf。',
   'models.localpath.safe.tips':
-    '指向包含 .safetensors, config.json 文件的模型目录，例如 /data/models/model',
+    '指向包含 .safetensors, config.json 文件的模型目录，例如 /data/models/model。',
   'models.localpath.chunks.tips':
-    '指向模型第一个分片文件，例如 /data/models/model-00001-of-00004.gguf',
-  'models.form.replicas.tips': '多副本数实现 { api } 接口推理请求的负载均衡',
+    '指向模型第一个分片文件，例如 /data/models/model-00001-of-00004.gguf。',
+  'models.form.replicas.tips': '多副本数实现 { api } 接口推理请求的负载均衡。',
   'models.table.list.empty': '暂无已部署模型',
   'models.table.list.getStart':
     '<span style="margin-right: 5px;font-size: 13px;">一键部署</span><span style="font-size: 14px;font-weight: 700">DeepSeek-R1-Distill-Qwen-1.5B</span><span style="margin-left: 5px;font-size: 13px;">立即使用！</span>',
@@ -112,7 +116,10 @@ export default {
   'models.form.releases': '版本',
   'models.form.moreparameters': '参数说明',
   'models.table.vram.allocated': '分配显存',
-  'models.form.backend.warning': 'GGUF 格式模型后端用 llama-box。',
+  'models.form.backend.warning':
+    '当前后端不支持 GGUF 格式模型。请在“推理后端”中添加一个支持 GGUF 的后端。',
+  'models.form.backend.warning.gguf':
+    '请确认当前使用的自定义后端已支持 GGUF 格式模型。',
   'models.form.ollama.warning': '部署 Ollama 模型后端使用 llama-box。',
   'models.form.backend.warning.llamabox':
     '要使用 llama-box 后端，请指定模型文件的完整路径（例如：<span style="font-weight: 700">/data/models/model.gguf</span>）。对于分片模型，请提供第一个分片的路径（例如：<span style="font-weight: 700">/data/models/model-00001-of-00004.gguf</span>）。',
@@ -124,14 +131,14 @@ export default {
   'models.form.evaluating': '评估模型兼容性中...',
   'models.form.incompatible': '检测到不兼容',
   'models.form.restart.onerror': '错误时重启',
-  'models.form.restart.onerror.tips': '当发生错误时，将自动尝试恢复',
+  'models.form.restart.onerror.tips': '当发生错误时，将自动尝试恢复。',
   'models.form.check.params': '正在校验配置...',
   'models.form.check.passed': '兼容性检查通过',
   'models.form.check.claims': '该模型大约需要消耗 {vram} 显存和 {ram} 内存。',
   'models.form.check.claims2': '该模型大约需要消耗 {vram} 显存。',
   'models.form.check.claims3': '该模型大约需要消耗 {ram} 内存。',
   'models.form.update.tips': '更改仅在删除并重新创建实例后生效。',
-  'models.table.download.progress': '下载进度',
+  'models.table.download.progress': '进度',
   'models.table.button.apiAccessInfo': 'API 接入信息',
   'models.table.button.apiAccessInfo.tips': `当您需要将本模型与第三方应用集成时，请使用以下信息：接入地址、模型名称和 API 密钥。这些信息是确保外部系统能正确连接并调用模型服务的关键凭证。`,
   'models.table.apiAccessInfo.endpoint': '接入地址',
@@ -150,5 +157,106 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">在 v0.7.0 更新后：</span> 所有先前部署的模型仍将正常运行。',
   'models.ollama.deprecated.issue':
-    '参见 GitHub 上的问题 <a href="https://www.shengjian.net/" target="_blank">#1979</a>。'
+    '参见 GitHub 上的问题 <a href="https://www.shengjian.net/" target="_blank">#1979</a>。',
+  'models.ollama.deprecated.notice': `Ollama 模型来源自 v0.6.1 起已被弃用。更多信息请参见相关的 <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">GitHub 问题</a>。`,
+  'models.backend.mindie.310p':
+    'Ascend 310P 仅支持 FP16，需要设置 --dtype=float16。',
+  'models.form.gpuCount': '每副本 GPU 数量',
+  'models.form.gpuType': 'GPU 类型',
+  'models.form.optimizeLongPrompt': '优化长提示',
+  'models.form.enableSpeculativeDecoding': '启用推测解码',
+  'models.form.check.clusterUnavailable': '当前集群不可用',
+  'models.form.check.otherClustersAvailable':
+    '可用的集群有: {clusters}。请切换集群。',
+  'models.button.accessSettings': '访问设置',
+  'models.table.accessScope': '访问范围',
+  'models.table.accessScope.all': '所有用户',
+  'models.table.userSelection': '用户选择',
+  'models.button.accessSettings.tips': '访问设置的更改将在一分钟后生效。',
+  'models.table.userSelection.tips': '管理员用户默认可以访问所有模型。',
+  'models.table.filterByName': '按用户名筛选',
+  'models.table.admin': '管理员',
+  'models.table.noselected': '未选择用户',
+  'models.table.users.all': '所有用户',
+  'models.table.users.selected': '已选用户',
+  'models.table.nouserFound': '未找到用户',
+  'models.form.performance': '性能',
+  'models.form.gpus.notfound': '未找到 GPU',
+  'models.form.extendedkvcache': '启用扩展 KV 缓存',
+  'models.form.chunkSize': '缓存分块大小',
+  'models.form.maxCPUSize': 'CPU 缓存最大占用 (GiB)',
+  'models.form.remoteURL': '远程存储地址',
+  'models.form.remoteURL.tips':
+    '参考 <a href="https://docs.lmcache.ai/api_reference/configurations.html" target="_blank">配置文档</a> 配置。',
+  'models.form.runCommandPlaceholder':
+    '例如，vllm serve Qwen/Qwen2.5-1.5B-Instruct',
+  'models.accessSettings.public': '公开',
+  'models.accessSettings.authed': '认证用户',
+  'models.accessSettings.allowedUsers': '指定用户',
+  'models.accessSettings.public.tips':
+    '公开后，任何人无需认证即可访问，可能存在数据泄露风险。',
+  'models.table.button.deploy': '立即部署',
+  'models.form.backendVersion.holder': '输入或选择一个版本',
+  'models.form.gpusperreplica': '每副本 GPU 数量',
+  'models.form.gpusAllocationType': 'GPU 分配方式',
+  'models.form.gpusAllocationType.auto': '自动',
+  'models.form.gpusAllocationType.custom': '自定义',
+  'models.form.gpusAllocationType.auto.tips':
+    '系统自动计算每个副本的 GPU 数量，默认是 2 的幂，不超过选择的 GPU 数量。',
+  'models.form.gpusAllocationType.custom.tips':
+    '您可以指定每个副本的 GPU 数量。',
+  'models.mymodels.status.inactive': '已停止',
+  'models.mymodels.status.degrade': '异常',
+  'models.mymodels.status.active': '可用',
+  'models.form.kvCache.tips':
+    '扩展 KV 缓存和推测解码仅在内置后端（vLLM / SGLang）可用，请切换后端以启用。',
+  'models.form.kvCache.tips2': '仅在使用内置推理后端（vLLM 或 SGLang）时支持。',
+  'models.form.scheduling': '调度',
+  'models.form.ramRatio': '内存与显存比例',
+  'models.form.ramSize': '内存最大占用 (GiB)',
+  'models.form.ramRatio.tips':
+    'KV 缓存在系统内存与 GPU 显存之间的比例。例如设置为 2.0 表示系统内存中可缓存的数据量是显存的两倍。',
+  'models.form.ramSize.tips': `KV 缓存在系统内存中的最大值。当设置该值时，将覆盖 "{content}" 的配置。`,
+  'models.form.chunkSize.tips':
+    '每个 KV 缓存块包含的 token 数量。数值越大可提升吞吐量，但也会增加内存占用。',
+  'models.form.mode': '模式',
+  'models.form.algorithm': '算法',
+  'models.form.draftModel': '草稿模型',
+  'models.form.numDraftTokens': '草稿生成 Token 数',
+  'models.form.ngramMinMatchLength': 'N-gram 最小匹配长度',
+  'models.form.ngramMaxMatchLength': 'N-gram 最大匹配长度',
+  'models.form.mode.throughput': '吞吐',
+  'models.form.mode.latency': '延迟',
+  'models.form.mode.baseline': '标准',
+  'models.form.mode.throughput.tips': '在高并发请求下优化吞吐性能。',
+  'models.form.mode.latency.tips': '在低并发请求下优化响应延迟。',
+  'models.form.mode.baseline.tips':
+    '以完整（原始）精度运行，并优先保证兼容性。',
+  'models.form.draftModel.placeholder': '请选择或输入草稿模型',
+  'models.form.draftModel.tips':
+    '可填写本地路径（如 /path/to/model），或从 Hugging Face、ModelScope 选择模型（如 Tengyunw/qwen3_8b_eagle3）。系统将根据主模型来源自动匹配。',
+  'models.form.quantization': '量化',
+  'models.form.backend.custom': '用户定义',
+  'models.form.rules.name':
+    '长度不超过 63 个字符，只能包含字母、数字、点（.）、下划线（_）和连字符（-），且必须以字母或数字开头和结尾。',
+  'models.catalog.button.explore': '浏览更多模型',
+  'models.catalog.precision': '精度',
+  'models.form.gpuPerReplica.tips': '输入自定义数值',
+  'models.form.generic_proxy': '启用通用代理',
+  'models.form.generic_proxy.tips':
+    '启用通用代理后可支持访问非 OpenAI-API 标准的 URI 路径。',
+  'models.form.generic_proxy.button': '通用代理',
+  'models.accessControlModal.includeusers': '显示用户',
+  'models.table.genericProxy':
+    '使用以下路径前缀，并在请求头 <span class="bold-text">X-GPUStack-Model</span> 或请求体中的 model 字段设置模型名称后访问该模型。该路径的所有子路径请求会被转发到推理后端。',
+  'models.form.backendVersion.deprecated': '已弃用',
+  'models.accessSettings.public.desc': '任何人无需认证即可访问。',
+  'models.accessSettings.authed.tips': '平台内所有已认证用户可访问。',
+  'models.accessSettings.allowedUsers.tips': '仅允许选定的特定用户访问。',
+  'models.form.backendVersions.tips': `如需使用更多版本，请前往{link}页面并编辑对应的后端以添加版本。`,
+  'models.catalog.nogpus.tips': '所选集群中没有兼容该模型的 GPU。',
+  'models.form.modelfile.notfound':
+    '你指定的模型文件路径在 GPUStack 服务器上不存在。建议在 GPUStack 服务器和 GPUStack 节点上使用相同的模型文件路径，这有助于 GPUStack 做出更优的调度与决策。',
+  'models.form.readyWorkers': '节点就绪',
+  'models.form.maxContextLength': '最大上下文长度'
 };

@@ -1,8 +1,8 @@
 import { getRequestId } from '@/atoms/models';
+import BaseSelect from '@/components/seal-form/base/select';
 import SimpleOverlay from '@/components/simple-overlay';
-import { createAxiosToken } from '@/hooks/use-chunk-request';
 import { useIntl } from '@umijs/max';
-import { Empty, Select, Spin } from 'antd';
+import { Empty, Spin } from 'antd';
 import _ from 'lodash';
 import React, {
   forwardRef,
@@ -13,12 +13,8 @@ import React, {
 } from 'react';
 import 'simplebar-react/dist/simplebar.min.css';
 import styled from 'styled-components';
-import {
-  evaluationsModelSpec,
-  queryHuggingfaceModelFiles,
-  queryModelScopeModelFiles
-} from '../apis';
-import { backendOptionsMap, modelSourceMap } from '../config';
+import { queryHuggingfaceModelFiles, queryModelScopeModelFiles } from '../apis';
+import { modelSourceMap } from '../config';
 import '../style/hf-model-file.less';
 import FileSkeleton from './file-skeleton';
 import ModelFileItem from './model-file-item';
@@ -39,7 +35,6 @@ interface HFModelFileProps {
   loadingModel?: boolean;
   modelSource: string;
   ref: any;
-  gpuOptions?: any[];
   onSelectFile?: (
     file: any,
     options: { requestModelId: number; manual?: boolean }
@@ -161,6 +156,11 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     return filterRegGGUF.test(file.path) || _.includes(file.path, '.gguf');
   };
 
+  const isNormalGGUFModelFile = (filename: string) => {
+    const file = filename?.toLowerCase() ?? '';
+    return file.indexOf('mmproj') === -1 && file.indexOf('imatrix') === -1;
+  };
+
   // hugging face files
   const getHuggingfaceFiles = async () => {
     try {
@@ -175,7 +175,7 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
       });
 
       const list = _.filter(fileList, (file: any) => {
-        return hfFileFilter(file) && file.path.indexOf('mmproj') === -1;
+        return hfFileFilter(file) && isNormalGGUFModelFile(file.path);
       });
 
       return list;
@@ -188,7 +188,7 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
     return (
       filterRegGGUF.test(file.Path) &&
       file.Type === 'blob' &&
-      file.Path.indexOf('mmproj') === -1
+      isNormalGGUFModelFile(file.Path)
     );
   };
 
@@ -217,69 +217,6 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
       return list;
     } catch (error) {
       return [];
-    }
-  };
-
-  const getEvaluateResults = async (repoList: any[]) => {
-    try {
-      checkTokenRef.current?.cancel?.();
-      checkTokenRef.current = createAxiosToken();
-      const evaluations = await evaluationsModelSpec(
-        {
-          model_specs: repoList
-        },
-        {
-          token: checkTokenRef.current.token
-        }
-      );
-      return evaluations.results || [];
-    } catch (error) {
-      return [];
-    }
-  };
-
-  const handleEvaluate = async (list: any[]) => {
-    if (isDownload) {
-      return;
-    }
-    try {
-      const evaluateFileList = list.map((item: any) => {
-        return {
-          backend: backendOptionsMap.llamaBox,
-          source: modelSource,
-          ...(modelSource === modelSourceMap.huggingface_value
-            ? {
-                huggingface_repo_id: props.selectedModel.name,
-                huggingface_filename: item.fakeName
-              }
-            : {
-                model_scope_model_id: props.selectedModel.name,
-                model_scope_file_path: item.fakeName
-              })
-        };
-      });
-
-      setIsEvaluating(true);
-      const evaluationList = await getEvaluateResults(evaluateFileList);
-
-      const resultList = _.map(list, (item: any, index: number) => {
-        return {
-          ...item,
-          evaluateResult: evaluationList[index]
-        };
-      });
-      const currentItem = _.find(
-        resultList,
-        (item: any) => item.path === currentPathRef.current
-      );
-
-      if (currentItem) {
-        onSelectFileAfterEvaluate?.(currentItem);
-      }
-      setDataSource({ fileList: resultList, loading: false });
-      setIsEvaluating(false);
-    } catch (error) {
-      setIsEvaluating(false);
     }
   };
 
@@ -357,12 +294,12 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
 
   return (
     <div className="files-wrap">
-      <TitleWrapper>
+      <TitleWrapper style={{ paddingInline: '24px' }}>
         <span className="title">
           {intl.formatMessage({ id: 'models.available.files' })} (
           {dataSource.fileList.length || 0})
         </span>
-        <Select
+        <BaseSelect
           value={sortType}
           onChange={handleSortChange}
           labelRender={({ label }) => {
@@ -375,7 +312,7 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
           options={modelFilesSortOptions.current}
           size="middle"
           style={{ width: '120px' }}
-        ></Select>
+        ></BaseSelect>
       </TitleWrapper>
       {dataSource.loading && (
         <div className="spin-wrapper">
@@ -409,7 +346,12 @@ const HFModelFile: React.FC<HFModelFileProps> = forwardRef((props, ref) => {
             </ItemFileWrapper>
           ) : (
             <Empty
-              imageStyle={{ height: 'auto', marginTop: '20px' }}
+              styles={{
+                image: {
+                  height: 'auto',
+                  marginTop: '20px'
+                }
+              }}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={intl.formatMessage({
                 id: 'models.search.nofiles'

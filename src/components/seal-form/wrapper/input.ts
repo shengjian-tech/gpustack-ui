@@ -71,22 +71,23 @@ const InputWrapper = styled.div`
     box-shadow: none;
     padding-block: 5px;
     padding-inline: ${INPUT_INNER_PADDING}px;
-    height: ${INPUTHEIGHT}px !important;
     background-color: ${BGCOLOR};
   }
   .ant-input.seal-textarea {
     flex: 1;
+    overflow-y: auto !important;
   }
 
   .ant-input-number {
+    flex: 1;
     position: static;
     display: flex;
     align-items: center;
     border: none;
     box-shadow: none;
     padding: 0;
-    height: ${INPUTHEIGHT}px !important;
     background-color: ${BGCOLOR};
+    flex: 1;
 
     &:hover .ant-input-number-handler-wrap,
     &-focused .ant-input-number-handler-wrap {
@@ -109,7 +110,6 @@ const InputWrapper = styled.div`
     box-shadow: none;
     padding-block: 5px;
     padding-inline: ${INPUT_INNER_PADDING}px;
-    height: ${INPUTHEIGHT}px !important;
     background-color: transparent;
   }
   .ant-input.ant-input-disabled {
@@ -117,7 +117,6 @@ const InputWrapper = styled.div`
   }
   input.ant-input-number-input {
     flex: 1;
-    height: ${INPUTHEIGHT}px !important;
     padding-block: 6px 4px;
     padding-inline: ${INPUT_INNER_PADDING}px;
   }
@@ -142,6 +141,16 @@ const InputWrapper = styled.div`
       background-color: transparent !important;
     }
   }
+
+  &:not(.textarea-input-wrapper) {
+    .ant-input,
+    .ant-input-password,
+    .ant-input-number,
+    .ant-input-outlined,
+    input.ant-input-number-input {
+      height: ${INPUTHEIGHT}px !important;
+    }
+  }
   .ant-input-search-button {
     position: absolute;
     top: -20px;
@@ -157,9 +166,18 @@ const InputWrapper = styled.div`
     top: 0;
     height: ${WRAPHEIGHT - 2}px;
   }
+  .ant-input-number-actions {
+    border-radius: 0 ${BORDERRADIUS}px ${BORDERRADIUS}px 0;
+  }
   .seal-textarea-wrapper {
     height: auto;
     padding-right: 10px;
+    textarea {
+      overflow-y: auto !important;
+    }
+  }
+  .ant-input-textarea-allow-clear.ant-input-affix-wrapper {
+    padding: 0;
   }
 `;
 

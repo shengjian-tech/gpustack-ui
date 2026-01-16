@@ -20,8 +20,9 @@ export const OverlayScroller: React.FC<
     maxHeight?: number;
     style?: React.CSSProperties;
     children: React.ReactNode;
+    onScroll?: (e: React.UIEvent<HTMLDivElement, UIEvent>) => void;
   }
-> = ({ children, maxHeight, scrollbars, oppositeTheme, style }) => {
+> = ({ children, maxHeight, scrollbars, oppositeTheme, style, onScroll }) => {
   const scroller = React.useRef<any>(null);
   const { initialize } = useOverlayScroller({
     options: {
@@ -43,6 +44,7 @@ export const OverlayScroller: React.FC<
       className="overlay-scroller-wrapper"
       $maxHeight={maxHeight || 200}
       hidden={false}
+      onWheel={onScroll}
       style={{
         paddingInlineStart: 8,
         paddingInlineEnd: 8,
@@ -75,12 +77,15 @@ export const TooltipOverlayScroller: React.FC<
   scrollbars,
   oppositeTheme
 }) => {
-  const { overlayInnerStyle, ...rest } = toolTipProps || {};
+  const { styles, ...rest } = toolTipProps || {};
   return (
     <Tooltip
-      overlayInnerStyle={{
-        paddingInline: 0,
-        ...overlayInnerStyle
+      styles={{
+        ...styles,
+        container: {
+          paddingInline: 0,
+          ...styles?.container
+        }
       }}
       title={
         title && (

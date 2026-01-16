@@ -1,76 +1,117 @@
-import LogoIcon from '@/assets/images/ai-computing power-cloud-logo.svg';
-import { initialPasswordAtom, userAtom } from '@/atoms/user';
-import LangSelect from '@/components/lang-select';
-import SealInput from '@/components/seal-form/seal-input';
-import ThemeDropActions from '@/components/theme-toggle/theme-drop-actions';
-import externalLinks from '@/constants/external-links';
-import {
-  CRYPT_TEXT,
-  REMEMBER_ME_KEY,
-  getRememberMe,
-  rememberMe,
-  removeRememberMe
-} from '@/utils/localstore/index';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import LogoIcon from '@/assets/images/gpustack-logo.png';
+import { userAtom } from '@/atoms/user';
 import { useIntl, useModel } from '@umijs/max';
-import { Button, Checkbox, Form } from 'antd';
+import { Button, Divider, Form, Spin, message } from 'antd';
 import { createStyles } from 'antd-style';
-import CryptoJS from 'crypto-js';
 import { useAtom } from 'jotai';
-import { useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { login } from '../apis';
+import styled from 'styled-components';
+import { useLocalAuth } from '../hooks/use-local-auth';
+import { useSSOAuth } from '../hooks/use-sso-auth';
 import { checkDefaultPage } from '../utils';
+import LocalUserForm from './local-user-form';
+
+const SpinContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+  .spin {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+`;
+
+const Buttons = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 24px;
+  width: 360px;
+  margin-top: 52px;
+`;
+
+const BackButton = styled(Button).attrs({
+  type: 'link',
+  size: 'small',
+  block: true
+})`
+  margin-top: 20px;
+`;
+
+const ButtonWrapper = styled(Button).attrs({
+  type: 'primary',
+  block: true
+})`
+  height: 48px;
+`;
+
+const ButtonText = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const DividerWrapper = styled(Divider)`
+  margin-block: 24px !important;
+  .ant-divider-inner-text {
+    color: var(--ant-color-text-secondary);
+  }
+`;
 
 const useStyles = createStyles(({ token, css }) => ({
-  header: css`
+  errorMessage: css`
     display: flex;
-    align-items: center;
-    gap: 8px;
-    position: fixed;
-    right: 0;
-    top: 0;
-    height: 60px;
-    padding: 20px;
-    .anticon-global {
-      color: ${token.colorText};
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    color: ${token.colorText};
+    .title {
+      font-weight: bold;
     }
-    .anticon:hover {
-      color: ${token.colorTextTertiary};
+  `,
+  welcome: css`
+    display: flex;
+    margin-bottom: 32px;
+    font-size: 20px;
+    justify-content: center;
+    align-items: center;
+    .text {
+      color: ${token.colorText};
     }
   `
 }));
 
 const LoginForm = () => {
+  const [messageApi, contextHolder] = message.useMessage();
   const { styles } = useStyles();
-  const [userInfo, setUserInfo] = useAtom(userAtom);
-  const [initialPassword, setInitialPassword] = useAtom(initialPasswordAtom);
+  const [, setUserInfo] = useAtom(userAtom);
   const { initialState, setInitialState } = useModel('@@initialState') || {};
+  const [authError, setAuthError] = useState<Error | null>(null);
   const intl = useIntl();
   const [form] = Form.useForm();
+  const [isPassword, setIsPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const renderWelCome = useMemo(() => {
+  const renderWelCome = () => {
     return (
-      <div
-        style={{
-          display: 'flex',
-          marginBottom: 32,
-          fontSize: 20,
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}
-      >
+      <div className={styles.welcome}>
         <div className="flex-center">
-          <span>{intl?.formatMessage({ id: 'users.login.title' })}</span>
+          <span className="text">
+            {intl?.formatMessage({ id: 'users.login.title' })}
+          </span>
           <img
             src={LogoIcon}
             alt="logo"
-            style={{ height: '24px', marginLeft: 10 }}
+            style={{ height: '36px', marginLeft: 10 }}
           />
         </div>
       </div>
     );
-  }, [intl]);
+  };
 
   const gotoDefaultPage = async (userInfo: any) => {
     checkDefaultPage(userInfo, true);
@@ -90,140 +131,142 @@ const LoginForm = () => {
     return userInfo;
   };
 
-  const encryptPassword = (password: string) => {
-    const psw = CryptoJS.AES?.encrypt?.(password, CRYPT_TEXT).toString();
-    return psw;
-  };
-  const decryptPassword = (password: string) => {
-    const bytes = CryptoJS.AES?.decrypt?.(password, CRYPT_TEXT);
-    const res = bytes.toString(CryptoJS.enc.Utf8);
-    return res;
-  };
-
-  const callRememberMe = async (values: any) => {
-    const { autoLogin } = values;
-    if (autoLogin) {
-      await rememberMe(REMEMBER_ME_KEY, {
-        um: encryptPassword(values.username),
-        pw: encryptPassword(values.password),
-        f: true
-      });
-    } else {
-      await removeRememberMe(REMEMBER_ME_KEY);
-    }
+  // error handling for authentication
+  const handleOnError = (error: Error) => {
+    setAuthError(error);
+    messageApi.error({
+      duration: 5,
+      content: (
+        <div className={styles.errorMessage}>
+          <div className="title">
+            {intl.formatMessage({ id: 'common.login.auth.failed' })}
+          </div>
+          <div className="message">{error?.message || 'Unknown error'}</div>
+        </div>
+      )
+    });
   };
 
-  const callGetRememberMe = async () => {
-    const rememberMe = await getRememberMe(REMEMBER_ME_KEY);
-
-    if (rememberMe?.f) {
-      const username = decryptPassword(rememberMe?.um);
-      const password = decryptPassword(rememberMe?.pw);
-      form.setFieldsValue({ username, password, autoLogin: true });
-    }
-  };
-
-  const handleLogin = async (values: any) => {
-    try {
-      await login({
-        username: values.username,
-        password: values.password
-      });
-
-      const userInfo = await fetchUserInfo();
+  // local user authentication
+  const { handleLogin } = useLocalAuth({
+    fetchUserInfo,
+    form,
+    onSuccess: async (userInfo) => {
       setUserInfo(userInfo);
-      if (values.autoLogin) {
-        await callRememberMe(values);
-      } else {
-        await removeRememberMe(REMEMBER_ME_KEY);
-      }
       if (!userInfo?.require_password_change) {
         gotoDefaultPage(userInfo);
-      } else {
-        setInitialPassword(encryptPassword(values.password));
       }
-    } catch (error) {
-      // to do something
+    },
+
+    onError: (error) => {
+      // gpustack handle in the interceptor
     }
+  });
+
+  // SSO hook
+  const SSOAuth = useSSOAuth({
+    fetchUserInfo,
+    onSuccess: (userInfo) => {
+      setUserInfo(userInfo);
+      gotoDefaultPage({});
+    },
+    onLoading: (loading) => {
+      setLoading(loading);
+    },
+    onError: handleOnError
+  });
+
+  const handleLoginWithPassword = () => {
+    setIsPassword(true);
   };
 
-  useEffect(() => {
-    callGetRememberMe();
-  }, []);
+  const handleLoginWithThirdParty = () => {
+    if (SSOAuth.options.oidc) {
+      SSOAuth.loginWithOIDC();
+    } else if (SSOAuth.options.saml) {
+      SSOAuth.loginWithSAML();
+    }
+    setLoading(true);
+    setAuthError(null);
+  };
+
+  const hasThirdPartyLogin = useMemo(() => {
+    return SSOAuth.options.oidc || SSOAuth.options.saml;
+  }, [SSOAuth.options]);
+
+  const isThirdPartyAuthHandling = useMemo(() => {
+    return loading && !authError;
+  }, [loading, authError]);
+
+  const renderLoginButtons = () => {
+    // do not render login buttons if using password login or no third-party login
+    if (!hasThirdPartyLogin || isPassword) return null;
+
+    return (
+      <Buttons>
+        {SSOAuth.options.oidc && (
+          <ButtonWrapper onClick={SSOAuth.loginWithOIDC}>
+            <ButtonText>
+              {intl.formatMessage(
+                { id: 'common.external.login' },
+                { type: 'SSO' }
+              )}
+            </ButtonText>
+          </ButtonWrapper>
+        )}
+        {SSOAuth.options.saml && (
+          <ButtonWrapper onClick={SSOAuth.loginWithSAML}>
+            <ButtonText>
+              {intl.formatMessage(
+                { id: 'common.external.login' },
+                { type: 'SSO' }
+              )}
+            </ButtonText>
+          </ButtonWrapper>
+        )}
+        <Button type="link" block onClick={handleLoginWithPassword}>
+          <ButtonText>
+            {intl.formatMessage({ id: 'common.login.password' })}
+          </ButtonText>
+        </Button>
+      </Buttons>
+    );
+  };
 
   return (
     <div>
-      <div className={styles.header}>
-        <ThemeDropActions></ThemeDropActions>
-        <LangSelect />
-      </div>
+      {contextHolder}
       <div>
-        <Form
-          form={form}
-          style={{ width: '360px', margin: '0 auto' }}
-          onFinish={handleLogin}
-        >
-          {renderWelCome}
-          <Form.Item
-            name="username"
-            rules={[
-              {
-                required: true,
-                message: intl.formatMessage(
-                  { id: 'common.form.rule.input' },
-                  { name: intl.formatMessage({ id: 'common.form.username' }) }
-                )
-              }
-            ]}
-          >
-            <SealInput.Input
-              label={intl.formatMessage({ id: 'common.form.username' })}
-              prefix={<UserOutlined />}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[
-              {
-                required: true,
-                message: intl.formatMessage(
-                  { id: 'common.form.rule.input' },
-                  { name: intl.formatMessage({ id: 'common.form.password' }) }
-                )
-              }
-            ]}
-          >
-            <SealInput.Password
-              prefix={<LockOutlined />}
-              label={intl.formatMessage({ id: 'common.form.password' })}
-            />
-          </Form.Item>
-            <Form.Item noStyle name="autoLogin" valuePropName="checked">
-              <Checkbox style={{ marginLeft: 5,marginBottom:24 }}>
-                <span style={{ color: 'var(--ant-color-text-secondary)' }}>
-                  {intl.formatMessage({ id: 'common.login.rember' })}
-                </span>
-              </Checkbox>
-              {/* <Button
-                type="link"
-                size="small"
-                href={externalLinks.resetPassword}
-                target="_blank"
-                style={{ padding: 0 }}
-              >
-                {intl.formatMessage({ id: 'common.button.forgotpassword' })}
-              </Button> */}
-          </Form.Item>
-          <Button
-            htmlType="submit"
-            type="primary"
-            block
-            style={{ height: '48px', fontSize: '14px' }}
-          >
-            {intl.formatMessage({ id: 'common.button.login' })}
-          </Button>
-        </Form>
+        {isThirdPartyAuthHandling ? (
+          <SpinContainer>
+            {renderWelCome()}
+            <div className="spin">
+              <Spin tip={intl.formatMessage({ id: 'common.login.auth' })}>
+                <div style={{ width: 300 }}></div>
+              </Spin>
+            </div>
+          </SpinContainer>
+        ) : (
+          <>
+            {renderWelCome()}
+            {renderLoginButtons()}
+            {(!hasThirdPartyLogin || isPassword) && (
+              <LocalUserForm
+                handleLogin={handleLogin}
+                form={form}
+                loginOption={SSOAuth.options}
+              />
+            )}
+            {hasThirdPartyLogin && isPassword && (
+              <BackButton onClick={handleLoginWithThirdParty}>
+                {intl.formatMessage(
+                  { id: 'common.external.login' },
+                  { type: 'SSO' }
+                )}
+              </BackButton>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
 import ModalFooter from '@/components/modal-footer';
 import GSDrawer from '@/components/scroller-modal/gs-drawer';
-import { CloseOutlined } from '@ant-design/icons';
+import { ProviderValueMap } from '@/pages/cluster-management/config';
 import { useIntl } from '@umijs/max';
-import { Button } from 'antd';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import ColumnWrapper from '../components/column-wrapper';
+import styled from 'styled-components';
+import ColumnWrapper from '../../_components/column-wrapper';
 import HFModelFile from '../components/hf-model-file';
 import ModelCard from '../components/model-card';
 import SearchModel from '../components/search-model';
@@ -21,21 +21,35 @@ type AddModalProps = {
   source: string;
   width?: string | number;
   hasLinuxWorker?: boolean;
-  workersList: Global.BaseOption<number>[];
+  workerOptions: any[];
+  workersList?: any[];
   onOk: (values: FormData) => void;
   onCancel: () => void;
 };
 
+const ColWrapper = styled.div`
+  display: flex;
+  flex: 1;
+  max-width: 33.33%;
+`;
+
+const FormWrapper = styled.div`
+  display: flex;
+  flex: 1;
+  maxwidth: 100%;
+`;
+
 const DownloadModel: React.FC<AddModalProps> = (props) => {
   const {
     title,
-    workersList,
     open,
     onOk,
     onCancel,
     hasLinuxWorker,
     source,
-    width = 600
+    width = 600,
+    workerOptions,
+    workersList
   } = props || {};
   const SEARCH_SOURCE = [
     modelSourceMap.huggingface_value,
@@ -49,6 +63,7 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
   const [isGGUF, setIsGGUF] = useState<boolean>(false);
   const [fileName, setFileName] = useState<string>('');
   const modelFileRef = useRef<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const generateModelInfo = () => {
     if (source === modelSourceMap.huggingface_value) {
@@ -68,23 +83,26 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
     }
     return {};
   };
-  const handleSelectModelFile = useCallback((item: any) => {
-    setFileName(item.fakeName);
-  }, []);
 
   const handleOnSelectModel = (item: any) => {
     setSelectedModel(item);
+    setFileName('');
   };
 
-  const handleOk = (values: any) => {
-    onOk({
+  const handleOk = async (values: any) => {
+    setLoading(true);
+    await onOk({
       ...values,
       source: source,
       ...generateModelInfo()
     });
+    setLoading(false);
   };
 
   const handleSumit = () => {
+    if (loading) {
+      return;
+    }
     form.current?.form?.submit?.();
   };
 
@@ -98,26 +116,38 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
       debounceFetchModelFiles();
     }
   };
+  const handleSelectModelFile = useCallback((item: any) => {
+    setFileName(item.fakeName);
+  }, []);
 
   const handleCancel = useCallback(() => {
     onCancel?.();
   }, [onCancel]);
 
-  useEffect(() => {
-    handleSelectModelFile({ fakeName: '' });
-  }, [selectedModel]);
+  const initDefaultWorker = () => {
+    if (!workerOptions || workerOptions.length === 0) {
+      form.current?.form?.setFieldValue('worker_id', []);
+      return;
+    }
+    const getWorkerId = (worker: any) => [
+      worker?.value ?? '',
+      worker?.children?.[0]?.value ?? ''
+    ];
+
+    const customWorker = workerOptions.find(
+      (item) => item.provider === ProviderValueMap.Docker
+    );
+
+    const worker_id = getWorkerId(customWorker || workerOptions[0]);
+    form.current?.form?.setFieldValue('worker_id', worker_id);
+  };
 
   useEffect(() => {
     if (!open) {
       setIsGGUF(false);
-    } else if (source === modelSourceMap.ollama_library_value) {
-      setIsGGUF(true);
     }
     if (open) {
-      form.current?.form?.setFieldValue(
-        'worker_id',
-        workersList[0]?.value || ''
-      );
+      initDefaultWorker();
     }
 
     return () => {
@@ -127,70 +157,33 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
 
   return (
     <GSDrawer
-      title={
-        <div className="flex-between flex-center">
-          <span
-            style={{
-              color: 'var(--ant-color-text)',
-              fontWeight: 'var(--font-weight-medium)',
-              fontSize: 'var(--font-size-middle)'
-            }}
-          >
-            {title}
-          </span>
-          <Button type="text" size="small" onClick={handleCancel}>
-            <CloseOutlined></CloseOutlined>
-          </Button>
-        </div>
-      }
+      title={title}
       open={open}
       onClose={handleCancel}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       closeIcon={false}
       maskClosable={false}
       keyboard={false}
       zIndex={2000}
       styles={{
-        body: {
-          height: 'calc(100vh - 57px)',
-          padding: '16px 0',
-          overflowX: 'hidden'
-        },
-        content: {
-          borderRadius: '6px 0 0 6px'
-        }
+        wrapper: { width: width }
       }}
-      width={width}
       footer={false}
     >
       <div style={{ display: 'flex', height: '100%' }}>
         {SEARCH_SOURCE.includes(props.source) && (
           <>
-            <div
-              style={{
-                display: 'flex',
-                flex: 1,
-                maxWidth: '33.33%'
-              }}
-            >
-              <ColumnWrapper>
-                <SearchModel
-                  hasLinuxWorker={hasLinuxWorker}
-                  modelSource={props.source}
-                  onSelectModel={handleOnSelectModel}
-                  isDownload={true}
-                ></SearchModel>
-              </ColumnWrapper>
+            <ColWrapper>
+              <SearchModel
+                hasLinuxWorker={hasLinuxWorker}
+                modelSource={props.source}
+                onSelectModel={handleOnSelectModel}
+                isDownload={true}
+              ></SearchModel>
               <Separator></Separator>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flex: 1,
-                maxWidth: '33.33%'
-              }}
-            >
-              <ColumnWrapper>
+            </ColWrapper>
+            <ColWrapper>
+              <ColumnWrapper styles={{ container: { padding: 0 } }}>
                 <ModelCard
                   selectedModel={selectedModel}
                   onCollapse={setCollapsed}
@@ -210,19 +203,24 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
                 )}
               </ColumnWrapper>
               <Separator></Separator>
-            </div>
+            </ColWrapper>
           </>
         )}
-        <div style={{ display: 'flex', flex: 1, maxWidth: '100%' }}>
+        <FormWrapper>
           <ColumnWrapper
-            paddingBottom={50}
+            styles={{
+              container: { paddingBlock: 0 }
+            }}
             footer={
               <>
                 <ModalFooter
                   onCancel={handleCancel}
                   onOk={handleSumit}
+                  okBtnProps={{
+                    loading: loading
+                  }}
                   style={{
-                    padding: '16px 24px',
+                    padding: '16px 24px 8px',
                     display: 'flex',
                     justifyContent: 'flex-end'
                   }}
@@ -243,11 +241,14 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
                 ref={form}
                 onOk={handleOk}
                 source={source}
+                selectedModel={selectedModel}
+                fileName={fileName}
                 workersList={workersList}
+                workerOptions={workerOptions}
               ></TargetForm>
             </>
           </ColumnWrapper>
-        </div>
+        </FormWrapper>
       </div>
     </GSDrawer>
   );

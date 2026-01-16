@@ -1,12 +1,20 @@
-import { AutoComplete, Form, Spin } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
+import { AutoComplete, Form, Typography } from 'antd';
 import type { AutoCompleteProps } from 'antd/lib';
 import React, { useEffect, useRef, useState } from 'react';
+import { LoadingContent } from './components/not-found-content';
 import { SealFormItemProps } from './types';
 import Wrapper from './wrapper';
 import SelectWrapper from './wrapper/select';
 
+const Link = Typography.Link;
+
 const SealAutoComplete: React.FC<
-  AutoCompleteProps & SealFormItemProps & { onInput?: (e: Event) => void }
+  AutoCompleteProps &
+    SealFormItemProps & {
+      onInput?: (e: Event) => void;
+      clearSpaceOnBlur?: boolean;
+    }
 > = (props) => {
   const {
     label,
@@ -17,10 +25,14 @@ const SealAutoComplete: React.FC<
     trim = true,
     onSelect,
     onBlur,
+    checkStatus,
     extra,
     style,
     addAfter,
     loading,
+    allowClear,
+    clearSpaceOnBlur,
+    showSearch,
     ...rest
   } = props;
   const [isFocus, setIsFocus] = useState(false);
@@ -45,6 +57,7 @@ const SealAutoComplete: React.FC<
   };
 
   const handleChange = (val: string, option: any) => {
+    console.log('handleChange val:', val);
     let value = val;
     if (trim) {
       value = value?.trim?.();
@@ -61,36 +74,56 @@ const SealAutoComplete: React.FC<
     if (!props.value) {
       setIsFocus(false);
     }
-    e.target.value = e.target.value?.trim?.();
-    props.onBlur?.(e);
-  };
 
-  const handleSearch = (text: string) => {
-    props.onSearch?.(text);
+    if (clearSpaceOnBlur) {
+      e.target.value = e.target.value?.replace(/\s+/g, '');
+      props.onChange?.(e.target.value);
+    } else {
+      e.target.value = e.target.value?.trim();
+    }
+    props.onBlur?.(e);
   };
 
   const handleOnSelect = (value: any, option: any) => {
     onSelect?.(value, option);
   };
+
+  const handleOnInput = (e: any) => {
+    if (trim) {
+      e.target.value = e.target.value?.trim();
+    }
+    props.onInput?.(e);
+  };
+
   const renderAfter = () => {
     if (loading) {
-      return <Spin size="small"></Spin>;
+      return (
+        <Link>
+          <LoadingOutlined />
+        </Link>
+      );
     }
-    return addAfter;
+    return null;
+  };
+
+  const popupRender = (originNode: React.ReactElement): React.ReactElement => {
+    if (loading) {
+      return <LoadingContent />;
+    }
+    return originNode || null;
   };
 
   return (
     <SelectWrapper style={style}>
       <Wrapper
         className="seal-select-wrapper"
-        status={status}
+        status={checkStatus || status}
         extra={extra}
         label={label}
         isFocus={isFocus}
         required={required}
         description={description}
         disabled={props.disabled}
-        addAfter={renderAfter()}
         onClick={handleClickWrapper}
       >
         <AutoComplete
@@ -103,11 +136,17 @@ const SealAutoComplete: React.FC<
               ''
             )
           }
+          allowClear={!loading && allowClear}
+          suffixIcon={renderAfter()}
+          // @ts-ignore
+          status={checkStatus || status}
           onSelect={handleOnSelect}
           onFocus={handleOnFocus}
           onBlur={handleOnBlur}
-          onSearch={handleSearch}
+          showSearch={showSearch}
           onChange={handleChange}
+          popupRender={popupRender}
+          onInput={handleOnInput}
         ></AutoComplete>
       </Wrapper>
     </SelectWrapper>

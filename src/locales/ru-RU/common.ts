@@ -145,7 +145,7 @@ export default {
   'common.copy.notSupport': 'Ваш браузер не поддерживает буфер обмена',
   'common.title.basicInfo': 'Основная информация',
   'common.help.need': 'Нужна помощь?',
-  'common.help.eg': 'Например:',
+  'common.help.eg': 'Например: {content}',
   'common.filter.label': 'Фильтры',
   'common.filter.isrequired.holder': 'Необязательно',
   'common.filter.isrequired.true': 'Обязательно',
@@ -246,11 +246,29 @@ export default {
   'common.appearance.theme': 'Тема',
   'common.page.wentwrong': 'Что-то пошло не так.',
   'common.page.refresh.tips':
-    'Упс! Что-то пошло не так. Попробуйте обновить страницу.',
+    'Страница может нуждаться в обновлении. Попробуйте обновить её!',
   'common.tips.escape.disable':
     'Чтобы закрыть, нажмите "Отмена" или крестик (X) в правом верхнем углу.',
   'common.button.clearSelection': 'Сбросить выбор',
-  'common.select.count': '{count} Выбрано'
+  'common.select.count': '{count} Выбрано',
+  'common.login.auth': 'Аутентификация...',
+  'common.login.auth.failed': 'Ошибка аутентификации',
+  'common.login.password': 'Войти с паролем',
+  'common.external.login': 'Войти через {type}',
+  'common.sso.noConfig':
+    'Единый вход не настроен в этой системе. Пожалуйста, обратитесь к администратору.',
+  'common.button.edit.item': 'Редактировать {name}',
+  'common.button.terminal': 'Терминал',
+  'common.button.addItem': 'Добавить элемент',
+  'common.help.default': 'По умолчанию: {content}',
+  'common.filter.status': 'Фильтровать по статусу',
+  'common.form.rule.selectInput': 'Выберите или введите {name}',
+  'common.tag.experimental': 'Экспериментальный',
+  'common.title.example': 'Пример',
+  'common.button.dontshowagain': "Больше не показывать",
+  'common.sorter.tips.ascend': 'Нажмите для сортировки по возрастанию',
+  'common.sorter.tips.descend': 'Нажмите для сортировки по убыванию',
+  'common.sorter.tips.cancel': 'Нажмите, чтобы отменить сортировку'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

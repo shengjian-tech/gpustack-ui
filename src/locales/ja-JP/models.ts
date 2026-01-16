@@ -13,8 +13,7 @@ export default {
   'models.form.env': '環境変数',
   'models.form.configurations': '設定',
   'models.form.s3address': 'S3アドレス',
-  'models.form.partialoffload.tips':
-    'CPUオフロードが有効な場合、GPUリソースが不足するとモデルの一部のレイヤーがCPUにオフロードされます。GPUが利用できない場合は、完全なCPU推論が使用されます。',
+  'models.form.partialoffload.tips': `When CPU offloading is enabled, GPUStack will allocate CPU memory if GPU resources are insufficient. You must correctly configure the inference backend to use hybrid CPU+GPU or full CPU inference.`,
   'models.form.distribution.tips':
     'ワーカーのリソースが不足している場合、モデルの一部のレイヤーを単一または複数のリモートワーカーにオフロードすることができます。',
   'models.openinplayground': 'プレイグラウンドで開く',
@@ -48,10 +47,12 @@ export default {
   'models.form.categories': 'モデルカテゴリ',
   'models.form.scheduletype.auto': '自動',
   'models.form.scheduletype.manual': '手動',
+  'models.form.scheduletype.gpu': 'GPUを指定',
+  'models.form.scheduletype.gpuType': 'GPUタイプを指定',
   'models.form.scheduletype.auto.tips':
-    '現在のリソース状況に基づいて、モデルインスタンスを適切なGPU/ワーカーに自動的にデプロイします。',
+    '現在のリソース状況に基づいて、モデルインスタンスを適切なGPUに自動的にデプロイします。',
   'models.form.scheduletype.manual.tips':
-    'モデルインスタンスをデプロイするGPU/ワーカーを手動で指定できます。',
+    'モデルインスタンスをデプロイするGPUを手動で指定できます。',
   'models.form.manual.schedule': '手動スケジュール',
   'models.table.gpuindex': 'GPUインデックス',
   'models.table.backend': 'バックエンド',
@@ -68,9 +69,14 @@ export default {
     '音声モデルをデプロイするには、GGUFチェックボックスをオフにしてください。',
   'models.form.ollamalink':
     '<a href="https://www.ollama.com/library" target="_blank">Ollamaライブラリ</a>でさらに探す',
-  'models.form.backend_parameters.llamabox.placeholder': '例: --ctx-size=8192',
-  'models.form.backend_parameters.vllm.placeholder': '例: --max-model-len=8192',
-  'models.form.backend_parameters.vllm.tips': '詳細な{backend}パラメータ情報',
+  'models.form.backend_parameters.llamabox.placeholder':
+    '例: --ctx-size=8192（=または空白で名前と値を分ける）',
+  'models.form.backend_parameters.vllm.placeholder':
+    '例: --max-model-len=8192（=または空白で名前と値を分ける）',
+  'models.form.backend_parameters.sglang.placeholder':
+    '例: --context-length=8192（=または空白で名前と値を分ける）',
+  'models.form.backend_parameters.vllm.tips':
+    'For more details about {backend} parameters, see <a href={link} target="_blank">here</a>.',
   'models.logs.pagination.prev': '前の{lines}行',
   'models.logs.pagination.next': '次の{lines}行',
   'models.logs.pagination.last': '最終ページ',
@@ -83,11 +89,12 @@ export default {
   'models.form.gpuselector': 'GPUセレクター',
   'models.form.backend.llamabox':
     'GGUF形式のモデル用（Linux、macOS、Windowsをサポート）。',
-  'models.form.backend.vllm': '非GGUF形式のモデル用。Linux のみ対応。',
-  'models.form.backend.voxbox':
-    '非GGUF形式の音声モデル用。NVIDIA GPUおよびCPUのみ対応。',
-  'models.form.backend.mindie':
-    '非GGUF形式のモデル用。Ascend 910Bおよび310Pのみ対応。',
+  'models.form.backend.vllm':
+    'Built-in support for NVIDIA, AMD, Ascend, Hygon, Iluvatar, and MetaX devices.',
+  'models.form.backend.voxbox': 'Only supports NVIDIA GPUs and CPUs.',
+  'models.form.backend.mindie': 'Only supports Ascend NPUs.',
+  'models.form.backend.sglang':
+    'Built-in support for NVIDIA/AMD GPUs and Ascend NPUs.',
   'models.form.search.gguftips':
     'macOSまたはWindowsをワーカーとして使用する場合、GGUFをチェックしてください（音声モデルの場合はオフにしてください）。',
   'models.form.button.addlabel': 'ラベルを追加',
@@ -113,7 +120,9 @@ export default {
   'models.form.moreparameters': 'パラメータ説明',
   'models.table.vram.allocated': '割り当て済みVRAM',
   'models.form.backend.warning':
-    'GGUF形式のモデルのバックエンドはllama-boxを使用します。',
+    'The selected backend does not support GGUF models. Please add a backend with GGUF support in the Inference Backend.',
+  'models.form.backend.warning.gguf':
+    'Please ensure that the selected custom backend supports GGUF models.',
   'models.form.ollama.warning':
     'Ollamaモデルのバックエンドをllama-boxを使用してデプロイします。',
   'models.form.backend.warning.llamabox':
@@ -136,7 +145,7 @@ export default {
   'models.form.check.claims3': 'このモデルには約{ram}のメモリが必要です。',
   'models.form.update.tips':
     '変更はインスタンスを削除して再作成した後にのみ適用されます。',
-  'models.table.download.progress': 'ダウンロード進行状況',
+  'models.table.download.progress': '進行状況',
   'models.table.button.apiAccessInfo': 'APIアクセス情報',
   'models.table.button.apiAccessInfo.tips':
     'このモデルをサードパーティアプリケーションと統合するには、以下の詳細を使用してください: アクセスURL、モデル名、APIキー。これらの資格情報は、モデルサービスの適切な接続と使用を確保するために必要です。',
@@ -156,13 +165,209 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">Following the v0.7.0 update,</span> all previously deployed models will continue to work as expected.',
   'models.ollama.deprecated.issue':
-    'See the related issue: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.'
+    'See the related issue: <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">#1979 on GitHub</a>.',
+  'models.ollama.deprecated.notice': `The Ollama model source has been deprecated as of v0.6.1. For more information, see the <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">related GitHub issue</a>.`,
+  'models.backend.mindie.310p':
+    'Ascend 310P only supports FP16, so you need to set --dtype=float16.',
+  'models.form.gpuCount': '各レプリカのGPU数',
+  'models.form.gpuType': 'GPU タイプ',
+  'models.form.optimizeLongPrompt': '長いプロンプトを最適化',
+  'models.form.enableSpeculativeDecoding': '推測デコーディングを有効にする',
+  'models.form.check.clusterUnavailable': 'Current cluster is unavailable',
+  'models.form.check.otherClustersAvailable':
+    'Available clusters: {clusters}. Please switch cluster.',
+  'models.button.accessSettings': 'Access Settings',
+  'models.table.accessScope': 'Access Scope',
+  'models.table.accessScope.all': 'All users',
+  'models.table.userSelection': 'User Selection',
+  'models.button.accessSettings.tips':
+    'Changes to access settings take effect after one minute.',
+  'models.table.userSelection.tips':
+    'Admin users can access all models by default.',
+  'models.table.filterByName': 'Filter by username',
+  'models.table.admin': 'Admin',
+  'models.table.noselected': 'No users selected',
+  'models.table.users.all': 'All Users',
+  'models.table.users.selected': 'Selected Users',
+  'models.table.nouserFound': 'No users found',
+  'models.form.performance': 'Performance',
+  'models.form.gpus.notfound': 'No GPUs found',
+  'models.form.extendedkvcache': 'Enable Extended KV Cache',
+  'models.form.chunkSize': 'Size of Cache Chunks',
+  'models.form.maxCPUSize': 'Maximum CPU Cache Size (GiB)',
+  'models.form.remoteURL': 'Remote Storage URL',
+  'models.form.remoteURL.tips':
+    'Refer to the <a href="https://docs.lmcache.ai/api_reference/configurations.html" target="_blank">configuration documentation</a> for details.',
+  'models.form.runCommandPlaceholder':
+    'e.g., vllm serve Qwen/Qwen2.5-1.5B-Instruct',
+  'models.accessSettings.public': 'Public',
+  'models.accessSettings.authed': 'Authenticated',
+  'models.accessSettings.allowedUsers': 'Allowed users',
+  'models.accessSettings.public.tips':
+    'When set to public, anyone can access this model without authentication, which may lead to data exposure risks.',
+  'models.table.button.deploy': 'Deploy Now',
+  'models.form.backendVersion.holder': 'Enter or select a version',
+  'models.form.gpusperreplica': 'GPUs per Replica',
+  'models.form.gpusAllocationType': 'GPU Allocation Type',
+  'models.form.gpusAllocationType.auto': 'Auto',
+  'models.form.gpusAllocationType.custom': 'Custom',
+  'models.form.gpusAllocationType.auto.tips':
+    'The system automatically calculates the GPU count per replica, using powers of two by default and capped by the selected GPUs.',
+  'models.form.gpusAllocationType.custom.tips':
+    'You can specify the exact number of GPUs per replica.',
+  'models.mymodels.status.inactive': 'Stopped',
+  'models.mymodels.status.degrade': 'Not Ready',
+  'models.mymodels.status.active': 'Ready',
+  'models.form.kvCache.tips':
+    'Extended KV cache and speculative decoding are only available with built-in backends (vLLM / SGLang), Please switch the backend to enable them.',
+  'models.form.kvCache.tips2':
+    'Only supported when using built-in inference backends (vLLM or SGLang).',
+  'models.form.scheduling': 'Scheduling',
+  'models.form.ramRatio': 'RAM-to-VRAM Ratio',
+  'models.form.ramSize': 'Maximum RAM Size (GiB)',
+  'models.form.ramRatio.tips':
+    'Ratio of system RAM to GPU VRAM used for KV cache. For example, 2.0 means the cache in RAM can be twice as large as the GPU VRAM.',
+  'models.form.ramSize.tips': `Maximum size of the KV cache stored in system memory (GiB). If set, this value overrides "{content}".`,
+  'models.form.chunkSize.tips': 'Number of tokens per KV cache chunk.',
+  'models.form.mode': 'Mode',
+  'models.form.algorithm': 'Algorithm',
+  'models.form.draftModel': 'Draft Model',
+  'models.form.numDraftTokens': 'Number of Draft Tokens',
+  'models.form.ngramMinMatchLength': 'N-gram Minimum Match Length',
+  'models.form.ngramMaxMatchLength': 'N-gram Maximum Match Length',
+  'models.form.mode.throughput': 'Throughput',
+  'models.form.mode.latency': 'Latency',
+  'models.form.mode.baseline': 'Standard',
+  'models.form.mode.throughput.tips':
+    'Optimized for high throughput under high request concurrency.',
+  'models.form.mode.latency.tips':
+    'Optimized for low latency under low request concurrency.',
+  'models.form.mode.baseline.tips':
+    'The most compatible option with full precision.',
+  'models.form.draftModel.placeholder': 'Please select or enter a draft model',
+  'models.form.draftModel.tips':
+    'You can enter a local path (e.g., /path/to/model) or select a model from Hugging Face or ModelScope (e.g., Tengyunw/qwen3_8b_eagle3). The system will automatically match based on the primary model source.',
+  'models.form.quantization': 'Quantization',
+  'models.form.backend.custom': 'User Defined',
+  'models.form.rules.name':
+    'Up to 63 characters; letters, numbers, dots (.), underscores (_), and hyphens (-) only; must start and end with an alphanumeric character.',
+  'models.catalog.button.explore': 'Explore More Models',
+  'models.catalog.precision': 'Precision',
+  'models.form.gpuPerReplica.tips': 'Enter a custom number',
+  'models.form.generic_proxy': 'Enable Generic Proxy',
+  'models.form.generic_proxy.tips':
+    'After enabling the generic proxy, you can access URI paths that do not follow the OpenAI API standard.',
+  'models.form.generic_proxy.button': 'Generic Proxy',
+  'models.accessControlModal.includeusers': 'Include Users',
+  'models.table.genericProxy':
+    'Use the following path prefix, and set the model name in either the <span class="bold-text">X-GPUStack-Model</span> request header or the model field in the request body. All requests under this path prefix will be forwarded to the inference backend.',
+  'models.form.backendVersion.deprecated': 'Deprecated',
+  'models.accessSettings.public.desc':
+    'Accessible to anyone without authentication.',
+  'models.accessSettings.authed.tips':
+    'Accessible to all authenticated platform users.',
+  'models.accessSettings.allowedUsers.tips':
+    'Only designated users can access the model.',
+  'models.form.backendVersions.tips': `To use more versions, go to the {link} page and edit the backend to add versions.`,
+  'models.catalog.nogpus.tips':
+    'No compatible GPUs are available in the selected cluster for this model.',
+  'models.form.modelfile.notfound': `The model file path you specified does not exist on the GPUStack server. It's recommended to place the model file at the same path on both the GPUStack server and GPUStack workers. This helps GPUStack make better decisions.`,
+  'models.form.readyWorkers': 'workers ready',
+  'models.form.maxContextLength': 'Maximum Context Length'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-// 1. 'models.ollama.deprecated.title': 'Ollama Model Source Will Be Removed',
-// 2. 'models.ollama.deprecated.current':'<span class="bold-text">Current Version (v0.6.1): </span>Ollama models are currently available for use.',
-// 3. 'models.ollama.deprecated.upcoming': '<span class="bold-text">Upcoming Version (v0.7.0): </span>The Ollama model source will be removed from the UI.',
-// 4. 'models.ollama.deprecated.following': '<span class="bold-text">Following the v0.7.0 update,</span> all previously deployed models will continue to work as expected.',
-// 5. 'models.ollama.deprecated.issue': 'See the related issue: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.'
+// 1. 'models.ollama.deprecated.title': 'Deprecation Notice',
+// 2. 'models.ollama.deprecated.notice': `The Ollama model source has been deprecated as of v0.6.1. For more information, see the <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">related GitHub issue</a>.`
+// 3.  'models.backend.mindie.310p':'Ascend 310P only supports FP16, so you need to set --dtype=float16.',
+// 4.  'models.form.check.clusterUnavailable': 'Current cluster is unavailable',
+// 5. 'models.form.check.otherClustersAvailable': 'Available clusters: {clusters}. Please switch cluster.',
+// 6. 'models.button.accessSettings': 'Access Settings',
+// 7. 'models.table.accessScope': 'Access Scope',
+// 8. 'models.table.accessScope.all': 'All users',
+// 10. 'models.table.userSelection': 'User Selection',
+// 11. 'models.table.filterByName': 'Filter by username',
+// 12. 'models.table.admin': 'Admin',
+// 13. 'models.table.noselected': 'No users selected'
+// 14. 'models.table.uses.all': 'All users',
+// 15. 'models.table.uses.selected': 'Selected users',
+// 16. 'models.table.nouserFound': 'No users found',
+// 17. 'models.table.users.all': 'All Users',
+// 18. 'models.table.users.selected': 'Selected Users',
+// 19. 'models.table.nouserFound': 'No users found',
+// 20. 'models.form.performance': 'Performance',
+// 21. 'models.form.gpus.notfound': 'No GPUs found',
+// 22. 'models.form.extendedkvcache': 'Enable Extended KV Cache',
+// 23. 'models.form.chunkSize': 'Size of Cache Chunks',
+// 24. 'models.form.maxCPUSize': 'Maximum CPU Cache Size (GiB)',
+// 25. 'models.form.remoteURL': 'Remote Storage URL',
+// 26. 'models.form.runCommandPlaceholder': 'e.g., vllm serve Qwen/Qwen2.5-1.5B-Instruct',
+// 27. 'models.accessSettings.public': 'Public',
+// 28. 'models.accessSettings.authed': 'Authenticated',
+// 29. 'models.accessSettings.allowedUsers': 'Allowed users',
+// 30. 'models.accessSettings.public.tips': 'When set to public, anyone can access this model without authentication, which may lead to data exposure risks.',
+// 31. 'models.table.button.deploy': 'Deploy Now',
+// 32. 'models.form.backendVersion.holder': 'Enter or select a version',
+// 33.  'models.form.gpusperreplica': 'GPUs per Replica',
+// 34.  'models.form.gpusAllocationType': 'GPU Allocation Type',
+// 35.  'models.form.gpusAllocationType.auto': 'Auto',
+// 36.  'models.form.gpusAllocationType.custom': 'Custom',
+// 37.  'models.form.gpusAllocationType.auto.tips': 'The system automatically calculates the GPU count per replica, using powers of two by default and capped by the selected GPUs.',
+// 38.  'models.form.gpusAllocationType.custom.tips': 'You can specify the exact number of GPUs per replica.',
+// 39.  'models.mymodels.status.inactive': 'Stopped',
+// 41.  'models.mymodels.status.degrade': 'Not Ready',
+// 42.  'models.mymodels.status.active': 'Ready',
+// 43. 'models.form.remoteURL.tips': 'Refer to the <a href="https://docs.lmcache.ai/api_reference/configurations.html" target="_blank">configuration documentation</a> for details.',
+// 44.  'models.form.kvCache.tips': 'Extended KV cache and speculative decoding are only available with built-in backends (vLLM / SGLang), Please switch the backend to enable them.',
+// 45. 'models.form.kvCache.tips2': 'Only supported when using built-in inference backends (vLLM or SGLang).',
+// 46. 'models.form.scheduling': 'Scheduling',
+// 47. 'models.form.ramRatio': 'RAM-to-VRAM Ratio',
+// 48. 'models.form.ramSize': 'Maximum RAM Size (GiB)',
+// 49. 'models.form.ramRatio.tips': 'Ratio of system RAM to GPU VRAM used for KV cache. For example, 2.0 means the cache in RAM can be twice as large as the GPU VRAM.',
+// 50. 'models.form.ramSize.tips': `Maximum size of the KV cache stored in system memory (GiB). If set, this value overrides "{content}".`,
+// 51. 'models.form.chunkSize.tips': 'Number of tokens per KV cache chunk.'
+// 33. 'models.form.mode': 'Mode',
+// 34. 'models.form.algorithm': 'Algorithm',
+// 35. 'models.form.draftModel': 'Draft Model',
+// 36. 'models.form.numDraftTokens': 'Number of Draft Tokens',
+// 37. 'models.form.ngramMinMatchLength': 'N-gram Minimum Match Length',
+// 38. 'models.form.ngramMaxMatchLength': 'N-gram Maximum Match Length',
+// 39. 'models.form.mode.throughput': 'Throughput',
+// 40. 'models.form.mode.latency': 'Latency',
+// 41. 'models.form.mode.baseline': 'Standard',
+// 42. 'models.form.mode.throughput.tips': 'optimized for high throughput under high request concurrency.',
+// 43. 'models.form.mode.latency.tips': 'optimized for low latency under low request concurrency.',
+// 44. 'models.form.mode.baseline.tips': 'the most compatible option with full precision,
+// 45. 'models.form.draftModel.placeholder': 'Please select or enter a draft model',
+// 46. 'models.form.draftModel.tips': 'You can enter a local path (e.g., /path/to/model) or select a model from Hugging Face or ModelScope (e.g., Tengyunw/qwen3_8b_eagle3). The system will automatically match based on the primary model source.'
+// 47. 'models.form.quantization': 'Quantization',
+// 48. 'models.form.backend.custom': 'User Defined',
+// 49. 'models.form.rules.name': 'Up to 63 characters; letters, numbers, dots (.), underscores (_), and hyphens (-) only; must start and end with an alphanumeric character.',
+// 50. 'models.catalog.button.explore': 'Explore More Models',
+// 51. 'models.catalog.precision': 'Precision',
+// 52. 'models.form.gpuPerReplica.tips': 'Enter a custom number',
+// 53. 'models.form.generic_proxy': 'Enable Generic Proxy',
+// 54. 'models.form.generic_proxy.tips': 'After enabling the generic proxy, you can access URI paths that do not follow the OpenAI API standard.',
+// 55. 'models.form.generic_proxy.button': 'Generic Proxy',
+// 56. 'models.accessControlModal.includeusers': 'Include Users',
+// 57. 'models.table.genericProxy': 'Use the following path prefix, and set the model name in either the <span class="bold-text">X-GPUStack-Model</span> request header or the model field in the request body. All requests under this path prefix will be forwarded to the inference backend.'
+// 58. 'models.form.backend.vllm': 'Built-in support for NVIDIA, AMD, Ascend, Hygon, Iluvatar, and MetaX devices.',
+// 59. 'models.form.backend.voxbox': 'Only supports NVIDIA GPUs and CPUs.',
+// 60.  models.form.backend.mindie': 'Only supports Ascend NPUs.',
+// 61. 'models.form.backend.sglang': 'Built-in support for NVIDIA/AMD GPUs and Ascend NPUs.',
+// 62. 'models.form.backend_parameters.vllm.tips': 'For more details about {backend} parameters, see <a href={link} target="_blank">here</a>.',
+// 63. 'models.button.accessSettings.tips': 'Changes to access settings take effect after one minute.',
+// 64.  'models.table.userSelection.tips': 'Admin users can access all models by default.',
+// 65. 'models.form.partialoffload.tips': `When CPU offloading is enabled, GPUStack will allocate CPU memory if GPU resources are insufficient. You must correctly configure the inference backend to use hybrid CPU+GPU or full CPU inference.`,
+// 66. 'models.form.backend.warning': 'The selected backend does not support GGUF models. Please add a backend with GGUF support in the Inference Backend.',
+// 67.  'models.form.backend.warning.gguf': 'Please ensure that the selected custom backend supports GGUF models.',,
+// 68. 'models.form.backendVersion.deprecated': 'Deprecated',
+// 69. 'models.accessSettings.public.desc': 'Accessible to anyone without authentication.',
+// 70.  'models.accessSettings.authed.tips': 'Accessible to all authenticated platform users.',
+// 71.'models.accessSettings.allowedUsers.tips': 'Only designated users can access the model.',
+// 72. 'models.form.backendVersions.tips': `To use more versions, go to the {link} page and edit the backend to add versions.`,
+// 73. 'models.catalog.nogpus.tips': 'No compatible GPUs are available in the selected cluster for this model.',
+// 74. 'models.form.modelfile.notfound': `The model file path you specified does not exist on the GPUStack server. It's recommended to place the model file at the same path on both the GPUStack server and GPUStack workers. This helps GPUStack make better decisions.`,
+// 75. 'models.form.readyWorkers': 'workers ready',
+// 76. 'models.form.maxContextLength': 'Maximum Context Length'
 // ========== End of To-Do List ==========

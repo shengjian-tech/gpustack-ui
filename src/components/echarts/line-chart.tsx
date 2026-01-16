@@ -1,10 +1,13 @@
 import Chart from '@/components/echarts/chart';
 import useChartConfig from '@/components/echarts/config';
 import EmptyData from '@/components/empty-data';
+import { genColors } from '@/utils';
 import _ from 'lodash';
-import React, { memo, useMemo } from 'react';
+import React, { useMemo } from 'react';
+import echarts from '.';
 import { ChartProps } from './types';
 
+const LinearGradient = echarts.graphic.LinearGradient;
 const LineChart: React.FC<ChartProps> = (props) => {
   const {
     seriesData,
@@ -16,7 +19,11 @@ const LineChart: React.FC<ChartProps> = (props) => {
     tooltipValueFormatter = null,
     legendData = [],
     smooth,
-    title
+    title,
+    legendOptions,
+    gridOptions,
+    titleOptions,
+    showArea
   } = props;
   const {
     grid,
@@ -42,7 +49,10 @@ const LineChart: React.FC<ChartProps> = (props) => {
     title: {
       text: ''
     },
-    grid,
+    grid: {
+      ...grid,
+      ...gridOptions
+    },
     tooltip: {
       ...tooltip,
       formatter(params: any) {
@@ -61,6 +71,7 @@ const LineChart: React.FC<ChartProps> = (props) => {
     yAxis,
     legend: {
       ...legend,
+      ...legendOptions,
       data: legendData.map((item: any) => {
         return {
           name: item,
@@ -75,6 +86,11 @@ const LineChart: React.FC<ChartProps> = (props) => {
   const dataOptions = useMemo((): any => {
     const data = _.map(seriesData, (item: any) => {
       console.log('---item---', item)
+      const colors = genColors({
+        color: item.color,
+        alpha1: 0.25,
+        alpha2: 0.1
+      });
       return {
         ...item,
         ...lineItemConfig,
@@ -86,7 +102,21 @@ const LineChart: React.FC<ChartProps> = (props) => {
         lineStyle: {
           ...lineItemConfig.lineStyle,
           color: item.color
-        }
+        },
+        areaStyle: showArea
+          ? {
+              color: new LinearGradient(0, 0, 0, 1, [
+                {
+                  offset: 0,
+                  color: colors[0]
+                },
+                {
+                  offset: 1,
+                  color: colors[1]
+                }
+              ])
+            }
+          : null
       };
     });
     return {
@@ -95,6 +125,7 @@ const LineChart: React.FC<ChartProps> = (props) => {
       smooth: true,
       title: {
         ...titleConfig,
+        ...titleOptions,
         text: title
       },
       yAxis: {
@@ -111,12 +142,24 @@ const LineChart: React.FC<ChartProps> = (props) => {
       },
       series: data
     };
-  }, [seriesData, xAxisData, yAxisName, title, smooth, legendData, options]);
+  }, [
+    seriesData,
+    xAxisData,
+    yAxisName,
+    title,
+    smooth,
+    titleOptions,
+    legendData,
+    options
+  ]);
 
   return (
     <>
-      {!seriesData?.length ? (
-        <EmptyData height={height} title={title}></EmptyData>
+      {!seriesData.length ? (
+        <EmptyData
+          height={height}
+          title={_.get(title, 'text', title || '')}
+        ></EmptyData>
       ) : (
         <Chart
           height={height}
@@ -128,4 +171,4 @@ const LineChart: React.FC<ChartProps> = (props) => {
   );
 };
 
-export default memo(LineChart);
+export default LineChart;

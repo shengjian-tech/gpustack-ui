@@ -28,9 +28,9 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import styled from 'styled-components';
 import { Roles } from '../config';
 import { AudioFormat, MessageItem } from '../config/types';
+import useAddImage from '../hooks/use-add-image';
 import '../style/message-input.less';
 import ThumbImg from './thumb-img';
-import UploadImg from './upload-img';
 
 const AudioWrapper = styled.div`
   padding-block: 10px;
@@ -163,8 +163,11 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
       content: '',
       imgs: []
     });
+    const [isFromUrl, setIsFromUrl] = useState(false);
+    const [openImgTips, setOpenImgTips] = useState(false);
     const uidCountRef = useRef(0);
     const inputRef = useRef<any>(null);
+    const inputImgRef = useRef<any>(null);
 
     const updateUidCount = () => {
       uidCountRef.current += 1;
@@ -358,6 +361,11 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
       }
     };
 
+    const { ImageURLInput, UploadImageButton } = useAddImage({
+      handleUpdateImgList: handleUpdateImgList,
+      updateUidCount: updateUidCount
+    });
+
     useImperativeHandle(ref, () => ({
       handleInputChange: handleInputChange
     }));
@@ -403,7 +411,7 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
                 >
                   {intl.formatMessage({ id: `playground.${message.role}` })}
                 </Button>
-                <Divider type="vertical" style={{ margin: 0 }} />
+                <Divider orientation="vertical" style={{ margin: 0 }} />
               </>
             )}
             {actions.includes('check') && (
@@ -411,12 +419,10 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
                 {checkLabel}
               </Checkbox>
             )}
-            {actions.includes('upload') && message.role === Roles.User && (
-              <UploadImg
-                handleUpdateImgList={handleUpdateImgList}
-                size="middle"
-              ></UploadImg>
-            )}
+            {actions.includes('upload') &&
+              message.role === Roles.User &&
+              UploadImageButton}
+
             {actions.includes('upload') && message.role === Roles.User && (
               <UploadAudio
                 maxFileSize={1024 * 1024}
@@ -445,7 +451,7 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
 
             {actions.includes('layout') && updateLayout && (
               <>
-                <Divider type="vertical" style={{ margin: 0 }} />
+                <Divider orientation="vertical" style={{ margin: 0 }} />
                 {layoutOptions.map((option) => (
                   <Tooltip
                     title={intl.formatMessage({ id: option.tips })}
@@ -462,6 +468,7 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
                 ))}
               </>
             )}
+            {ImageURLInput}
           </div>
           <div className="actions">
             {actions.includes('add') && (
@@ -533,6 +540,7 @@ const MessageInput: React.FC<MessageInputProps> = forwardRef(
             </AudioWrapper>
           )}
         </ImgsWrapper>
+
         <div className="input-box">
           {actions.includes('paste') ? (
             <TextArea

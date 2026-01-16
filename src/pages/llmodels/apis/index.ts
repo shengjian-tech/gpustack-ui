@@ -1,10 +1,14 @@
+import { ListItem as UserListItem } from '@/pages/users/config/types';
 import { downloadFile, listFiles, listModels } from '@huggingface/hub';
 import { PipelineType } from '@huggingface/tasks';
 import { request } from '@umijs/max';
 import qs from 'query-string';
 import {
+  AccessControlFormData,
+  BackendItem,
   CatalogItem,
   CatalogSpec,
+  DraftModelItem,
   EvaluateResult,
   EvaluateSpec,
   FormData,
@@ -19,6 +23,14 @@ export const MODELS_API = '/models';
 export const MODEL_INSTANCE_API = '/model-instances';
 
 export const MODEL_EVALUATIONS = '/model-evaluations';
+
+export const BACKEND_LIST_API = '/inference-backends/list';
+
+export const MY_MODELS_API = '/my-models';
+
+export const DRAFT_MODELS_API = '/draft-models';
+
+export const CATALOG_LIST_API = '/model-sets';
 
 const setProxyUrl = (url: string) => {
   return `/proxy?url=${encodeURIComponent(url)}`;
@@ -46,15 +58,17 @@ export async function queryModelsList(
   return request<Global.PageResponse<ListItem>>(
     `${MODELS_API}?${qs.stringify(params)}`,
     {
-      methos: 'GET',
+      method: 'GET',
       ...options
     }
   );
 }
 
-export async function queryGPUList(params?: Global.SearchParams) {
+export async function queryGPUList<T extends Record<string, any>>(
+  params?: Global.SearchParams & T
+) {
   return request<Global.PageResponse<GPUListItem>>(`/gpu-devices`, {
-    methos: 'GET',
+    method: 'GET',
     params
   });
 }
@@ -142,10 +156,9 @@ export async function queryModelInstanceLogs(id: number) {
 
 // ===================== call huggingface quicksearch api =====================
 
-const MODEL_SCOPE_LIST_MODEL_API =
-  'https://www.modelscope.cn/api/v1/dolphin/models';
+const MODEL_SCOPE_LIST_MODEL_API = `https://www.modelscope.cn/api/v1/dolphin/models`;
 
-const MODE_SCOPE_MODEL_FIELS_API = 'https://modelscope.cn/api/v1/models/';
+const MODE_SCOPE_MODEL_FIELS_API = `https://modelscope.cn/api/v1/models/`;
 
 export async function queryHuggingfaceModelDetail(
   params: { repo: string },
@@ -172,7 +185,7 @@ export async function queryModelScopeModels(
   config?: any
 ) {
   const tagsCriterion = params.tags?.map((tag: string) => {
-    return { category: 'libraries', predicate: 'contains', values: [tag] };
+    return { category: 'tags', predicate: 'contains', values: [tag] };
   });
   const tasksCriterion = params.tasks?.map((task: string) => {
     return { category: 'tasks', predicate: 'contains', values: [task] };
@@ -184,6 +197,7 @@ export async function queryModelScopeModels(
           Criterion: [...(tagsCriterion || []), ...(tasksCriterion || [])]
         }
       : {};
+
   const res = await fetch(setProxyUrl(`${MODEL_SCOPE_LIST_MODEL_API}`), {
     method: 'PUT',
     signal: config?.signal,
@@ -200,7 +214,6 @@ export async function queryModelScopeModels(
   });
   if (!res.ok) {
     throw new Error('Network response was not ok');
-    return null;
   }
   return res.json();
 }
@@ -234,7 +247,6 @@ export async function queryModelScopeModelFiles(
 
   if (!res.ok) {
     throw new Error('Network response was not ok');
-    return null;
   }
 
   return res.json();
@@ -243,20 +255,22 @@ export async function queryModelScopeModelFiles(
 // list models from huggingface
 export async function queryHuggingfaceModels(
   params: {
+    limit?: number;
     search: {
       query: string;
-      tags: string[];
+      tags?: string[];
       sort?: string;
       task?: PipelineType;
     };
   },
   options?: any
 ) {
+  console.log('params', params);
   const result = [];
   for await (const model of listModels({
     ...params,
     ...options,
-    limit: 500,
+    limit: params.limit || 500,
     additionalFields: ['sha', 'tags'],
     fetch(_url: string, config: any) {
       const url = params.search.sort
@@ -345,21 +359,19 @@ export async function queryCatalogList(
   params: Global.SearchParams,
   options?: any
 ) {
-  return request<Global.PageResponse<CatalogItem>>(
-    `/model-sets?${qs.stringify(params)}`,
-    {
-      methos: 'GET',
-      ...options
-    }
-  );
+  return request<Global.PageResponse<CatalogItem>>(`${CATALOG_LIST_API}`, {
+    method: 'GET',
+    params,
+    cancelToken: options?.token
+  });
 }
 
 export async function queryCatalogItemSpec(
-  params: { id: number },
+  params: { id: number; cluster_id: number | null },
   options?: any
 ) {
-  return await request<Global.PageResponse<CatalogSpec>>(
-    `/model-sets/${params.id}/specs`,
+  return request<Global.PageResponse<CatalogSpec>>(
+    `${CATALOG_LIST_API}/${params.id}/specs`,
     {
       method: 'GET',
       ...options,
@@ -370,27 +382,92 @@ export async function queryCatalogItemSpec(
 
 export async function evaluationsModelSpec(
   data: {
+    cluster_id: number;
     model_specs: EvaluateSpec[];
   },
   options: { token: any }
 ) {
-  return request<{ results: EvaluateResult[] }>(`${MODEL_EVALUATIONS}`, {
-    method: 'POST',
-    data,
-    cancelToken: options?.token
+  const result = await request<{ results: EvaluateResult[] }>(
+    `${MODEL_EVALUATIONS}`,
+    {
+      method: 'POST',
+      data,
+      cancelToken: options?.token
+    }
+  );
+
+  const resultList = result?.results || [];
+
+  return {
+    results: resultList.map((item) => {
+      return {
+        ...item,
+        cluster_id: data.model_specs?.[0]?.cluster_id || undefined
+      };
+    })
+  };
+}
+
+export async function queryBackendList(params?: { cluster_id: number }) {
+  return request<{
+    items: BackendItem[];
+  }>(BACKEND_LIST_API, {
+    method: 'GET',
+    params
   });
 }
 
-// export const evaluationsModelSpec = async (
-//   data: {
-//     model_specs: EvaluateSpec[];
-//   },
-//   options: { token: any }
-// ) => {
-//   const response = await fetch(`v1/${MODEL_EVALUATIONS}`, {
-//     method: 'POST',
-//     headers: { 'Content-Type': 'application/json' },
-//     body: JSON.stringify(data)
-//   });
-//   return response.json();
-// };
+export async function queryModelAccessUserList(id: number) {
+  return request<{ items: UserListItem[] }>(`${MODELS_API}/${id}/access`, {
+    method: 'GET'
+  });
+}
+
+export async function updateModelAccessUser(params: {
+  id: number;
+  data: AccessControlFormData;
+}) {
+  return request(`${MODELS_API}/${params.id}/access`, {
+    method: 'POST',
+    data: params.data
+  });
+}
+
+export async function queryMyModels(params: Global.SearchParams) {
+  return request<Global.PageResponse<ListItem>>(
+    `${MY_MODELS_API}?${qs.stringify(params)}`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function queryMyModelDetail(id: number) {
+  return request(`${MY_MODELS_API}/${id}`, {
+    method: 'GET'
+  });
+}
+
+export async function queryDraftModelList(params?: Global.SearchParams) {
+  return request<{ items: DraftModelItem[] }>(DRAFT_MODELS_API, {
+    method: 'GET',
+    params
+  });
+}
+
+export async function queryModelContextLength(params: {
+  model: {
+    source: string;
+    model_scope_model_id?: string;
+    huggingface_repo_id?: string;
+    local_path?: string;
+  };
+}) {
+  return request<{ native: number; scaled: number }>(
+    `${MODELS_API}/context-length`,
+    {
+      method: 'POST',
+      data: params
+    }
+  );
+}

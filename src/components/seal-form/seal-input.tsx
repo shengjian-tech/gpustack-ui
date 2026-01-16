@@ -22,6 +22,7 @@ const SealInput: React.FC<InputProps & SealFormItemProps> = (props) => {
     trim = true,
     loading,
     labelExtra,
+    style,
     ...rest
   } = props;
   const [isFocus, setIsFocus] = useState(false);
@@ -30,6 +31,8 @@ const SealInput: React.FC<InputProps & SealFormItemProps> = (props) => {
   if (isInFormItems) {
     const statusData = Form?.Item?.useStatus?.();
     status = statusData?.status || '';
+  } else {
+    status = props.status || '';
   }
 
   useEffect(() => {
@@ -60,11 +63,13 @@ const SealInput: React.FC<InputProps & SealFormItemProps> = (props) => {
   };
 
   const handleOnBlur = (e: any) => {
-    e.target.value = e.target.value?.trim?.();
     if (!inputRef.current?.input?.value) {
       setIsFocus(false);
     }
-    props.onChange?.(e);
+    if (!trim) {
+      e.target.value = e.target.value?.trim?.();
+      props.onChange?.(e);
+    }
     props.onBlur?.(e);
   };
 
@@ -73,7 +78,7 @@ const SealInput: React.FC<InputProps & SealFormItemProps> = (props) => {
   };
 
   return (
-    <InputWrapper>
+    <InputWrapper style={style}>
       <Wrapper
         status={checkStatus || status}
         label={label}

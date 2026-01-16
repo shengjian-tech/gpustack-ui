@@ -1,23 +1,17 @@
-// @ts-nocheck
-
 import { routeCacheAtom, setRouteCache } from '@/atoms/route-cache';
-import { GPUStackVersionAtom, UpdateCheckAtom, userAtom } from '@/atoms/user';
+import { userAtom } from '@/atoms/user';
 import DarkMask from '@/components/dark-mask';
 import IconFont from '@/components/icon-font';
-import ShortCuts, {
-  modalConfig as ShortCutsConfig
-} from '@/components/short-cuts';
-import VersionInfo, { modalConfig } from '@/components/version-info';
 import routeCachekey from '@/config/route-cachekey';
-import useBodyScroll from '@/hooks/use-body-scroll';
+import { DEFAULT_ENTER_PAGE } from '@/config/settings';
 import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import useUserSettings from '@/hooks/use-user-settings';
+import useAddResource from '@/pages/dashboard/hooks/use-add-resource';
 import { logout } from '@/pages/login/apis';
 import { useAccessMarkedRoutes } from '@@/plugin-access';
 import { useModel } from '@@/plugin-model';
 import { ProLayout } from '@ant-design/pro-components';
 import {
-  Link,
   Outlet,
   dropByCacheKey,
   history,
@@ -28,36 +22,57 @@ import {
   useNavigate,
   type IRoute
 } from '@umijs/max';
-import { Button, ConfigProvider, Modal, Tooltip, theme } from 'antd';
+import { Button, ConfigProvider, Modal, theme } from 'antd';
 import 'driver.js/dist/driver.css';
 import { useAtom } from 'jotai';
 import 'overlayscrollbars/overlayscrollbars.css';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { PageContainerInner } from '../pages/_components/page-box';
 import Exception from './Exception';
 import './Layout.css';
 import { LogoIcon, SLogoIcon } from './Logo';
 import ErrorBoundary from './error-boundary';
-import { getRightRenderContent } from './rightRender';
+import { ExtraContent } from './extraRender';
 import { patchRoutes } from './runtime';
 import SiderMenu from './sider-menu';
 
-const loginPath = '/login';
+// Pages that use the page container in the page
+const NO_CONTAINER_PAGES = [
+  'chat',
+  'rerank',
+  'embedding',
+  'speech',
+  'image',
+  'text2images',
+  'clusterDetail',
+  'clusterCreate',
+  'video'
+];
 
-type InitialStateType = {
-  fetchUserInfo: () => Promise<Global.UserInfo>;
-  currentUser?: Global.UserInfo;
+const CHECK_RESOURCE_PATH = [
+  '/resources/workers',
+  '/cluster-management/clusters/list',
+  '/cluster-management/credentials',
+  '/cluster-management/clusters/create'
+];
+
+type NewRoute = IRoute & {
+  children?: IRoute[];
+  routes?: IRoute[];
 };
+
+const loginPath = DEFAULT_ENTER_PAGE.login;
 
 // Filter out the routes that need to be displayed, where filterFn indicates the levels that should not be shown
 const filterRoutes = (
   routes: IRoute[],
   filterFn: (route: IRoute) => boolean
-) => {
+): any[] => {
   if (routes.length === 0) {
     return [];
   }
 
-  let newRoutes = [];
+  let newRoutes: NewRoute[] = [];
   for (const route of routes) {
     const newRoute = { ...route };
     if (filterFn(route)) {
@@ -81,7 +96,7 @@ const mapRoutes = (routes: IRoute[], role: string) => {
     return [];
   }
   return routes.map((route) => {
-    const newRoute = { ...route, role };
+    const newRoute: NewRoute = { ...route, role };
     if (route.originPath) {
       newRoute.path = route.originPath;
     }
@@ -102,22 +117,21 @@ export default (props: any) => {
   const { initialize: initialize } = useOverlayScroller({
     defer: false
   });
-  const [modal, contextHolder] = Modal.useModal();
-  const { themeData, setTheme, setUserSettings, userSettings, isDarkTheme } =
-    useUserSettings();
-  const { saveScrollHeight, restoreScrollHeight } = useBodyScroll();
-  const { initialize: initializeMenu } = useOverlayScroller();
+  const [, contextHolder] = Modal.useModal();
+  const { themeData, setUserSettings, userSettings } = useUserSettings();
   const [userInfo] = useAtom(userAtom);
   const [routeCache] = useAtom(routeCacheAtom);
-  const [version] = useAtom(GPUStackVersionAtom);
-  const [updateCheck] = useAtom(UpdateCheckAtom);
   const location = useLocation();
   const navigate = useNavigate();
   const intl = useIntl();
-  const { clientRoutes, pluginManager } = useAppData();
-  const [collapsed, setCollapsed] = useState(userSettings.collapsed || false);
-  const [collapseValue, setCollapseValue] = useState(false);
-  const [collapseKeys, setCollapseKeys] = useState<Set<string>>(new Set());
+  const { clientRoutes } = useAppData();
+  const requestResourceRef = useRef<boolean>(false);
+
+  const { fetchResourceData, NoResourceModal } = useAddResource({
+    onCreated() {
+      requestResourceRef.current = false;
+    }
+  });
 
   const initialInfo = (useModel && useModel('@@initialState')) || {
     initialState: undefined,
@@ -132,34 +146,17 @@ export default (props: any) => {
     locale: true
   };
 
-  const formatMessage = (args) => {
+  const formatMessage = (args: { id: string }) => {
     return intl.formatMessage({ id: args.id });
   };
 
-  const showVersion = () => {
-    saveScrollHeight();
-    modal.info({
-      ...modalConfig,
-      width: 460,
-      content: <VersionInfo intl={intl} />,
-      onCancel: restoreScrollHeight
-    });
-  };
-
-  const showShortcuts = () => {
-    Modal.info({
-      ...ShortCutsConfig,
-      content: <ShortCuts intl={intl} />
-    });
-  };
-
-  const initRouteCacheValue = (pathname) => {
+  const initRouteCacheValue = (pathname: string) => {
     if (routeCache.get(pathname) === undefined && routeCachekey[pathname]) {
       setRouteCache(pathname, false);
     }
   };
 
-  const dropRouteCache = (pathname) => {
+  const dropRouteCache = (pathname: string) => {
     for (let key of routeCache.keys()) {
       if (key !== pathname && !routeCache.get(key) && routeCachekey[key]) {
         dropByCacheKey(key);
@@ -170,34 +167,24 @@ export default (props: any) => {
 
   const runtimeConfig = {
     ...initialInfo,
-    logout: async (userInfo) => {
+    logout: async () => {
       await logout();
       navigate(loginPath);
     },
-    showVersion: () => {
-      return showVersion();
-    },
-    showShortcuts: () => {
-      return showShortcuts();
-    },
-    setTheme: setTheme,
-    toggleTheme: () => {
-      const newTheme = userSettings.theme === 'realDark' ? 'light' : 'realDark';
-      setTheme(newTheme);
-    },
+    showVersion: () => {},
+    showShortcuts: () => {},
     notFound: <span>404 not found</span>
   };
 
   const handleToggleCollapse = (e: any) => {
     e.stopPropagation();
-    // setCollapsed(!collapsed);
     setUserSettings({
       ...userSettings,
       collapsed: !userSettings.collapsed
     });
   };
-
   const newRoutes = filterRoutes(
+    // @ts-ignore
     clientRoutes.filter((route) => route.id === 'max-tabs'),
     (route) => {
       return (
@@ -210,8 +197,6 @@ export default (props: any) => {
   const role = initialState?.currentUser?.is_admin ? 'admin' : 'user';
   const [route] = useAccessMarkedRoutes(mapRoutes(newRoutes, role));
 
-  console.log('route============', route);
-
   patchRoutes({
     routes: route.children,
     initialState: initialInfo.initialState
@@ -222,37 +207,10 @@ export default (props: any) => {
     [location.pathname]
   );
 
-  const allRouteKeys = useMemo(() => {
-    const keys = new Set<string>();
-    const childrenRoutes = route?.children || [];
-    const traverseRoutes = (routes) => {
-      routes.forEach((r) => {
-        if (r.path) {
-          keys.add(r.path);
-        }
-        if (r.children) {
-          traverseRoutes(r.children);
-        }
-      });
-    };
-    traverseRoutes(childrenRoutes);
-
-    return keys;
-  }, [route?.children]);
-
-  const showUpgrade = useMemo(() => {
-    return (
-      initialState?.currentUser?.is_admin &&
-      updateCheck.latest_version &&
-      updateCheck.latest_version !== version?.version &&
-      updateCheck.latest_version?.indexOf('0.0.0') === -1 &&
-      updateCheck.latest_version?.indexOf('rc') === -1
-    );
-  }, [
-    updateCheck.latest_version,
-    version.version,
-    initialState?.currentUser?.is_admin
-  ]);
+  const isNoContainerPage = useMemo(() => {
+    // @ts-ignore
+    return NO_CONTAINER_PAGES.includes(matchedRoute?.name as string);
+  }, [matchedRoute]);
 
   useEffect(() => {
     const body = document.querySelector('body');
@@ -262,170 +220,54 @@ export default (props: any) => {
     }
   }, [initialize]);
 
-  useEffect(() => {
-    const checkAndInitialize = () => {
-      const menuWrap = window.document.querySelector(
-        '.ant-menu.ant-menu-root'
-      )?.parentElement;
-      if (menuWrap) {
-        try {
-          initializeMenu(menuWrap);
-        } catch (error) {
-          console.error('Failed to initialize menu:', error);
-        }
-      } else {
-        console.warn('Menu wrapper not found.');
-      }
-    };
+  const collapsed = useMemo(() => {
+    return userSettings.collapsed || false;
+  }, [userSettings.collapsed]);
 
-    const timeout = setTimeout(checkAndInitialize, 500);
-
-    return () => clearTimeout(timeout);
-  }, [initializeMenu, matchedRoute, location]);
-
-  // const renderMenuHeader = useCallback(
-  //   (logo, title) => {
-  //     return (
-  //       <>
-  //         {logo}
-  //         {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
-  //           <Button
-  //             style={{ marginRight: collapsed ? 0 : -14 }}
-  //             size="small"
-  //             type={collapsed ? 'default' : 'text'}
-  //           >
-  //             <>
-  //               <MenuUnfoldOutlined
-  //                 style={{ display: collapsed ? 'block' : 'none' }}
-  //               />
-  //               <MenuFoldOutlined
-  //                 style={{ display: !collapsed ? 'block' : 'none' }}
-  //               />
-  //             </>
-  //           </Button>
-  //         </div> */}
-  //       </>
-  //     );
-  //   },
-  //   [collapsed]
-  // );
-
-  const renderMenuHeader = (logo, title) => {
+  const renderMenuHeader = (logo: React.ReactNode, title: React.ReactNode) => {
     return (
       <>
         {logo}
         {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
           <Button
-            style={{ marginRight: collapsed ? 0 : -14, border: 'none' }}
+            style={{
+              marginRight: collapsed ? 0 : -14,
+              border: 'none',
+              cursor: 'w-resize'
+            }}
             size="small"
             type={collapsed ? 'default' : 'text'}
           >
-            <>
-              <IconFont
-                type="icon-expand-left"
-                className="font-size-18 text-secondary"
-                style={{ display: collapsed ? 'block' : 'none' }}
-              />
-              <IconFont
-                type="icon-expand-right"
-                className="font-size-18 text-secondary"
-                style={{ display: !collapsed ? 'block' : 'none' }}
-              />
-            </>
+            <IconFont
+              type={collapsed ? 'icon-expand-left' : 'icon-expand-right'}
+              className="font-size-18 text-secondary"
+              style={{
+                display: 'block'
+              }}
+            />
           </Button>
         </div> */}
       </>
     );
   };
 
-  const handleToggleGroup = (menuItemProps, e) => {
-    e.stopPropagation();
-
-    if (collapseKeys.has(menuItemProps.key)) {
-      collapseKeys.delete(menuItemProps.key);
-    } else {
-      collapseKeys.add(menuItemProps.key);
-    }
-    setCollapseKeys(new Set(collapseKeys));
-  };
-
-  const menuContentRender = (menuProps, defaultDom) => {
+  const menuContentRender = (menuProps: any, defaultDom: React.ReactNode) => {
     return <SiderMenu {...menuProps}></SiderMenu>;
   };
 
-  const actionRender = (layoutProps) => {
-    console.log('actionRender', layoutProps);
-    const dom = getRightRenderContent({
-      runtimeConfig,
-      loading,
-      initialState,
-      setInitialState,
-      intl,
-      isDarkTheme: userSettings.isDarkTheme,
-      siderWidth: layoutProps.siderWidth,
-      collapsed: layoutProps.collapsed,
-      showUpgrade
-    });
-
-    return dom;
-  };
-
-  const menuItemRender = (menuItemProps, defaultDom) => {
-    console.log('defaultdom==========', menuItemProps, defaultDom);
-    if (menuItemProps.isUrl || menuItemProps.children) {
-      return defaultDom;
-    }
-    if (menuItemProps.path && location.pathname !== menuItemProps.path) {
-      return (
-        <Tooltip
-          title={collapsed ? menuItemProps.name : false}
-          placement="right"
-        >
-          <Link
-            to={menuItemProps.path.replace('/*', '')}
-            target={menuItemProps.target}
-          >
-            {defaultDom}
-          </Link>
-        </Tooltip>
-      );
-    }
-    return (
-      <Tooltip title={collapsed ? menuItemProps.name : false} placement="right">
-        {defaultDom}
-      </Tooltip>
-    );
-  };
-
-  const menuDataRender = (menuData) => {
-    const currentItem = menuData.find((s) => location.pathname === s.path);
-    const result = menuData.map((item) => {
-      const newItem = { ...item };
-
-      const selected =
-        location.pathname === newItem.path ||
-        location.pathname.indexOf(newItem.path) > -1;
-
-      if (newItem.icon) {
-        newItem.icon = selected ? (
-          <IconFont type={newItem.selectedIcon} />
-        ) : (
-          <IconFont type={newItem.defaultIcon} />
-        );
-      }
-      if (newItem.children) {
-        newItem.children = menuDataRender(newItem.children);
-      }
-      return newItem;
-    });
-
-    return result;
-  };
-
-  const onPageChange = (route) => {
+  const onPageChange = async (route: any) => {
     const { location } = history;
     const { pathname } = location;
-    console.log('onPageChange', pathname, route);
+
+    if (
+      !CHECK_RESOURCE_PATH.includes(pathname) &&
+      initialState?.currentUser?.is_admin &&
+      !requestResourceRef.current &&
+      !userSettings.hideAddResourceModal
+    ) {
+      requestResourceRef.current = true;
+      await fetchResourceData();
+    }
 
     initRouteCacheValue(pathname);
     dropRouteCache(pathname);
@@ -441,71 +283,32 @@ export default (props: any) => {
       history.push(loginPath);
     } else if (location.pathname === '/') {
       const pathname = initialState?.currentUser?.is_admin
-        ? '/dashboard'
-        : '/playground';
+        ? DEFAULT_ENTER_PAGE.adminForNormal
+        : DEFAULT_ENTER_PAGE.user;
       history.push(pathname);
     }
   };
 
-  const onMenuHeaderClick = (e) => {
+  const onMenuHeaderClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    navigate('/dashboard');
+    const pagepath = initialState?.currentUser?.is_admin
+      ? DEFAULT_ENTER_PAGE.adminForNormal
+      : DEFAULT_ENTER_PAGE.user;
+
+    navigate(pagepath);
   };
 
-  const onCollapse = (value) => {
-    // setCollapsed(value);
+  const onCollapse = (value: boolean) => {
+    // only trigger by window resize
+    if (!value) {
+      return;
+    }
     setUserSettings({
       ...userSettings,
       collapsed: value
     });
   };
-
-  useEffect(() => {
-    // clear previous marks and measures
-    performance.clearMarks();
-    performance.clearMeasures();
-
-    // record start time
-    performance.mark('route-start');
-
-    requestAnimationFrame(() => {
-      // record end time
-      performance.mark('route-end');
-
-      // make sure `route-start` exists
-      if (performance.getEntriesByName('route-start').length > 0) {
-        performance.measure('route-change', 'route-start', 'route-end');
-
-        const measure = performance.getEntriesByName('route-change')[0];
-        console.log(
-          `[Performance] Route change to ${location.pathname} took ${measure.duration.toFixed(2)}ms`
-        );
-
-        // clear marks and measures
-        performance.clearMarks();
-        performance.clearMeasures();
-      } else {
-        console.warn('Missing performance mark: route-start');
-      }
-    });
-  }, [location.pathname]);
-
-  const onRenderCallback = (id, phase, actualDuration) => {
-    console.log(
-      `[Profiler] Route: ${id} - Phase: ${phase} - Render time: ${actualDuration.toFixed(2)}ms`
-    );
-  };
-
-  const currentTheme = useMemo(() => {
-    const data = {
-      algorithm: userSettings.isDarkTheme
-        ? theme.darkAlgorithm
-        : theme.defaultAlgorithm,
-      ...themeData
-    };
-    return data;
-  }, [userSettings.isDarkTheme, themeData]);
 
   return (
     <ConfigProvider
@@ -517,9 +320,22 @@ export default (props: any) => {
           : theme.defaultAlgorithm,
         ...themeData
       }}
+      modal={{
+        mask: {
+          blur: false
+        }
+      }}
+      drawer={{
+        mask: {
+          blur: false
+        }
+      }}
     >
       <DarkMask></DarkMask>
       <ProLayout
+        fixSiderbar
+        fixedHeader={true}
+        breadcrumbRender={false}
         route={route}
         location={location}
         title={userConfig.title}
@@ -528,9 +344,8 @@ export default (props: any) => {
         contentWidth="Fixed"
         openKeys={false}
         disableMobile={true}
-        header={{
-          title: <div style={{ fontSize: 36 }}> AI Computing Power Cloud Platform </div>
-        }}
+        siderWidth={220}
+        onCollapse={onCollapse}
         onMenuHeaderClick={onMenuHeaderClick}
         menuHeaderRender={renderMenuHeader}
         onPageChange={onPageChange}
@@ -539,29 +354,37 @@ export default (props: any) => {
           locale: true,
           type: 'group',
         }}
-        logo={collapsed ? SLogoIcon : LogoIcon}
-        menuItemRender={menuItemRender}
-        disableContentMargin
-        fixSiderbar
-        fixedHeader
+        splitMenus={true}
+        logo={userSettings.collapsed ? <SLogoIcon /> : <LogoIcon />}
+        menuContentRender={menuContentRender}
         {...runtimeConfig}
-        actionsRender={actionRender}
+        ErrorBoundary={ErrorBoundary}
+        // @ts-ignore
+        extra={[
+          <ExtraContent
+            key="extra-content"
+            isDarkTheme={userSettings.isDarkTheme}
+          />
+        ]}
       >
         <Exception
           route={matchedRoute}
-          noFound={runtimeConfig?.noFound}
           notFound={runtimeConfig?.notFound}
+          noFound={runtimeConfig?.noFound}
           unAccessible={runtimeConfig?.unAccessible}
           noAccessible={runtimeConfig?.noAccessible}
         >
-          {runtimeConfig.childrenRender ? (
-            runtimeConfig.childrenRender(<Outlet />, props)
-          ) : (
+          {isNoContainerPage ? (
             <Outlet />
+          ) : (
+            <PageContainerInner>
+              <Outlet />
+            </PageContainerInner>
           )}
         </Exception>
+        {NoResourceModal}
+        {contextHolder}
       </ProLayout>
-      {contextHolder}
     </ConfigProvider>
   );
 };

@@ -1,82 +1,42 @@
-import SealSelect from '@/components/seal-form/seal-select';
+import SealInput from '@/components/seal-form/seal-input';
 import useAppUtils from '@/hooks/use-app-utils';
+import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import React from 'react';
+import { DeployFormKeyMap } from '../config';
 import { useFormContext } from '../config/form-context';
 import { FormData } from '../config/types';
 
+/**
+ * It can access some props from CatalogFormContext
+ */
 const CatalogForm: React.FC = () => {
+  const intl = useIntl();
   const formCtx = useFormContext();
   const { getRuleMessage } = useAppUtils();
-  const {
-    isGGUF,
-    byBuiltIn,
-    sizeOptions,
-    quantizationOptions,
-    onSizeChange,
-    onQuantizationChange
-  } = formCtx;
-  const source = Form.useWatch('source');
+  const { formKey } = formCtx;
 
-  console.log('HuggingFaceForm', { source, isGGUF });
-
-  if (!byBuiltIn && !sizeOptions?.length && !quantizationOptions?.length) {
+  if (formKey !== DeployFormKeyMap.CATALOG) {
     return null;
   }
 
-  const handleSizeChange = (val: any) => {
-    onSizeChange?.(val);
-  };
-
-  const handleOnQuantizationChange = (val: any) => {
-    onQuantizationChange?.(val);
-  };
   return (
     <>
-      {sizeOptions && sizeOptions?.length > 0 && (
-        <Form.Item<FormData>
-          name="size"
-          key="size"
-          rules={[
-            {
-              required: true,
-              message: getRuleMessage('input', 'size', false)
-            }
-          ]}
-        >
-          <SealSelect
-            filterOption
-            onChange={handleSizeChange}
-            defaultActiveFirstOption
-            disabled={false}
-            options={sizeOptions}
-            label="Size"
-            required
-          ></SealSelect>
-        </Form.Item>
-      )}
-      {quantizationOptions && quantizationOptions?.length > 0 && (
-        <Form.Item<FormData>
-          name="quantization"
-          key="quantization"
-          rules={[
-            {
-              required: true,
-              message: getRuleMessage('select', 'quantization', false)
-            }
-          ]}
-        >
-          <SealSelect
-            filterOption
-            defaultActiveFirstOption
-            disabled={false}
-            options={quantizationOptions}
-            onChange={handleOnQuantizationChange}
-            label="Quantization"
-            required
-          ></SealSelect>
-        </Form.Item>
-      )}
+      <Form.Item<FormData>
+        name="quantization"
+        key="quantization"
+        rules={[
+          {
+            required: false,
+            message: getRuleMessage('select', 'models.catalog.precision', false)
+          }
+        ]}
+      >
+        <SealInput.Input
+          label={intl.formatMessage({ id: 'models.catalog.precision' })}
+          disabled
+        ></SealInput.Input>
+      </Form.Item>
     </>
   );
 };

@@ -1,10 +1,11 @@
-import { PageActionType, StatusType } from './types';
+import { StatusType } from './types';
 
-export const PageAction: Record<string, PageActionType> = {
-  CREATE: 'create',
-  UPDATE: 'update',
-  VIEW: 'view'
-};
+export enum PageAction {
+  CREATE = 'create',
+  UPDATE = 'update',
+  VIEW = 'view',
+  EDIT = 'edit'
+}
 
 export const StatusColorMap: Record<
   StatusType,
@@ -33,7 +34,7 @@ export const StatusColorMap: Record<
   }
 };
 
-export const StatusMaps = {
+export const StatusMaps: Record<string, StatusType> = {
   error: 'error',
   warning: 'warning',
   transitioning: 'transitioning',
@@ -48,7 +49,7 @@ export const WatchEventType = {
 };
 
 export const PasswordReg =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*_+])[a-zA-Z\d!@#$%^&*_+]{6,12}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*_+])[a-zA-Z\d!@#$%^&*_+]{6,64}$/;
 
 export const uppercaseReg = /(?=.*[A-Z])/;
 
@@ -60,4 +61,13 @@ export const specialCharacterReg = /(?=.*[\W_])/;
 
 export const noSpaceReg = /(?=\S+$)/;
 
-export const lengthReg = /^.{6,12}$/;
+export const lengthReg = /^.{6,64}$/;
+
+/**
+ * Model name rules:
+ * 1. no more than 63 characters
+ * 2. contain only alphanumeric characters, '-', '_', and '.'
+ * 3. start and end with an alphanumeric character
+ */
+export const modelNameReg =
+  /^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,61}[A-Za-z0-9])?$/g;

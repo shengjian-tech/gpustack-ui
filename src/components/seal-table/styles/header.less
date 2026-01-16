@@ -4,6 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  height: 50px;
   padding-inline: var(--ant-table-cell-padding-inline);
 
   &::before {
@@ -37,9 +38,20 @@
     justify-content: center;
   }
 
+  &:hover {
+    .sorter-header {
+      .sorter {
+        .anticon {
+          color: var(--ant-table-header-icon-hover-color);
+        }
+      }
+    }
+  }
+
   .sorter-header {
     display: flex;
     flex: 1;
+    width: 100%;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
@@ -51,8 +63,9 @@
       margin-left: 4px;
 
       .anticon {
-        font-size: 10px;
-        color: rgba(0, 0, 0, 29%);
+        font-size: 12px;
+        color: var(--ant-table-header-icon-color);
+        transition: color var(--ant-motion-duration-slow);
       }
 
       .sorter-up {

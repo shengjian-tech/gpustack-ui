@@ -14,7 +14,7 @@ const NoteInfo: React.FC<NoteInfoProps> = (props) => {
   if (!label) return null;
   const renderRequiredStar = required ? (
     <span className="star" style={{ color: 'red' }}>
-      *
+      ﹡
     </span>
   ) : null;
 
@@ -41,11 +41,7 @@ const NoteInfo: React.FC<NoteInfoProps> = (props) => {
 
   return (
     <span className="label-text">
-      {description ? (
-        <Tooltip title={description}>{labelContent}</Tooltip>
-      ) : (
-        labelContent
-      )}
+      <Tooltip title={description || false}>{labelContent}</Tooltip>
       {labelExtra}
     </span>
   );

@@ -1,7 +1,7 @@
 import IconFont from '@/components/icon-font';
 import { CaretDownOutlined } from '@ant-design/icons';
 import { Link, useLocation } from '@umijs/max';
-import { Divider, Tooltip } from 'antd';
+import { Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo, useState } from 'react';
 
@@ -17,6 +17,7 @@ interface MenuItem {
 interface SiderMenuProps {
   menuData: MenuItem[];
   collapsed?: boolean;
+  initialState: Global.InitialStateType;
 }
 
 const useStyles = createStyles(({ css, token }) => {
@@ -63,13 +64,15 @@ const useStyles = createStyles(({ css, token }) => {
       }
 
       &.menu-item-group-title-collapsed {
+        position: relative;
         height: 1px;
         padding-block: 0;
         padding-inline: 0;
+        justify-content: center;
       }
     `,
     menuItemContent: css`
-      margin: 4px;
+      margin: 2px 0;
       border-radius: 4px;
       overflow: hidden;
     `,
@@ -117,16 +120,26 @@ const useStyles = createStyles(({ css, token }) => {
       &.menu-item-group-hidden {
         display: none;
       }
+    `,
+    line: css`
+      height: 1px;
+      margin-block: 6px;
+      background-color: ${token.colorSplit};
+      position: absolute;
+      left: -2px;
+      right: -2px;
     `
   };
 });
 
 const SiderMenu: React.FC<SiderMenuProps> = (props) => {
-  const { menuData, collapsed } = props;
+  const { menuData, collapsed, initialState } = props;
+  const is_admin = initialState?.currentUser?.is_admin || false;
   const { styles, cx } = useStyles();
   const location = useLocation();
   const [collapseKeys, setCollapseKeys] = useState<Set<string>>(new Set());
   console.log('---menuData-----', menuData);
+  console.log('SiderMenu', location.pathname);
 
   const dividerStyles = useMemo(() => {
     if (collapsed) {
@@ -162,10 +175,13 @@ const SiderMenu: React.FC<SiderMenuProps> = (props) => {
         key={key}
       >
         <Link
+          prefetch="intent"
           to={menuItem.path.replace('/*', '')}
           target={menuItem.target}
           className={cx(styles.menuItemWrapper, 'menu-item', {
-            'menu-item-selected': location.pathname === menuItem.path
+            'menu-item-selected':
+              location.pathname === menuItem.path ||
+              menuItem.subMenu?.includes(location.pathname)
           })}
         >
           {collapsed ? (
@@ -173,7 +189,8 @@ const SiderMenu: React.FC<SiderMenuProps> = (props) => {
               <span className="icon-wrapper">
                 <IconFont
                   type={
-                    location.pathname === menuItem.path
+                    location.pathname === menuItem.path ||
+                    menuItem.subMenu?.includes(location.pathname)
                       ? menuItem.selectedIcon || ''
                       : menuItem.defaultIcon || ''
                   }
@@ -184,7 +201,8 @@ const SiderMenu: React.FC<SiderMenuProps> = (props) => {
             <>
               <IconFont
                 type={
-                  location.pathname === menuItem.path
+                  location.pathname === menuItem.path ||
+                  menuItem.subMenu?.includes(location.pathname)
                     ? menuItem.selectedIcon || ''
                     : menuItem.defaultIcon || ''
                 }
@@ -220,9 +238,9 @@ const SiderMenu: React.FC<SiderMenuProps> = (props) => {
                       rotate={collapseKeys.has(item.key) ? -90 : 0}
                     ></CaretDownOutlined>
                   </span>
-                ) : (
-                  <Divider style={dividerStyles} />
-                )}
+                ) : is_admin ? (
+                  <span className={styles.line}></span>
+                ) : null}
               </div>
               <div
                 className={cx(styles.menuItemGroup, {

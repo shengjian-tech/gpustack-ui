@@ -44,8 +44,7 @@ export default {
   'resources.worker.add.step1':
     'トークンを取得 <span class="note-text">（サーバーで実行）</span>',
   'resources.worker.add.step2': 'ワーカーを登録',
-  'resources.worker.add.step2.tips':
-    '（追加するワーカーで実行し、<span class="bold-text">トークン</span> は最初のステップで取得した値です。）',
+  'resources.worker.add.step2.tips': '（追加するワーカーで実行し。）',
   'resources.worker.add.step3':
     '成功後、ワーカーリストを更新して新しいワーカーを確認してください。',
   'resources.worker.container.supported':
@@ -71,6 +70,7 @@ export default {
     'ダウンロード完了を待っています...',
   'resources.filter.worker': 'ワーカーでフィルタ',
   'resources.filter.source': 'ソースでフィルタ',
+  'resources.filter.status': 'Filter by status',
   'resources.modelfiles.delete.tips': 'ディスクからファイルも削除します',
   'resources.modelfiles.copy.tips': 'フルパスをコピー',
   'resources.filter.path': 'パスでフィルタ',
@@ -92,7 +92,22 @@ export default {
   'resources.register.download':
     'Download and install the <a href={url} target="_blank">installer</a>. Only supported: {versions}.',
   'resource.register.maos.support': 'Apple Silicon (M series), macOS 14+',
-  'resource.register.windows.support': 'win 10, win 11'
+  'resource.register.windows.support': 'win 10, win 11',
+  'resources.model.instance': 'Model Instance',
+  'resources.worker.download.privatekey': 'Download Private Key',
+  'resources.worker': 'Worker',
+  'resources.modelfiles.form.exsting': 'Downloaded',
+  'resources.modelfiles.form.added': 'Added',
+  'resources.worker.maintenance.title': 'System Maintenance',
+  'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
+  'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
+  'resources.worker.maintenance.remark': 'Remark',
+  'resources.worker.maintenance.remark.rules':
+    'Please enter maintenance remarks',
+  'resources.worker.maintenance.tips':
+    'When maintenance mode is enabled, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
+  'resources.worker.noCluster.tips':
+    'No available clusters. Please create a cluster before adding a node.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -106,5 +121,18 @@ export default {
 // 8. 'resources.register.install.title': 'Install GPUStack on {os}',
 // 9. 'resources.register.download':'Download and install the <a>installer</a>. Only supported: {versions}.',
 // 10. 'resource.register.maos.support': 'Apple Silicon (M series), macOS 14+',
-// 11. 'resource.register.windows.support': 'win 10, win 11'
+// 11. 'resource.register.windows.support': 'win 10, win 11',
+// 12. 'resources.filter.status': 'Filter by status',
+// 13. 'resources.model.instance': 'Model Instance',
+// 14. 'resources.worker.download.privatekey': 'Download Private Key',
+// 15. 'resources.worker': 'Worker',
+// 16. 'resources.modelfiles.form.exsting': 'Downloaded',
+// 17. 'resources.modelfiles.form.added': 'Added',
+// 18. 'resources.worker.maintenance.title': 'System Maintenance',
+// 19. 'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
+// 20. 'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
+// 21. 'resources.worker.maintenance.remark': 'Remark',
+// 22. 'resources.worker.maintenance.remark.rules': 'Please enter maintenance remarks',
+// 23. 'resources.worker.maintenance.tips': 'When maintenance mode is enabled, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
+// 24. 'resources.worker.noCluster.tips': 'No available clusters. Please create a cluster before adding a node.'
 // ========== End of To-Do List ==========

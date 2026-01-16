@@ -63,6 +63,7 @@ export default {
   'playground.params.height': 'Высота',
   'playground.params.custom': 'Дополнительно',
   'playground.params.empty.tips': 'Здесь появятся сгенерированные изображения',
+  'playground.video.empty.tips': 'Здесь появятся сгенерированные видео.',
   'playground.params.standard': 'Стандарт',
   'playground.params.hd': 'HD',
   'playground.params.style.vivid': 'Яркий',
@@ -149,15 +150,23 @@ export default {
     '1. После выделения области создание маски станет недоступным; поэтому сначала нарисуйте маску, а затем активируйте опцию. \n 2. После загрузки изображения маски создание новых масок невозможно.',
   'playground.model.noavailable.tips2':
     'Если нужная модель не отображается, убедитесь, что она запущена и ей присвоена правильная категория. Если категория указана неверно, её можно изменить вручную в настройках модели.',
-  'playground.rerank.query.validate': 'The query is required.',
+  'playground.rerank.query.validate': 'Необходимо указать запрос.',
   'playground.image.generate.error':
-    'Something went wrong. The image could not be generated.',
+    'Произошла ошибка. Не удалось сгенерировать изображение.',
   'playground.uploadfile.sizeError':
-    'File size exceeds the limit. Maximum allowed: {size}.'
+    'Размер файла превышает ограничение. Максимальный размер: {size}.',
+  'playground.uploadImage.url.invalid':
+    'Please enter a direct image URL (e.g. https://.../image.png). Press ESC to cancel.',
+  'playground.uploadImage.url.holder': 'Enter an image URL',
+  'playground.uploadImage.url.button': 'Add Image from URL',
+  'playground.params.duration': 'Duration (seconds)',
+  'playground.params.resolution': 'Resolution'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-// 1. 'playground.rerank.query.validate': 'The query is required.'
-// 2.  'playground.image.generate.error': 'Something went wrong. The image could not be generated.',
-// 3. 'playground.uploadfile.sizeError': 'File size exceeds the limit. Maximum allowed: {size}.'
+// 1. 'playground.uploadImage.url.invalid': 'Please enter a direct image URL(e.g. https://.../image.png). Press ESC to cancel.',
+// 2. 'playground.uploadImage.url.holder': 'Enter an image URL',
+// 3.  'playground.uploadImage.url.button': 'Add Image from URL',
+// 4. 'playground.params.duration': 'Duration (seconds)',
+// 5. 'playground.params.resolution': 'Resolution'
 // ========== End of To-Do List ==========

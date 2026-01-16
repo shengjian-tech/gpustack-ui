@@ -5,9 +5,9 @@ import IconFont from '@/components/icon-font';
 import SealInputNumber from '@/components/seal-form/input-number';
 import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import useRequestToken from '@/hooks/use-request-token';
+import ResizeContainer from '@/pages/_components/terminal-tabs/resize-container';
 import {
   ClearOutlined,
-  HolderOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
   SendOutlined
@@ -17,7 +17,6 @@ import { Button, Checkbox, Form, Segmented, Spin, Tabs, Tooltip } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import 'overlayscrollbars/overlayscrollbars.css';
-import { Resizable } from 're-resizable';
 import React, {
   forwardRef,
   useCallback,
@@ -33,7 +32,7 @@ import { embeddingSamples } from '../config/samples';
 import { LLM_METAKEYS } from '../hooks/config';
 import useEmbeddingWorker from '../hooks/use-embedding-worker';
 import { useInitLLmMeta } from '../hooks/use-init-meta';
-import '../style/ground-left.less';
+import '../style/ground-llm.less';
 import '../style/rerank.less';
 import { generateEmbeddingCode } from '../view-code/embedding';
 import DynamicParams from './dynamic-params';
@@ -132,7 +131,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
         setCollapse(!collapse);
       },
       calculateNewMaxFromBoundary: (maxWidth?: number, maxHeight?: number) => {
-        resizeRef.current?.calculateNewMaxFromBoundary();
+        resizeRef.current?.container?.calculateNewMaxFromBoundary();
       },
       collapse: collapse
     };
@@ -216,6 +215,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
 
       workerRef.current!.onmessage = (event: MessageEvent) => {
         const { scatterData, embeddingData } = event.data;
+
         setScatterData(scatterData);
         setEmbeddingData(embeddingData);
         setLoading(false);
@@ -259,8 +259,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
   };
 
   const handleScaleResize = () => {
-    console.log('handleScaleResize', resizeRef.current);
-    const height = resizeRef.current?.state?.height;
+    const height = resizeRef.current?.container?.state?.height;
     if (height) {
       setOutputHeight(height);
     }
@@ -638,38 +637,11 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                 <Spin spinning={true}></Spin>
               </div>
             )}
-            <Resizable
+            <ResizeContainer
               ref={resizeRef}
-              enable={{
-                top: true
-              }}
-              defaultSize={{
-                height: 180
-              }}
-              handleComponent={{
-                top: (
-                  <Tooltip
-                    title={intl.formatMessage({
-                      id: 'playground.embedding.handler.tips'
-                    })}
-                  >
-                    <Button
-                      size="small"
-                      className="drag-handler"
-                      color="default"
-                      variant="filled"
-                      icon={
-                        <HolderOutlined
-                          rotate={90}
-                          style={{ fontSize: 'var(--font-size-14)' }}
-                        />
-                      }
-                    ></Button>
-                  </Tooltip>
-                )
-              }}
               maxHeight={resizeMaxHeight}
               minHeight={180}
+              defaultHeight={180}
               onResize={handleScaleResize}
               onResizeStop={handleScaleOutputSize}
             >
@@ -689,7 +661,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                   items={outputItems}
                 ></Tabs>
               </div>
-            </Resizable>
+            </ResizeContainer>
           </div>
         </div>
       </div>

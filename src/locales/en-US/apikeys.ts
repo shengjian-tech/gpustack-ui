@@ -1,7 +1,7 @@
 export default {
   'apikeys.title': 'API Keys',
   'apikeys.table.apikeys': 'keys',
-  'apikeys.button.create': 'New API Key',
+  'apikeys.button.create': 'Add API Key',
   'apikeys.title.save': 'Save API Key',
   'apikeys.form.expiretime': 'Expiration',
   'apikeys.form.apikey': 'API Key',
@@ -11,5 +11,9 @@ export default {
   'apikeys.form.expiration.7days': '7 days',
   'apikeys.form.expiration.1month': '1 month',
   'apikeys.form.expiration.6months': '6 months',
-  'apikeys.form.expiration.never': 'No expiration'
+  'apikeys.form.expiration.never': 'No expiration',
+  'apikeys.table.bindModels': 'Model Access',
+  'apikeys.models.all': 'All models',
+  'apikeys.models.selected': 'Allowed models',
+  'apikeys.models.noModelsFound': 'No models found'
 };

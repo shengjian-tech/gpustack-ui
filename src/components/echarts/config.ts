@@ -16,14 +16,14 @@ export default function useChartConfig() {
   const { useToken } = theme;
   const { token } = useToken();
 
-  console.log('token:', token);
-
   const chartColorMap = useMemo(() => {
     return {
       titleColor: token.colorText,
       splitLineColor: token.colorBorder,
       tickLineColor: token.colorSplit,
       axislabelColor: token.colorTextTertiary,
+      colorSecondary: token.colorTextSecondary,
+      colorTertiary: token.colorTextTertiary,
       gaugeBgColor: token.colorFillSecondary,
       gaugeSplitLineColor: isDarkTheme
         ? 'rgba(255,255,255,.3)'
@@ -65,6 +65,7 @@ export default function useChartConfig() {
   const legend = {
     itemWidth: 8,
     itemHeight: 8,
+    itemGap: 12,
     textStyle: {
       color: chartColorMap.axislabelColor
     }
@@ -123,7 +124,6 @@ export default function useChartConfig() {
     type: 'bar',
     barMaxWidth: 20,
     barMinWidth: 8,
-    // stack: 'total',
     barGap: '30%',
     barCategoryGap: '50%'
   };
@@ -215,13 +215,13 @@ export default function useChartConfig() {
       rich: {
         value: {
           fontSize: 16,
-          fontWeight: '500',
+          fontWeight: 500,
           color: chartColorMap.titleColor
         },
         unit: {
           fontSize: 14,
           color: chartColorMap.titleColor,
-          fontWeight: '500',
+          fontWeight: 500,
           padding: [0, 0, 0, 2]
         }
       }
@@ -229,6 +229,7 @@ export default function useChartConfig() {
   };
 
   return {
+    token,
     tooltip,
     grid,
     legend,

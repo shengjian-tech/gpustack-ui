@@ -1,4 +1,3 @@
-// import AutoComplete from '@/components/seal-form/auto-complete';
 import { MinusOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import React from 'react';
@@ -13,10 +12,19 @@ interface LabelItemProps {
   label?: string;
   placeholder?: string;
   options?: Global.HintOptions[];
+  trim?: boolean;
 }
 
 const ListItem: React.FC<LabelItemProps> = (props) => {
-  const { onRemove, onChange, onBlur, label, value, options } = props;
+  const {
+    onRemove,
+    onChange,
+    onBlur,
+    label,
+    value,
+    options,
+    trim = true
+  } = props;
 
   const handleOnChange = (value: any) => {
     onChange(value);
@@ -30,6 +38,7 @@ const ListItem: React.FC<LabelItemProps> = (props) => {
         onBlur={onBlur}
         label={label}
         sourceOptions={options}
+        trim={trim}
         placeholder={props.placeholder}
       />
       <Button
@@ -44,4 +53,4 @@ const ListItem: React.FC<LabelItemProps> = (props) => {
   );
 };
 
-export default React.memo(ListItem);
+export default ListItem;

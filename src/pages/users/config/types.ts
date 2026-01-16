@@ -1,17 +1,16 @@
-export interface ListItem {
-  name: string;
-  is_admin: boolean;
-  full_name: string;
-  id: number;
-  username: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface FormData {
   username: string;
   id?: number;
   is_admin: boolean | string;
   full_name: string;
   password: string;
+  is_active?: boolean;
+}
+
+export interface ListItem extends FormData {
+  id: number;
+  source: string;
+  avatar_url: string;
+  created_at: string;
+  updated_at: string;
 }

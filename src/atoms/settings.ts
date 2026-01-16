@@ -1,4 +1,4 @@
-import { colorPrimary } from '@/config/theme';
+import { COLOR_PRIMARY } from '@/config/theme';
 import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
@@ -8,14 +8,16 @@ type UserSettings = {
   colorPrimary: string;
   isDarkTheme: boolean;
   collapsed: boolean;
+  hideAddResourceModal?: boolean;
 };
 
-const defaultSettings: UserSettings = {
+export const defaultSettings: UserSettings = {
   theme: 'light',
   mode: 'auto',
   isDarkTheme: false,
-  colorPrimary: colorPrimary,
-  collapsed: false
+  colorPrimary: COLOR_PRIMARY,
+  collapsed: false,
+  hideAddResourceModal: false
 };
 
 export const getStorageUserSettings = () => {
@@ -33,10 +35,9 @@ export const getStorageUserSettings = () => {
   }
 };
 
-export const userSettingsAtom = atomWithStorage<UserSettings>(
-  'userSettings',
-  defaultSettings
-);
+export const userSettingsAtom = atomWithStorage<UserSettings>('userSettings', {
+  ...getStorageUserSettings()
+});
 
 export const userSettingsHelperAtom = atom(
   (get) => get(userSettingsAtom),
@@ -48,8 +49,9 @@ export const userSettingsHelperAtom = atom(
     };
     set(userSettingsAtom, {
       ...newSettings,
-      colorPrimary: newSettings.colorPrimary || colorPrimary,
+      colorPrimary: newSettings.colorPrimary || COLOR_PRIMARY,
       isDarkTheme: newSettings.theme === 'realDark'
     });
   }
 );
+export const hideModalTemporarilyAtom = atom<boolean>(false);

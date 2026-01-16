@@ -1,9 +1,14 @@
 import { initialPasswordAtom, userAtom } from '@/atoms/user';
+import { resetStorageUserSettings } from '@/atoms/utils';
 import SealInput from '@/components/seal-form/seal-input';
 import { PasswordReg } from '@/config';
-import { CRYPT_TEXT } from '@/utils/localstore/index';
-import { GlobalOutlined, LockOutlined } from '@ant-design/icons';
-import { SelectLang, useIntl } from '@umijs/max';
+import {
+  CRYPT_TEXT,
+  IS_FIRST_LOGIN,
+  writeState
+} from '@/utils/localstore/index';
+import { LockOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Button, Form, message } from 'antd';
 import CryptoJS from 'crypto-js';
 import { useAtom } from 'jotai';
@@ -34,10 +39,13 @@ const PasswordForm: React.FC = () => {
       });
 
       await setUserInfo({
-        ...userInfo,
+        ...(userInfo || {}),
         require_password_change: false
       });
       setInitialPassword('');
+      // Reset first login flag
+      resetStorageUserSettings();
+      writeState(IS_FIRST_LOGIN, null);
       gotoDefaultPage(userInfo);
       message.success(intl.formatMessage({ id: 'common.message.success' }));
     } catch (error) {
@@ -47,9 +55,6 @@ const PasswordForm: React.FC = () => {
 
   return (
     <div>
-      <div style={{ position: 'fixed', right: 0, top: 0, padding: '0 20px' }}>
-        <SelectLang icon={<GlobalOutlined />} reload={false} />
-      </div>
       <Form
         form={form}
         style={{ width: '360px', margin: '0 auto' }}

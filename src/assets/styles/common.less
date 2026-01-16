@@ -1,3 +1,5 @@
+@import './table.less';
+
 .m-b-20 {
   margin-bottom: 20px;
 }
@@ -24,6 +26,10 @@
 
 .m-l-5 {
   margin-left: 5px;
+}
+
+.m-l-24 {
+  margin-left: 24px;
 }
 
 .m-l-4 {
@@ -104,6 +110,11 @@
   justify-content: space-between;
 }
 
+.justify-between {
+  display: flex;
+  justify-content: space-between;
+}
+
 .justify-center {
   display: flex;
   justify-content: center;
@@ -164,6 +175,10 @@
   gap: 8px;
 }
 
+.gap-4 {
+  gap: 4px;
+}
+
 .gap-20 {
   gap: 20px;
 }
@@ -220,6 +235,10 @@
   margin-bottom: 0;
 }
 
+.m-t-0 {
+  margin-top: 0;
+}
+
 .m-b-16 {
   margin-bottom: 16px;
 }
@@ -244,12 +263,20 @@
   font-weight: var(--font-weight-bold);
 }
 
+.text-primary {
+  color: var(--ant-color-text);
+}
+
 .text-secondary {
   color: var(--ant-color-text-secondary);
 }
 
 .text-tertiary {
   color: var(--ant-color-text-tertiary);
+}
+
+.text-quaternary {
+  color: var(--ant-color-text-quaternary);
 }
 
 .tips-desc-list {
@@ -318,4 +345,21 @@ textarea:hover {
 
 .ant-result-extra {
   color: var(--ant-color-text-secondary);
+}
+
+.text-success {
+  color: var(--ant-color-success);
+}
+
+.desc-fill {
+  font-weight: 600;
+  color: var(--ant-color-text);
+  background-color: var(--ant-color-fill-content);
+  line-height: 1.5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.line-6 {
+  line-height: 24px;
 }

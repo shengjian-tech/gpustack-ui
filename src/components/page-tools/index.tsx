@@ -3,11 +3,13 @@ import {
   DeleteOutlined,
   DownOutlined,
   PlusOutlined,
+  SearchOutlined,
   SyncOutlined
 } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Input, Select, Space } from 'antd';
+import { Button, Input, Space } from 'antd';
 import React, { useMemo } from 'react';
+import BaseSelect from '../seal-form/base/select';
 import './index.less';
 
 type PageToolsProps = {
@@ -51,7 +53,9 @@ interface ActionItem {
   value: string;
   key: string;
   icon: React.ReactNode;
+  [key: string]: any;
 }
+
 interface FilterBarProps {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSelectChange?: (value: any) => void;
@@ -62,7 +66,7 @@ interface FilterBarProps {
   actionItems?: ActionItem[];
   selectOptions?: Global.BaseOption<string | number>[];
   showSelect?: boolean;
-  buttonText: string;
+  buttonText?: string;
   buttonIcon?: React.ReactNode;
   marginBottom?: number;
   marginTop?: number;
@@ -71,7 +75,9 @@ interface FilterBarProps {
   actionType?: 'dropdown' | 'button';
   showPrimaryButton?: boolean;
   showDeleteButton?: boolean;
-  width?: {
+  right?: React.ReactNode;
+  left?: React.ReactNode;
+  widths?: {
     input?: number;
     select?: number;
   };
@@ -82,10 +88,10 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
     handleInputChange,
     handleSelectChange,
     handleSearch,
-    handleDeleteByBatch,
-    handleClickPrimary,
+    handleDeleteByBatch = null,
+    handleClickPrimary = null,
     rowSelection,
-    actionItems,
+    actionItems = [],
     selectOptions,
     showSelect,
     buttonText,
@@ -93,57 +99,61 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
     actionType = 'button',
     marginBottom = 10,
     marginTop = 10,
-    inputHolder = 'common.filter.name',
+    inputHolder,
     selectHolder,
-    showPrimaryButton = true,
-    showDeleteButton = true,
-    width
+    right,
+    left,
+    widths
   } = props;
   const intl = useIntl();
 
   const renderRight = useMemo(() => {
-    if (!showPrimaryButton && !showDeleteButton) {
+    if (!handleClickPrimary && !handleDeleteByBatch) {
       return null;
     }
     return (
       <Space size={20}>
-        {actionType === 'dropdown' ? (
-          <DropDownActions
-            menu={{
-              items: actionItems,
-              onClick: handleClickPrimary
-            }}
-          >
+        {handleClickPrimary ? (
+          actionType === 'dropdown' ? (
+            <DropDownActions
+              menu={{
+                items: actionItems,
+                onClick: handleClickPrimary
+              }}
+            >
+              <Button
+                icon={<DownOutlined></DownOutlined>}
+                type="primary"
+                iconPlacement="end"
+              >
+                {buttonText}
+              </Button>
+            </DropDownActions>
+          ) : (
             <Button
-              icon={<DownOutlined></DownOutlined>}
+              icon={buttonIcon ?? <PlusOutlined></PlusOutlined>}
               type="primary"
-              iconPosition="end"
+              onClick={handleClickPrimary}
             >
               {buttonText}
             </Button>
-          </DropDownActions>
-        ) : (
+          )
+        ) : null}
+        {handleDeleteByBatch && (
           <Button
-            icon={buttonIcon ?? <PlusOutlined></PlusOutlined>}
-            type="primary"
-            onClick={handleClickPrimary}
+            icon={<DeleteOutlined />}
+            danger
+            onClick={handleDeleteByBatch}
+            disabled={!rowSelection?.selectedRowKeys?.length}
           >
-            {buttonText}
+            <span>
+              {intl?.formatMessage?.({ id: 'common.button.delete' })}
+              {rowSelection?.selectedRowKeys?.length > 0 && (
+                <span>({rowSelection?.selectedRowKeys?.length})</span>
+              )}
+            </span>
           </Button>
         )}
-        <Button
-          icon={<DeleteOutlined />}
-          danger
-          onClick={handleDeleteByBatch}
-          disabled={!rowSelection.selectedRowKeys.length}
-        >
-          <span>
-            {intl?.formatMessage?.({ id: 'common.button.delete' })}
-            {rowSelection.selectedRowKeys.length > 0 && (
-              <span>({rowSelection.selectedRowKeys?.length})</span>
-            )}
-          </span>
-        </Button>
       </Space>
     );
   }, [
@@ -157,29 +167,35 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
   return (
     <PageTools
       marginBottom={marginBottom}
-      marginTop={marginTop}
+      marginTop={0}
       left={
         <Space>
           <Input
-            placeholder={intl.formatMessage({
-              id: inputHolder
-            })}
-            style={{ width: width?.input || 230 }}
+            prefix={
+              <SearchOutlined
+                style={{ color: 'var(--ant-color-text-placeholder)' }}
+              ></SearchOutlined>
+            }
+            placeholder={
+              inputHolder ||
+              intl.formatMessage({
+                id: 'common.filter.name'
+              })
+            }
+            style={{ width: widths?.input || 230 }}
             allowClear
             onChange={handleInputChange}
           ></Input>
           {showSelect && (
-            <Select
+            <BaseSelect
               allowClear
               showSearch={false}
-              placeholder={intl.formatMessage({
-                id: selectHolder
-              })}
-              style={{ width: width?.select || 230 }}
+              placeholder={selectHolder}
+              style={{ width: widths?.select || 230 }}
               size="large"
               onChange={handleSelectChange}
               options={selectOptions}
-            ></Select>
+            ></BaseSelect>
           )}
           <Button
             type="text"
@@ -189,7 +205,7 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
           ></Button>
         </Space>
       }
-      right={renderRight}
+      right={right || renderRight}
     ></PageTools>
   );
 };

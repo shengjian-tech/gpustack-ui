@@ -1,6 +1,6 @@
 import { useIntl } from '@umijs/max';
 import _ from 'lodash';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Inner from './inner';
 
 interface LabelSelectorProps {
@@ -8,6 +8,8 @@ interface LabelSelectorProps {
   label?: string;
   btnText?: string;
   description?: React.ReactNode;
+  disabled?: boolean;
+  isAutoComplete?: boolean;
   onChange?: (labels: Record<string, any>) => void;
   onBlur?: (e: any, type: string, index: number) => void;
   onDelete?: (index: number) => void;
@@ -18,9 +20,11 @@ const LabelSelector: React.FC<LabelSelectorProps> = ({
   onChange,
   onBlur,
   onDelete,
+  disabled,
   label,
   btnText,
-  description
+  description,
+  isAutoComplete
 }) => {
   const intl = useIntl();
   const [labelsData, setLabelsData] = useState({});
@@ -41,16 +45,28 @@ const LabelSelector: React.FC<LabelSelectorProps> = ({
     }
   }, [labels]);
 
-  const handleLabelListChange = useCallback(
-    (list: { key: string; value: string }[]) => {
-      setLabelList(list);
-    },
-    [setLabelList]
-  );
+  const handleLabelListChange = (list: { key: string; value: string }[]) => {
+    setLabelList(list);
+  };
+
   const handleLabelsChange = (data: Record<string, any>) => {
     console.log('handleLabelsChange', data);
     setLabelsData(data);
     onChange?.(data);
+  };
+
+  const updateLabels = (list: { key: string; value: string }[]) => {
+    const newLabels = _.reduce(
+      list,
+      (result: any, item: any) => {
+        if (item.key) {
+          result[item.key] = item.value;
+        }
+        return result;
+      },
+      {}
+    );
+    onChange?.(newLabels);
   };
 
   const handleOnPaste = (
@@ -70,22 +86,23 @@ const LabelSelector: React.FC<LabelSelectorProps> = ({
       const [key, value] = line.split('=').map((part) => part.trim());
       return { key, value };
     });
-    console.log(lines, parsedData);
 
-    setLabelList((prevPairs) => {
-      const newPairs = [...prevPairs];
-      newPairs.splice(index, 1, ...parsedData);
-      return newPairs;
-    });
+    const newPairs = [...labelList];
+    newPairs.splice(index, 1, ...parsedData);
+
+    updateLabels(newPairs);
+    setLabelList(newPairs);
   };
 
   return (
     <Inner
+      disabled={disabled}
       label={label}
       btnText={btnText}
       description={
         description ?? intl.formatMessage({ id: 'models.form.keyvalue.paste' })
       }
+      isAutoComplete={isAutoComplete}
       labels={labelsData}
       labelList={labelList}
       onChange={handleLabelsChange}
@@ -97,4 +114,4 @@ const LabelSelector: React.FC<LabelSelectorProps> = ({
   );
 };
 
-export default React.memo(LabelSelector);
+export default LabelSelector;

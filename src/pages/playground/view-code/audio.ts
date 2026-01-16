@@ -1,30 +1,45 @@
-import { GPUSTACK_API, OPENAI_COMPATIBLE } from '../apis';
+import _ from 'lodash';
+import { MODEL_PROXY, OPENAI_COMPATIBLE } from '../apis';
 import { fomatNodeJsParams, formatCurlArgs, formatPyParams } from './utils';
+
+export const generateSpeechToTextCurlCode = ({
+  api: url,
+  modelProxy,
+  parameters
+}: Record<string, any>) => {
+  const host = window.location.origin;
+  // replace url OPENAI_COMPATIBLE with GPUSTACK
+  const api = modelProxy ? `${MODEL_PROXY}/\${YOUR_API_PATH}` : url;
+
+  // ========================= Curl =========================
+  const curlCode = `
+curl ${host}${api} \\
+-H "Content-Type: multipart/form-data" \\
+-H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\${modelProxy ? `\n-H "X-GPUStack-Model: ${parameters.model}" \\` : ''}
+-F model="${parameters.model}" \\
+-F file="@/path/to/file/audio.mp3;type=audio/mpeg" \\
+${formatCurlArgs(_.omit(parameters, 'model'), true)}`
+    .trim()
+    .replace(/\\$/g, '');
+
+  return curlCode;
+};
 
 export const speechToTextCode = ({
   api: url,
   parameters
 }: Record<string, any>) => {
   const host = window.location.origin;
-  // replace url OPENAI_COMPATIBLE with GPUSTACK
-  const api = url.replace(OPENAI_COMPATIBLE, GPUSTACK_API);
 
   // ========================= Curl =========================
-  const curlCode = `
-curl ${host}${api} \\
--H "Content-Type: multipart/form-data" \\
--H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\
--F file="@/path/to/file/audio.mp3;type=audio/mpeg" \\
-${formatCurlArgs(parameters, true)}`
-    .trim()
-    .replace(/\\$/g, '');
+  const curlCode = generateSpeechToTextCurlCode({ api: url, parameters });
 
   // ========================= Python =========================
   const pythonCode = `
 from openai import OpenAI\n
 audio_file = open("audio.mp3", "rb")
 client = OpenAI(
-  base_url="${host}/${GPUSTACK_API}", 
+  base_url="${host}/${OPENAI_COMPATIBLE}", 
   api_key="YOUR_GPUSTACK_API_KEY"
 )
 
@@ -49,7 +64,7 @@ const OpenAI = require("openai");
 
 const openai = new OpenAI({
   "apiKey": "YOUR_GPUSTACK_API_KEY",
-  "baseURL": "${host}/${GPUSTACK_API}"
+  "baseURL": "${host}/${OPENAI_COMPATIBLE}"
 });
 
 async function main() {
@@ -67,19 +82,32 @@ main();`.trim();
   };
 };
 
-export const TextToSpeechCode = ({
+export const generateTextToSpeechCurlCode = ({
   api: url,
+  modelProxy,
   parameters
 }: Record<string, any>) => {
   const host = window.location.origin;
-  const api = url.replace(OPENAI_COMPATIBLE, GPUSTACK_API);
+  const api = modelProxy ? `${MODEL_PROXY}/\${YOUR_API_PATH}` : url;
 
   // ========================= Curl =========================
   const curlCode = `
 curl ${host}${api} \\
 -H "Content-Type: application/json" \\
--H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\
+-H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\${modelProxy ? `\n-H "X-GPUStack-Model: ${parameters.model}" \\` : ''}
 ${formatCurlArgs(parameters, false)} \\\n--output output.${parameters.response_format}`.trim();
+
+  return curlCode;
+};
+
+export const TextToSpeechCode = ({
+  api: url,
+  parameters
+}: Record<string, any>) => {
+  const host = window.location.origin;
+
+  // ========================= Curl =========================
+  const curlCode = generateTextToSpeechCurlCode({ api: url, parameters });
 
   // ========================= Python =========================
   const pythonCode = `
@@ -87,7 +115,7 @@ from pathlib import Path
 from openai import OpenAI\n
 output_file_path = Path(__file__).parent / "output.mp3"
 client = OpenAI(
-  base_url="${host}/${GPUSTACK_API}", 
+  base_url="${host}/${OPENAI_COMPATIBLE}", 
   api_key="YOUR_GPUSTACK_API_KEY"
 )
 
@@ -112,7 +140,7 @@ const ouptFile = path.resolve("./output.mp3");
 
 const openai = new OpenAI({
   "apiKey": "YOUR_GPUSTACK_API_KEY",
-  "baseURL": "${host}/${GPUSTACK_API}"
+  "baseURL": "${host}/${OPENAI_COMPATIBLE}"
 });
 
 async function main() {

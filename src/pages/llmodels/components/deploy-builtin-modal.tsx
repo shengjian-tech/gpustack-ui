@@ -2,36 +2,46 @@ import ModalFooter from '@/components/modal-footer';
 import GSDrawer from '@/components/scroller-modal/gs-drawer';
 import { PageActionType } from '@/config/types';
 import { createAxiosToken } from '@/hooks/use-chunk-request';
-import { CloseOutlined } from '@ant-design/icons';
+import { ClusterStatusValueMap } from '@/pages/cluster-management/config';
 import { useIntl } from '@umijs/max';
-import { Button } from 'antd';
+import { Button, message } from 'antd';
 import _ from 'lodash';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
+import ColumnWrapper from '../../_components/column-wrapper';
 import { queryCatalogItemSpec } from '../apis';
-import {
-  backendOptionsMap,
-  defaultFormValues,
-  modelCategoriesMap,
-  sourceOptions
-} from '../config';
-import { FormContext } from '../config/form-context';
+import { DeployFormKeyMap, sourceOptions } from '../config';
+import { backendOptionsMap } from '../config/backend-parameters';
+import { CatalogFormContext } from '../config/form-context';
 import { CatalogSpec, FormData, ListItem, SourceType } from '../config/types';
-import {
-  checkOnlyAscendNPU,
-  useCheckCompatibility,
-  useGenerateFormEditInitialValues
-} from '../hooks';
-import ColumnWrapper from './column-wrapper';
+import { generateGPUIds } from '../config/utils';
+import DataForm from '../forms';
+import { useCheckCompatibility } from '../hooks';
+import useFormInitialValues from '../hooks/use-form-initial-values';
 import CompatibilityAlert from './compatible-alert';
-import DataForm from './data-form';
+
+const ModesMap: Record<string, string> = {
+  latency: 'models.form.mode.latency',
+  standard: 'models.form.mode.baseline',
+  throughput: 'models.form.mode.throughput'
+};
+
+const ModesTipsMap: Record<string, string> = {
+  latency: 'models.form.mode.latency.tips',
+  standard: 'models.form.mode.baseline.tips',
+  throughput: 'models.form.mode.throughput.tips'
+};
 
 const pickFieldsFromSpec = [
-  'backend_version',
-  'backend_parameters',
   'env',
   'size',
-  'quantization'
+  'source',
+  'quantization',
+  'backend_version',
+  'backend_parameters',
+  'backend',
+  'extended_kv_cache',
+  'speculative_config'
 ];
 
 type AddModalProps = {
@@ -53,37 +63,6 @@ const FormWrapper = styled.div`
   maxwidth: 100%;
 `;
 
-const backendOptions = [
-  {
-    label: `llama-box`,
-    value: backendOptionsMap.llamaBox
-  },
-  {
-    label: 'vLLM',
-    value: backendOptionsMap.vllm
-  },
-  {
-    label: 'Ascend Mindie',
-    value: backendOptionsMap.ascendMindie
-  },
-  {
-    label: 'vox-box',
-    value: backendOptionsMap.voxBox
-  }
-];
-
-const quantiCapitMap: Record<string, string> = {
-  F16: 'FP16',
-  f16: 'FP16',
-  F32: 'FP32',
-  f32: 'FP32'
-};
-
-const defaultQuant = ['Q4_K_M'];
-const EmbeddingRerankFirstQuant = ['FP16', 'F16'];
-const AscendNPUQuant_F16 = ['F16', 'FP16'];
-const AscendNPUQuant_Q8 = ['Q8_0'];
-
 const AddModal: React.FC<AddModalProps> = (props) => {
   const {
     title,
@@ -98,43 +77,37 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   const {
     setWarningStatus,
     handleDoEvalute,
-    generateGPUIds,
     cancelEvaluate,
+    clearCacheFormValues,
     submitAnyway,
     handleOnValuesChange,
     warningStatus
   } = useCheckCompatibility();
+  const { getClusterList, getWorkerList, clusterList } = useFormInitialValues();
   const intl = useIntl();
-  const { getGPUList } = useGenerateFormEditInitialValues();
   const form = useRef<any>({});
-  const [gpuOptions, setGpuOptions] = useState<any[]>([]);
   const [isGGUF, setIsGGUF] = useState<boolean>(false);
   const [sourceList, setSourceList] = useState<any[]>([]);
-  const [backendList, setBackendList] = useState<any[]>([]);
-  const [sizeOptions, setSizeOptions] = useState<any[]>([]);
-  const [quantizationOptions, setQuantizationOptions] = useState<any[]>([]);
+  const [modeList, setModeList] = useState<
+    Global.BaseOption<string, { isBuiltIn: boolean; tips: string }>[]
+  >([]);
   const sourceGroupMap = useRef<any>({});
   const axiosToken = useRef<any>(null);
   const selectSpecRef = useRef<CatalogSpec>({} as CatalogSpec);
   const specListRef = useRef<any[]>([]);
-  const hasF16Ref = useRef<boolean>(false);
+  const noCompatibleGPUsRef = useRef<boolean>(false);
 
   const handleSumit = () => {
     form.current?.submit?.();
   };
 
   const handleSubmitAnyway = async () => {
+    if (noCompatibleGPUsRef.current) {
+      message.error(intl.formatMessage({ id: 'models.catalog.nogpus.tips' }));
+      return;
+    }
     submitAnyway.current = true;
     form.current?.submit?.();
-  };
-
-  // use for size change and quantization change
-  const pickSomeFieldsValue = (defaultSpec: CatalogSpec) => {
-    const formData = form.current?.getFieldsValue();
-    const currentData = _.pick(formData, Object.keys(defaultFormValues));
-
-    // if the backend_parameters is empty, use the defaultSpec.backend_parameters
-    return currentData;
   };
 
   const generateSubmitData = (formData: FormData) => {
@@ -148,58 +121,19 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     return data;
   };
 
-  const getDefaultQuant = (data: {
-    category: string;
-    quantOption: string;
-    backend: string;
-    condidateQuant?: string[];
-  }) => {
-    if (
-      data.category === modelCategoriesMap.embedding ||
-      data.category === modelCategoriesMap.reranker
-    ) {
-      return EmbeddingRerankFirstQuant.includes(_.toUpper(data.quantOption));
-    }
-
-    if (
-      data.backend === backendOptionsMap.llamaBox &&
-      checkOnlyAscendNPU(gpuOptions)
-    ) {
-      return hasF16Ref.current
-        ? AscendNPUQuant_F16.includes(_.toUpper(data.quantOption))
-        : AscendNPUQuant_Q8.includes(_.toUpper(data.quantOption));
-    }
-
-    return defaultQuant.includes(_.toUpper(data.quantOption));
-  };
-
   const getModelSpec = (data: {
+    mode?: string;
     backend: string;
     size: number;
     quantization: string;
   }) => {
-    const spec = _.find(specListRef.current, (item: CatalogSpec) => {
-      if (data.size && data.quantization) {
-        return (
-          item.size === data.size &&
-          item.backend === data.backend &&
-          item.quantization === data.quantization
-        );
-      }
-      if (data.size) {
-        return item.size === data.size && item.backend === data.backend;
-      }
-      if (data.quantization) {
-        return (
-          item.quantization === data.quantization &&
-          item.backend === data.backend
-        );
-      }
-      return item.backend === data.backend;
-    });
-    selectSpecRef.current = spec;
+    const defaultSpec = _.find(
+      specListRef.current,
+      (item: CatalogSpec) => item.mode === data.mode
+    );
+    selectSpecRef.current = defaultSpec;
     return {
-      ..._.pick(spec, pickFieldsFromSpec),
+      ..._.pick(defaultSpec, pickFieldsFromSpec),
       categories: _.get(current, 'categories.0', null)
     };
   };
@@ -212,58 +146,11 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     });
   };
 
-  const handleSetSizeOptions = (data: { backend: string }) => {
-    const sizeGroup = _.groupBy(
-      _.filter(specListRef.current, (item: CatalogSpec) => {
-        return item.backend === data.backend;
-      }),
-      'size'
-    );
-
-    const sizeList = _.keys(sizeGroup)
-      .map((size: string) => {
-        return {
-          label: `${size}B`,
-          value: _.toNumber(size)
-        };
-      })
-      .filter((item: any) => item.value);
-    const result = _.sortBy(sizeList, 'value');
-    setSizeOptions(result);
-    return result;
-  };
-
-  const handleSetQuantizationOptions = (data: {
-    size: number;
-    backend: string;
-  }) => {
-    const sizeGroup = _.filter(specListRef.current, (item: CatalogSpec) => {
-      return item.size === data.size && item.backend === data.backend;
-    });
-
-    const quantizationList = _.map(sizeGroup, (item: CatalogSpec) => {
-      return {
-        label:
-          quantiCapitMap[item.quantization] ?? _.toUpper(item.quantization),
-        value: item.quantization
-      };
-    });
-    const result = _.uniqBy(quantizationList, 'value');
-    setQuantizationOptions(result);
-    return result;
-  };
-
-  const handleSetBackendOptions = () => {
-    const backendGroup = _.groupBy(specListRef.current, 'backend');
-
-    const backendList = _.filter(backendOptions, (item: any) => {
-      return backendGroup[item.value];
-    });
-    setBackendList(backendList);
-    return backendList;
-  };
-
   const handleCheckCompatibility = async (formData: FormData) => {
+    // no compatible gpus, do nothing
+    if (noCompatibleGPUsRef.current) {
+      return;
+    }
     handleDoEvalute(formData);
   };
 
@@ -276,44 +163,10 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   const handleSourceChange = (source: string) => {
     const defaultSpec = _.get(sourceGroupMap.current, `${source}.0`, {});
     initFormDataBySource(defaultSpec);
-    handleSetSizeOptions({
-      backend: defaultSpec.backend
-    });
-    handleSetQuantizationOptions({
-      size: defaultSpec.size,
-      backend: defaultSpec.backend
-    });
+
     // set form value
     initFormDataBySource(defaultSpec);
     handleCheckFormData();
-  };
-
-  const checkSize = (list: any[]) => {
-    return (
-      _.find(
-        list,
-        (item: { label: string; value: string }) =>
-          item.value === form.current.getFieldValue('size')
-      )?.value || _.get(list, '0.value', 0)
-    );
-  };
-
-  const checkQuantization = (list: any[]) => {
-    return (
-      _.find(
-        list,
-        (item: { label: string; value: string }) =>
-          item.value === form.current.getFieldValue('quantization')
-      )?.value ||
-      _.find(list, (item: { label: string; value: string }) =>
-        getDefaultQuant({
-          category: _.get(current, 'categories.0', ''),
-          quantOption: item.value,
-          backend: form.current.getFieldValue('backend')
-        })
-      )?.value ||
-      _.get(list, '0.value', '')
-    );
   };
 
   const onValuesChange = async (changedValues: any, allValues: any) => {
@@ -321,6 +174,11 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       ..._.omit(selectSpecRef.current, ['name']),
       ...allValues
     };
+
+    // no compatible gpus, do nothing
+    if (noCompatibleGPUsRef.current) {
+      return;
+    }
     handleOnValuesChange?.({
       changedValues,
       allValues: data,
@@ -329,50 +187,48 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   };
 
   const handleBackendChange = (backend: string) => {
-    if (backend === backendOptionsMap.llamaBox) {
-      setIsGGUF(true);
-    } else {
-      setIsGGUF(false);
-    }
-    const sizeList = handleSetSizeOptions({
-      backend: backend
-    });
-
-    const size = checkSize(sizeList);
-
-    const quantizaList = handleSetQuantizationOptions({
-      size: size,
-      backend: backend
-    });
-
-    const quantization = checkQuantization(quantizaList);
-
-    const data = getModelSpec({
-      backend: backend,
-      size: size,
-      quantization: quantization
-    });
-
-    form.current.setFieldsValue({
-      ...defaultFormValues,
-      ...data
-    });
     handleCheckFormData();
   };
 
-  const fetchSpecData = async () => {
+  const initClusterId = (): number => {
+    const defaultCluster = clusterList?.find((item) => item.is_default);
+    if (defaultCluster) {
+      return defaultCluster.value;
+    }
+    const cluster_id =
+      clusterList?.find((item) => item.state === ClusterStatusValueMap.Ready)
+        ?.value || clusterList?.[0]?.value;
+
+    return cluster_id as number;
+  };
+
+  const fetchSpecData = async (clusterId: number) => {
     try {
       axiosToken.current?.cancel?.();
       axiosToken.current = createAxiosToken();
       const res: any = await queryCatalogItemSpec(
         {
-          id: current.id
+          id: current.id,
+          cluster_id: clusterId
         },
         {
           token: axiosToken.current.token
         }
       );
       const groupList = _.groupBy(res.items, 'source');
+
+      const modes: string[] = res.items?.map((item: CatalogSpec) => {
+        return item.mode;
+      });
+
+      const modeDataList = [...new Set(modes)].map((key: string) => {
+        return {
+          label: _.get(ModesMap, key, key || ''),
+          isBuiltIn: ModesMap[key] ? true : false,
+          value: key,
+          tips: _.get(ModesTipsMap, key, '')
+        };
+      });
 
       sourceGroupMap.current = groupList;
 
@@ -384,30 +240,20 @@ const AddModal: React.FC<AddModalProps> = (props) => {
 
       const list = _.sortBy(res.items, 'size');
 
-      hasF16Ref.current = _.some(res.items, (item: CatalogSpec) => {
-        return AscendNPUQuant_F16.includes(_.toUpper(item.quantization));
-      });
-
       const defaultSpec =
-        _.find(list, (item: CatalogSpec) => {
-          return getDefaultQuant({
-            category: _.get(current, 'categories.0', ''),
-            quantOption: item.quantization,
-            backend: item.backend
-          });
-        }) || _.get(res.items, `0`, {});
+        _.find(
+          list,
+          (item: CatalogSpec) => item.mode === modeDataList[0]?.value
+        ) || {};
 
       selectSpecRef.current = defaultSpec;
+
+      setModeList(modeDataList);
       setSourceList(sources);
-      handleSetBackendOptions();
-      handleSetSizeOptions({
-        backend: defaultSpec.backend
+      initFormDataBySource({
+        ...defaultSpec,
+        cluster_id: clusterId
       });
-      handleSetQuantizationOptions({
-        size: defaultSpec.size,
-        backend: defaultSpec.backend
-      });
-      initFormDataBySource(defaultSpec);
 
       const name = _.toLower(current.name).replace(/\s/g, '-') || '';
       form.current.setFieldValue('name', name);
@@ -420,49 +266,45 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       const allValues = generateSubmitData({
         ...defaultSpec,
         categories: _.get(current, 'categories.0', null),
+        cluster_id: clusterId,
         name
       });
+
+      // If no avaliable gpus for the model, show warning message
+      if (!res.items.length) {
+        noCompatibleGPUsRef.current = true;
+        setWarningStatus({
+          show: true,
+          type: 'warning',
+          message: intl.formatMessage({ id: 'models.catalog.nogpus.tips' })
+        });
+        return;
+      }
+      noCompatibleGPUsRef.current = false;
       handleCheckCompatibility(allValues);
     } catch (error) {
       // ignore
     }
   };
 
-  const handleOnQuantizationChange = (val: string) => {
+  const handleOnModeChange = (val: string) => {
     const data = getModelSpec({
+      mode: val,
       backend: form.current.getFieldValue('backend'),
-      size: form.current.getFieldValue('size'),
-      quantization: val
+      size: 0,
+      quantization: ''
     });
+
+    console.log('mode change data:', data);
+
     form.current.setFieldsValue({
-      ...data,
-      ...pickSomeFieldsValue(data)
+      ...data
     });
     handleCheckFormData();
   };
 
-  const handleOnSizeChange = (val: number) => {
-    // TODO
-    form.current.setFieldValue(defaultFormValues);
-    const list = handleSetQuantizationOptions({
-      backend: form.current.getFieldValue('backend'),
-      size: val
-    });
-
-    const quantization = checkQuantization(list);
-
-    const data = getModelSpec({
-      backend: form.current.getFieldValue('backend'),
-      size: val,
-      quantization: quantization
-    });
-
-    // set form data
-    form.current.setFieldsValue({
-      ...defaultFormValues,
-      ...data
-    });
-    handleCheckFormData();
+  const handleOnClusterChange = async (clusterId: number) => {
+    await fetchSpecData(clusterId);
   };
 
   const handleOk = async (values: FormData) => {
@@ -483,8 +325,22 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   }, [warningStatus.show, warningStatus.type]);
 
   useEffect(() => {
+    getClusterList();
+    getWorkerList();
+  }, []);
+
+  useEffect(() => {
     if (open) {
-      fetchSpecData();
+      setTimeout(() => {
+        const clusterId = initClusterId();
+        fetchSpecData(clusterId);
+        form.current?.getGPUOptionList?.({
+          clusterId: clusterId
+        });
+        form.current?.getBackendOptions?.({
+          cluster_id: clusterId
+        });
+      }, 100);
     }
     return () => {
       axiosToken.current?.cancel?.();
@@ -497,70 +353,35 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     };
   }, [open, current]);
 
-  useEffect(() => {
-    getGPUList().then((data) => {
-      setGpuOptions(data);
-    });
-  }, []);
-
   return (
     <GSDrawer
-      title={
-        <div className="flex-between flex-center">
-          <span
-            style={{
-              color: 'var(--ant-color-text)',
-              fontWeight: 'var(--font-weight-medium)',
-              fontSize: 'var(--font-size-middle)'
-            }}
-          >
-            {title}
-          </span>
-          <Button type="text" size="small" onClick={handleCancel}>
-            <CloseOutlined></CloseOutlined>
-          </Button>
-        </div>
-      }
+      title={title}
       open={open}
       onClose={handleCancel}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       closeIcon={false}
       maskClosable={false}
       keyboard={false}
       styles={{
-        body: {
-          height: 'calc(100vh - 57px)',
-          padding: '16px 0',
-          overflowX: 'hidden'
-        },
-        content: {
-          borderRadius: '6px 0 0 6px'
-        }
+        wrapper: { width: width }
       }}
-      width={width}
       footer={false}
     >
-      <FormContext.Provider
+      <CatalogFormContext.Provider
         value={{
-          isGGUF: isGGUF,
-          byBuiltIn: true,
-          sizeOptions: sizeOptions,
-          quantizationOptions: quantizationOptions,
-          pageAction: action,
-          onSizeChange: handleOnSizeChange,
-          onQuantizationChange: handleOnQuantizationChange,
-          onValuesChange: onValuesChange
+          sizeOptions: [],
+          quantizationOptions: [],
+          modeList: modeList,
+          onModeChange: handleOnModeChange
         }}
       >
         <FormWrapper>
           <ColumnWrapper
-            paddingBottom={
-              warningStatus.show
-                ? Array.isArray(warningStatus.message)
-                  ? 150
-                  : 125
-                : 50
-            }
+            styles={{
+              container: {
+                paddingBlock: 0
+              }
+            }}
             footer={
               <>
                 <CompatibilityAlert
@@ -572,7 +393,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
                     });
                   }}
                   warningStatus={warningStatus}
-                  contentStyle={{ paddingInline: 0 }}
+                  contentStyle={{ paddingInline: '0 6px' }}
                 ></CompatibilityAlert>
                 <ModalFooter
                   onCancel={handleCancel}
@@ -588,7 +409,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
                     )
                   }
                   style={{
-                    padding: '16px 24px',
+                    padding: '16px 24px 8px',
                     display: 'flex',
                     justifyContent: 'flex-end'
                   }}
@@ -601,22 +422,23 @@ const AddModal: React.FC<AddModalProps> = (props) => {
                 fields={[]}
                 source={source}
                 action={action}
-                selectedModel={{}}
                 onOk={handleOk}
                 ref={form}
                 isGGUF={isGGUF}
+                formKey={DeployFormKeyMap.CATALOG}
                 sourceDisable={false}
-                backendOptions={backendList}
                 sourceList={sourceList}
-                gpuOptions={gpuOptions}
+                clusterList={clusterList}
+                onClusterChange={handleOnClusterChange}
                 onBackendChange={handleBackendChange}
                 onSourceChange={handleSourceChange}
                 onValuesChange={onValuesChange}
+                clearCacheFormValues={clearCacheFormValues}
               ></DataForm>
             </>
           </ColumnWrapper>
         </FormWrapper>
-      </FormContext.Provider>
+      </CatalogFormContext.Provider>
     </GSDrawer>
   );
 };

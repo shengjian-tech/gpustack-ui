@@ -35,6 +35,7 @@ const IncompatibleInfo = styled.div`
     li {
       position: relative;
       line-height: 20px;
+      white-space: pre-wrap;
     }
     li.normal::before {
       position: absolute;
@@ -81,7 +82,7 @@ const IncompatiableInfo: React.FC<IncompatiableInfoProps> = (props) => {
 
   if (isEvaluating) {
     return (
-      <CompatibleTag color="blue" bordered={false}>
+      <CompatibleTag color="blue" variant="filled">
         <Tooltip title={intl.formatMessage({ id: 'models.form.evaluating' })}>
           <LoadingOutlined />
         </Tooltip>
@@ -113,7 +114,7 @@ const IncompatiableInfo: React.FC<IncompatiableInfoProps> = (props) => {
       <CompatibleTag
         icon={<WarningOutlined />}
         color={error ? 'error' : 'warning'}
-        bordered={false}
+        variant="filled"
       ></CompatibleTag>
     </TooltipOverlayScroller>
   );

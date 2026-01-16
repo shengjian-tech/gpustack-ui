@@ -1,67 +1,27 @@
-import AutoTooltip from '@/components/auto-tooltip';
 import DeleteModal from '@/components/delete-modal';
-import DropdownButtons from '@/components/drop-down-buttons';
-import PageTools from '@/components/page-tools';
+import IconFont from '@/components/icon-font';
+import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
-import HotKeys from '@/config/hotkeys';
+import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import type { PageActionType } from '@/config/types';
 import useTableFetch from '@/hooks/use-table-fetch';
+import { useIntl, useModel } from '@umijs/max';
+import { useMemoizedFn } from 'ahooks';
+import { ConfigProvider, message, Table } from 'antd';
+import _ from 'lodash';
+import { useMemo, useState } from 'react';
+import NoResult from '../_components/no-result';
+import PageBox from '../_components/page-box';
 import {
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  SyncOutlined,
-  UserOutlined,
-  UserSwitchOutlined
-} from '@ant-design/icons';
-import { PageContainer } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
-import {
-  Button,
-  ConfigProvider,
-  Empty,
-  Input,
-  Space,
-  Table,
-  message
-} from 'antd';
-import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { createUser, deleteUser, queryUsersList, updateUser } from './apis';
+  createUser,
+  deleteUser,
+  queryUsersList,
+  updateUser,
+  updateUserStatus
+} from './apis';
 import AddModal from './components/add-modal';
 import { FormData, ListItem } from './config/types';
-import styled from 'styled-components';
-
-const Wrapper = styled.div`
-  .ant-pro-page-container {
-    background: white;
-    border-radius: 10px;
-    min-height: 600px;
-    max-width: 1400px;
-    margin:30px auto;
-  }
-  .page-tools,.ant-table-container {
-    padding:0 30px
-  }
-`;
-const { Column } = Table;
-
-const ActionList = [
-  {
-    key: 'edit',
-    label: 'common.button.edit',
-    icon: <EditOutlined></EditOutlined>
-  },
-  {
-    key: 'delete',
-    props: {
-      danger: true
-    },
-    label: 'common.button.delete',
-    icon: <DeleteOutlined></DeleteOutlined>
-  }
-];
+import useUsersColumns from './hooks/use-users-columns';
 
 const Users: React.FC = () => {
   const {
@@ -83,149 +43,155 @@ const Users: React.FC = () => {
     contentForDelete: 'users.table.user'
   });
 
+  const { initialState } = useModel('@@initialState') || {};
   const intl = useIntl();
-  const [openAddModal, setOpenAddModal] = useState(false);
-
-  const [action, setAction] = useState<PageActionType>(PageAction.CREATE);
-  const [title, setTitle] = useState<string>('');
-  const [currentData, setCurrentData] = useState<ListItem | undefined>(
-    undefined
-  );
+  const [openAddModalStatus, setOpenAddModalStatus] = useState<{
+    action: PageActionType;
+    open: boolean;
+    title: string;
+    currentData?: ListItem | null;
+  }>({
+    action: PageAction.CREATE,
+    title: '',
+    open: false,
+    currentData: null
+  });
 
   const handleAddUser = () => {
-    setOpenAddModal(true);
-    setAction(PageAction.CREATE);
-    setTitle(intl.formatMessage({ id: 'users.form.create' }));
+    setOpenAddModalStatus({
+      action: PageAction.CREATE,
+      title: intl.formatMessage({ id: 'users.form.create' }),
+      open: true,
+      currentData: null
+    });
   };
 
   const handleModalOk = async (data: FormData) => {
     const params = {
+      ...openAddModalStatus.currentData,
       ...data,
       is_admin: data.is_admin === 'admin'
     };
     try {
-      if (action === PageAction.EDIT) {
+      if (openAddModalStatus.action === PageAction.EDIT) {
         await updateUser({
           data: {
             ...params,
-            id: currentData?.id
+            id: openAddModalStatus.currentData?.id
           }
         });
       } else {
         await createUser({ data: params });
       }
       fetchData();
-      setOpenAddModal(false);
+      setOpenAddModalStatus({
+        ...openAddModalStatus,
+        open: false
+      });
       message.success(intl.formatMessage({ id: 'common.message.success' }));
     } catch (error) {
-      setOpenAddModal(false);
+      setOpenAddModalStatus({ ...openAddModalStatus, open: false });
+      message.error(intl.formatMessage({ id: 'common.message.fail' }));
     }
   };
 
   const handleModalCancel = () => {
     console.log('handleModalCancel');
-    setOpenAddModal(false);
+    setOpenAddModalStatus({
+      ...openAddModalStatus,
+      open: false,
+      currentData: null
+    });
   };
 
   const handleEditUser = (row: ListItem) => {
-    setCurrentData(row);
-    setOpenAddModal(true);
-    setAction(PageAction.EDIT);
-    setTitle(intl.formatMessage({ id: 'users.form.edit' }));
+    setOpenAddModalStatus({
+      title: intl.formatMessage({ id: 'users.form.edit' }),
+      action: PageAction.EDIT,
+      open: true,
+      currentData: row
+    });
   };
 
-  const handleSelect = (val: any, row: ListItem) => {
+  const handleActiveChange = async (checked: boolean, row: ListItem) => {
+    try {
+      await updateUserStatus({
+        id: row.id,
+        data: {
+          is_active: checked
+        }
+      });
+      handleSearch();
+      message.success(intl.formatMessage({ id: 'common.message.success' }));
+    } catch (error) {
+      message.error(intl.formatMessage({ id: 'common.message.fail' }));
+    }
+  };
+
+  const handleSelect = useMemoizedFn((val: any, row: ListItem) => {
     if (val === 'edit') {
       handleEditUser(row);
     } else if (val === 'delete') {
       handleDelete({ ...row, name: row.username });
+    } else if (val === 'active' || val === 'inactive') {
+      handleActiveChange(val === 'active', row);
     }
-  };
+  });
 
   const renderEmpty = (type?: string) => {
     if (type !== 'Table') return;
-    if (
-      !dataSource.loading &&
-      dataSource.loadend &&
-      !dataSource.dataList.length
-    ) {
-      return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE}></Empty>;
-    }
-    return <div></div>;
+    return (
+      <NoResult
+        loading={dataSource.loading}
+        loadend={dataSource.loadend}
+        dataSource={dataSource.dataList}
+        image={<IconFont type="icon-users" />}
+        filters={_.omit(queryParams, ['sort_by'])}
+        noFoundText={intl.formatMessage({
+          id: 'noresult.users.nofound'
+        })}
+        title={intl.formatMessage({ id: 'noresult.users.title' })}
+        subTitle={intl.formatMessage({ id: 'noresult.users.subTitle' })}
+        onClick={handleAddUser}
+        buttonText={intl.formatMessage({ id: 'noresult.button.add' })}
+      ></NoResult>
+    );
   };
 
-  useHotkeys(
-    HotKeys.CREATE,
-    () => {
-      handleAddUser();
-    },
-    {
-      enabled: !openAddModal
-    }
-  );
+  const columns = useUsersColumns({
+    handleSelect,
+    sortOrder
+  });
+
+  const dataList = useMemo(() => {
+    return dataSource.dataList.map((item) => ({
+      ...item,
+      disabled: initialState?.currentUser?.id === item.id
+    }));
+  }, [dataSource.dataList, initialState?.currentUser?.id]);
 
   return (
     <>
-      <Wrapper>
-      <PageContainer
-        ghost
-        header={{
-          title: intl.formatMessage({ id: 'users.title' }),
-          style: {
-            paddingInline: 'var(--layout-content-header-inlinepadding)'
-          },
-          breadcrumb: {}
-        }}
-        extra={[]}
-      >
-        <PageTools
+      <PageBox>
+        <FilterBar
           marginBottom={22}
-          left={
-            <Space>
-              <Input
-                placeholder={intl.formatMessage({ id: 'common.filter.name' })}
-                style={{ width: 300 }}
-                allowClear
-                onChange={handleNameChange}
-              ></Input>
-              <Button
-                type="text"
-                style={{ color: 'var(--ant-color-text-tertiary)' }}
-                onClick={handleSearch}
-                icon={<SyncOutlined></SyncOutlined>}
-              ></Button>
-            </Space>
-          }
-          right={
-            <Space size={20}>
-              <Button
-                icon={<PlusOutlined></PlusOutlined>}
-                type="primary"
-                onClick={handleAddUser}
-              >
-                {intl.formatMessage({ id: 'users.button.create' })}
-              </Button>
-              <Button
-                icon={<DeleteOutlined />}
-                danger
-                onClick={handleDeleteBatch}
-                disabled={!rowSelection.selectedRowKeys.length}
-              >
-                <span>
-                  {intl?.formatMessage?.({ id: 'common.button.delete' })}
-                  {rowSelection.selectedRowKeys.length > 0 && (
-                    <span>({rowSelection.selectedRowKeys?.length})</span>
-                  )}
-                </span>
-              </Button>
-            </Space>
-          }
-        ></PageTools>
+          marginTop={30}
+          buttonText={intl.formatMessage({ id: 'users.button.create' })}
+          handleSearch={handleSearch}
+          handleDeleteByBatch={handleDeleteBatch}
+          handleClickPrimary={handleAddUser}
+          handleInputChange={handleNameChange}
+          rowSelection={rowSelection}
+          widths={{ input: 300 }}
+        ></FilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
           <Table
-            dataSource={dataSource.dataList}
+            columns={columns}
+            dataSource={dataList}
             rowSelection={rowSelection}
             loading={dataSource.loading}
+            sortDirections={TABLE_SORT_DIRECTIONS}
+            showSorterTooltip={false}
             rowKey="id"
             onChange={handleTableChange}
             pagination={{
@@ -236,105 +202,19 @@ const Users: React.FC = () => {
               hideOnSinglePage: queryParams.perPage === 10,
               onChange: handlePageChange
             }}
-          >
-            <Column
-              title={intl.formatMessage({ id: 'common.table.name' })}
-              dataIndex="username"
-              key="name"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record) => {
-                return (
-                  <AutoTooltip ghost minWidth={20}>
-                    {text}
-                  </AutoTooltip>
-                );
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'users.table.role' })}
-              dataIndex="role"
-              key="role"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record: ListItem) => {
-                return record.is_admin ? (
-                  <AutoTooltip ghost minWidth={50}>
-                    <UserSwitchOutlined className="size-16" />
-                    <span className="m-l-5">
-                      {intl.formatMessage({ id: 'users.form.admin' })}
-                    </span>
-                  </AutoTooltip>
-                ) : (
-                  <AutoTooltip ghost minWidth={50}>
-                    <UserOutlined className="size-16" />
-                    <span className="m-l-5">
-                      {intl.formatMessage({ id: 'users.form.user' })}
-                    </span>
-                  </AutoTooltip>
-                );
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'users.form.fullname' })}
-              dataIndex="full_name"
-              key="full_name"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record) => {
-                return (
-                  <AutoTooltip ghost minWidth={20}>
-                    {text}
-                  </AutoTooltip>
-                );
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'common.table.createTime' })}
-              dataIndex="created_at"
-              key="createTime"
-              defaultSortOrder="descend"
-              sortOrder={sortOrder}
-              showSorterTooltip={false}
-              sorter={false}
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record) => {
-                return (
-                  <AutoTooltip ghost minWidth={20}>
-                    {dayjs(text).format('YYYY-MM-DD HH:mm:ss')}
-                  </AutoTooltip>
-                );
-              }}
-            />
-            <Column
-              title={intl.formatMessage({ id: 'common.table.operation' })}
-              key="operation"
-              ellipsis={{
-                showTitle: false
-              }}
-              render={(text, record: ListItem) => {
-                return (
-                  <DropdownButtons
-                    items={ActionList}
-                    onSelect={(val) => handleSelect(val, record)}
-                  ></DropdownButtons>
-                );
-              }}
-            />
-          </Table>
+          ></Table>
         </ConfigProvider>
+<<<<<<< HEAD
         </PageContainer>
       </Wrapper>
+=======
+      </PageBox>
+>>>>>>> upstream/main
       <AddModal
-        open={openAddModal}
-        action={action}
-        title={title}
-        data={currentData}
+        open={openAddModalStatus.open}
+        action={openAddModalStatus.action}
+        title={openAddModalStatus.title}
+        data={openAddModalStatus.currentData}
         onCancel={handleModalCancel}
         onOk={handleModalOk}
       ></AddModal>

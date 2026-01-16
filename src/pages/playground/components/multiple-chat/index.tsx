@@ -1,7 +1,7 @@
+import { HEADER_HEIGHT } from '@/config/settings';
 import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import _ from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CompareContext from '../../config/compare-context';
 import {
   MessageItem,
@@ -39,7 +39,7 @@ const MultiCompare: React.FC<MultiCompareProps> = ({ modelList, loaded }) => {
   const modelsCounterMap = useRef<Record<string, number>>({});
   const modelRefs = useRef<any>({});
   const chatListScrollRef = useRef<any>(null);
-  const boxHeight = 'calc(100vh - 72px)';
+  const boxHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
   const [actions, setActions] = useState<MessageItemAction[]>([
     'upload',
     'delete',
@@ -309,4 +309,4 @@ const MultiCompare: React.FC<MultiCompareProps> = ({ modelList, loaded }) => {
   );
 };
 
-export default memo(MultiCompare);
+export default MultiCompare;

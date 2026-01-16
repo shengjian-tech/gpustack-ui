@@ -6,6 +6,7 @@ import CopyButton from '@/components/copy-button';
 import IconFont from '@/components/icon-font';
 import UploadAudio from '@/components/upload-audio';
 import routeCachekey from '@/config/route-cachekey';
+import { HEADER_HEIGHT } from '@/config/settings';
 import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import { useCancelToken } from '@/hooks/use-request-token';
 import { readAudioFile } from '@/utils/load-audio-file';
@@ -13,7 +14,6 @@ import { SendOutlined } from '@ant-design/icons';
 import { useIntl, useSearchParams } from '@umijs/max';
 import { Button, Spin, Tooltip } from 'antd';
 import classNames from 'classnames';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useCallback,
@@ -26,7 +26,7 @@ import React, {
 import { AUDIO_SPEECH_TO_TEXT_API, speechToText } from '../apis';
 import { SpeechToTextFormat, extractErrorMessage } from '../config';
 import { RealtimeParamsConfig as paramsConfig } from '../config/params-config';
-import '../style/ground-left.less';
+import '../style/ground-llm.less';
 import '../style/speech-to-text.less';
 import '../style/system-message-wrap.less';
 import { speechToTextCode } from '../view-code/audio';
@@ -201,9 +201,11 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
 
   const handleUploadChange = useCallback(
     async (data: { file: any; fileList: any }) => {
-      const res = await readAudioFile(data.file);
-      setAudioData(res);
-      setTokenResult(null);
+      try {
+        const res = await readAudioFile(data.file);
+        setAudioData(res);
+        setTokenResult(null);
+      } catch (error) {}
     },
     []
   );
@@ -289,7 +291,7 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
     <div
       className="ground-left-wrapper"
       style={{
-        height: 'calc(100vh - 72px)'
+        height: `calc(100vh - ${HEADER_HEIGHT}px)`
       }}
     >
       <div className="ground-left">

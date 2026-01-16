@@ -1,42 +1,25 @@
-import { modelsExpandKeysAtom } from '@/atoms/models';
-import AutoTooltip from '@/components/auto-tooltip';
+import { modelsExpandKeysAtom, modelsSessionAtom } from '@/atoms/models';
 import DeleteModal from '@/components/delete-modal';
 import DropDownActions from '@/components/drop-down-actions';
 import DropdownButtons from '@/components/drop-down-buttons';
 import { PageSize } from '@/components/logs-viewer/config';
 import PageTools from '@/components/page-tools';
+import BaseSelect from '@/components/seal-form/base/select';
 import SealTable from '@/components/seal-table';
-import { SealColumnProps } from '@/components/seal-table/types';
+import { TableOrder } from '@/components/seal-table/types';
 import { PageAction } from '@/config';
+import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
+import { PageActionType } from '@/config/types';
 import useBodyScroll from '@/hooks/use-body-scroll';
 import useExpandedRowKeys from '@/hooks/use-expanded-row-keys';
 import useTableRowSelection from '@/hooks/use-table-row-selection';
-import useTableSort from '@/hooks/use-table-sort';
-import { ListItem as WorkerListItem } from '@/pages/resources/config/types';
+import PageBox from '@/pages/_components/page-box';
+import useNoResourceResult from '@/pages/llmodels/hooks/use-no-resource-result';
 import { handleBatchRequest } from '@/utils';
-import {
-  IS_FIRST_LOGIN,
-  readState,
-  writeState
-} from '@/utils/localstore/index';
-import {
-  DownOutlined,
-  QuestionCircleOutlined,
-  SyncOutlined
-} from '@ant-design/icons';
-import { PageContainer } from '@ant-design/pro-components';
-import { useIntl, useNavigate } from '@umijs/max';
-import {
-  Button,
-  Empty,
-  Input,
-  Select,
-  Space,
-  Tooltip,
-  Typography,
-  message
-} from 'antd';
-import dayjs from 'dayjs';
+import { DownOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons';
+import { useIntl, useNavigate, useSearchParams } from '@umijs/max';
+import { useMemoizedFn } from 'ahooks';
+import { Button, Input, Space, message } from 'antd';
 import { useAtom } from 'jotai';
 import _ from 'lodash';
 import React, {
@@ -57,7 +40,6 @@ import {
 } from '../apis';
 import {
   InstanceRealtimeLogStatus,
-  backendOptionsMap,
   modelCategories,
   modelCategoriesMap,
   modelSourceMap
@@ -65,9 +47,7 @@ import {
 import {
   ButtonList,
   categoryToPathMap,
-  generateSource,
   modalConfig,
-  setModelActionList,
   sourceOptions
 } from '../config/button-actions';
 import {
@@ -76,12 +56,14 @@ import {
   ModelInstanceListItem,
   SourceType
 } from '../config/types';
-import { useGenerateFormEditInitialValues } from '../hooks';
+import useFilterStatus from '../hooks/use-filter-status';
+import useFormInitialValues from '../hooks/use-form-initial-values';
+import useModelsColumns from '../hooks/use-models-columns';
+import AccessControlModal from './access-control-modal';
 import APIAccessInfoModal from './api-access-info';
 import DeployModal from './deploy-modal';
 import Instances from './instances';
-import ModelTag from './model-tag';
-import UpdateModel from './update-modal';
+import UpdateModelModal from './update-modal';
 import ViewLogsModal from './view-logs-modal';
 import styled from 'styled-components';
 
@@ -102,6 +84,7 @@ interface ModelsProps {
   handleNameChange: (e: any) => void;
   handleShowSizeChange?: (page: number, size: number) => void;
   handlePageChange: (page: number, pageSize: number | undefined) => void;
+  handleClusterChange: (value: number) => void;
   handleDeleteSuccess: () => void;
   handleCategoryChange: (val: any) => void;
   onViewLogs: () => void;
@@ -109,6 +92,10 @@ interface ModelsProps {
   handleOnToggleExpandAll: () => void;
   onStop?: (ids: number[]) => void;
   onStart?: () => void;
+  onTableSort?: (order: TableOrder | Array<TableOrder>) => void;
+  onStatusChange: (value?: any) => void;
+  onDeleteInstanceFromCache?: (instanceId: number) => void;
+  sortOrder: string[];
   queryParams: {
     page: number;
     perPage: number;
@@ -116,9 +103,6 @@ interface ModelsProps {
     categories?: string[];
   };
   deleteIds?: number[];
-  workerList: WorkerListItem[];
-  modelFileOptions: any[];
-  catalogList?: any[];
   dataSource: ListItem[];
   loading: boolean;
   loadend: boolean;
@@ -148,35 +132,39 @@ const Models: React.FC<ModelsProps> = ({
   onCancelViewLogs,
   handleCategoryChange,
   handleOnToggleExpandAll,
+  handleClusterChange,
   onStop,
   onStart,
-  modelFileOptions,
+  onTableSort,
+  onStatusChange,
+  onDeleteInstanceFromCache,
+  sortOrder,
   deleteIds,
   dataSource,
-  workerList,
-  catalogList,
   queryParams,
   loading,
   loadend,
   total
 }) => {
-  const { getGPUList, generateFormValues, gpuDeviceList } =
-    useGenerateFormEditInitialValues();
+  const {
+    generateFormValues,
+    clusterList,
+    getClusterList,
+    getWorkerList,
+    workerList
+  } = useFormInitialValues();
+  const [searchParams] = useSearchParams();
+  const page = searchParams.get('page');
   const { saveScrollHeight, restoreScrollHeight } = useBodyScroll();
   const [updateFormInitials, setUpdateFormInitials] = useState<{
-    gpuOptions: any[];
-    modelFileOptions?: any[];
     data: any;
     isGGUF: boolean;
   }>({
-    gpuOptions: [],
-    modelFileOptions: [],
     data: {},
     isGGUF: false
   });
-  const [isFirstLogin, setIsFirstLogin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [expandAtom, setExpandAtom] = useAtom(modelsExpandKeysAtom);
+  const [modelsSession, setModelsSession] = useAtom(modelsSessionAtom);
   const intl = useIntl();
   const navigate = useNavigate();
   const rowSelection = useTableRowSelection();
@@ -187,9 +175,10 @@ const Models: React.FC<ModelsProps> = ({
     removeExpandedRowKey,
     expandedRowKeys
   } = useExpandedRowKeys(expandAtom);
-  const { sortOrder, setSortOrder } = useTableSort({
-    defaultSortOrder: 'descend'
-  });
+  const { labelRender, optionRender, handleStatusChange, statusOptions } =
+    useFilterStatus({
+      onStatusChange: onStatusChange
+    });
 
   const [apiAccessInfo, setAPIAccessInfo] = useState<any>({
     show: false,
@@ -202,17 +191,13 @@ const Models: React.FC<ModelsProps> = ({
     width: number | string;
     hasLinuxWorker?: boolean;
     source: SourceType;
-    gpuOptions: any[];
     isGGUF?: boolean;
-    modelFileOptions?: any[];
   }>({
     show: false,
     hasLinuxWorker: false,
     width: 600,
     isGGUF: false,
-    source: modelSourceMap.huggingface_value as SourceType,
-    gpuOptions: [],
-    modelFileOptions: []
+    source: modelSourceMap.huggingface_value as SourceType
   });
   const currentData = useRef<ListItem>({} as ListItem);
   const [currentInstance, setCurrentInstance] = useState<{
@@ -225,18 +210,18 @@ const Models: React.FC<ModelsProps> = ({
     url: '',
     status: ''
   });
+  const [openAccessControlModal, setOpenAccessControlModal] = useState<{
+    open: boolean;
+    currentData: ListItem | null;
+    title: string;
+    action: PageActionType;
+  }>({
+    open: false,
+    currentData: null,
+    title: '',
+    action: PageAction.CREATE
+  });
   const modalRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!catalogList?.length) {
-      return;
-    }
-    const getFirstLoginState = async () => {
-      const is_first_login = await readState(IS_FIRST_LOGIN);
-      setIsFirstLogin(is_first_login);
-    };
-    getFirstLoginState();
-  }, [catalogList?.length]);
 
   useEffect(() => {
     if (deleteIds?.length) {
@@ -246,7 +231,7 @@ const Models: React.FC<ModelsProps> = ({
 
   useEffect(() => {
     const getData = async () => {
-      await getGPUList();
+      await Promise.all([getClusterList(), getWorkerList()]);
     };
     getData();
     return () => {
@@ -258,18 +243,21 @@ const Models: React.FC<ModelsProps> = ({
     currentData.current = data;
   };
 
-  const handleOnSort = (dataIndex: string, order: any) => {
-    setSortOrder(order);
+  const handleOnSort = (order: TableOrder | Array<TableOrder>) => {
+    onTableSort?.(order);
   };
 
-  const handleOnCell = useCallback(async (record: any) => {
+  const handleOnCell = useMemoizedFn(async (record: any, extra: any) => {
     try {
-      await updateModel(getFormattedData(record));
+      await updateModel(getFormattedData(record, { replicas: extra.newValue }));
       message.success(intl.formatMessage({ id: 'common.message.success' }));
+      if (extra.newValue > extra.oldValue) {
+        updateExpandedRowKeys([record.id, ...expandedRowKeys]);
+      }
     } catch (error) {
       // ignore
     }
-  }, []);
+  });
 
   const handleStartModel = async (row: ListItem) => {
     await updateModel(getFormattedData(row, { replicas: 1 }));
@@ -280,23 +268,23 @@ const Models: React.FC<ModelsProps> = ({
     removeExpandedRowKey([row.id]);
   };
 
-  const handleModalOk = useCallback(
-    async (data: FormData) => {
-      try {
-        await updateModel({
-          data,
-          id: currentData.current?.id as number
-        });
-        setOpenAddModal(false);
-        message.success(intl.formatMessage({ id: 'common.message.success' }));
-        setTimeout(() => {
-          handleSearch();
-        }, 150);
-        restoreScrollHeight();
-      } catch (error) {}
-    },
-    [handleSearch]
-  );
+  const handleModalOk = async (data: FormData) => {
+    try {
+      await updateModel({
+        data,
+        id: currentData.current?.id as number
+      });
+      setOpenAddModal(false);
+      message.success(intl.formatMessage({ id: 'common.message.success' }));
+      if (data.replicas > currentData.current?.replicas) {
+        updateExpandedRowKeys([currentData.current?.id, ...expandedRowKeys]);
+      }
+      setTimeout(() => {
+        handleSearch();
+      }, 150);
+      restoreScrollHeight();
+    } catch (error) {}
+  };
 
   const handleModalCancel = useCallback(() => {
     setOpenAddModal(false);
@@ -397,48 +385,43 @@ const Models: React.FC<ModelsProps> = ({
     navigate(`/playground/chat?model=${row.name}`);
   };
 
-  const handleViewLogs = useCallback(
-    async (row: any) => {
-      try {
-        setCurrentInstance({
-          url: `${MODEL_INSTANCE_API}/${row.id}/logs`,
-          status: row.state,
-          id: row.id,
-          modelId: row.model_id,
-          tail: InstanceRealtimeLogStatus.includes(row.state)
-            ? undefined
-            : PageSize - 1
-        });
-        setOpenLogModal(true);
-        onViewLogs();
-        saveScrollHeight();
-      } catch (error) {
-        console.log('error:', error);
-      }
-    },
-    [onViewLogs]
-  );
-  const handleDeleteInstace = useCallback(
-    (row: any) => {
-      modalRef.current?.show({
-        content: 'models.instances',
-        okText: 'common.button.delrecreate',
-        operation: 'common.delete.single.confirm',
-        name: row.name,
-        async onOk() {
-          await deleteModelInstance(row.id);
-        }
+  const handleViewLogs = async (row: any) => {
+    try {
+      setCurrentInstance({
+        url: `${MODEL_INSTANCE_API}/${row.id}/logs`,
+        status: row.state,
+        id: row.id,
+        modelId: row.model_id,
+        tail: InstanceRealtimeLogStatus.includes(row.state)
+          ? undefined
+          : PageSize - 1
       });
-    },
-    [deleteModelInstance]
-  );
+      setOpenLogModal(true);
+      onViewLogs();
+      saveScrollHeight();
+    } catch (error) {
+      console.log('error:', error);
+    }
+  };
+
+  const handleDeleteInstace = (row: any) => {
+    modalRef.current?.show({
+      content: 'models.instances',
+      okText: 'common.button.delrecreate',
+      operation: 'common.delete.single.confirm',
+      name: row.name,
+      async onOk() {
+        await deleteModelInstance(row.id);
+        onDeleteInstanceFromCache?.(row.id);
+      }
+    });
+  };
 
   const getModelInstances = useCallback(async (row: any, options?: any) => {
     try {
       const params = {
         id: row.id,
-        page: 1,
-        perPage: 100
+        page: -1
       };
       const data = await queryModelInstancesList(params, {
         token: options?.token
@@ -454,12 +437,10 @@ const Models: React.FC<ModelsProps> = ({
   }, []);
 
   const handleEdit = async (row: ListItem) => {
-    const initialValues = generateFormValues(row, gpuDeviceList.current);
+    const initialValues = generateFormValues(row, []);
     setUpdateFormInitials({
-      gpuOptions: gpuDeviceList.current,
-      modelFileOptions: modelFileOptions,
       data: initialValues,
-      isGGUF: row.backend === backendOptionsMap.llamaBox
+      isGGUF: false
     });
     setCurrentData(row);
     setOpenAddModal(true);
@@ -469,65 +450,60 @@ const Models: React.FC<ModelsProps> = ({
   const handleViewAPIInfo = useCallback((row: ListItem) => {
     setAPIAccessInfo({
       show: true,
-      data: {
-        id: row.id,
-        name: row.name,
-        categories: row.categories,
-        url: `${MODELS_API}/${row.id}/instances`
-      }
+      data: row
     });
   }, []);
-  const handleSelect = useCallback(
-    async (val: any, row: ListItem) => {
-      try {
-        if (val === 'edit') {
-          handleEdit(row);
-        }
-        if (val === 'chat') {
-          handleOpenPlayGround(row);
-        }
-        if (val === 'delete') {
-          handleDelete(row);
-        }
-        if (val === 'start') {
-          await handleStartModel(row);
-          message.success(intl.formatMessage({ id: 'common.message.success' }));
-          updateExpandedRowKeys([row.id, ...expandedRowKeys]);
-          onStart?.();
-        }
 
-        if (val === 'api') {
-          handleViewAPIInfo(row);
-        }
-
-        if (val === 'stop') {
-          modalRef.current?.show({
-            content: 'models.instances',
-            title: 'common.title.stop.confirm',
-            okText: 'common.button.stop',
-            operation: 'common.stop.single.confirm',
-            name: row.name,
-            async onOk() {
-              await handleStopModel(row);
-              onStop?.([row.id]);
-            }
-          });
-        }
-      } catch (error) {
-        // ignore
+  const handleSelect = useMemoizedFn(async (val: any, row: ListItem) => {
+    try {
+      if (val === 'edit') {
+        handleEdit(row);
       }
-    },
-    [
-      handleEdit,
-      handleOpenPlayGround,
-      handleDelete,
-      onStop,
-      onStart,
-      expandedRowKeys
-    ]
-  );
+      if (val === 'chat') {
+        handleOpenPlayGround(row);
+      }
+      if (val === 'delete') {
+        handleDelete(row);
+      }
+      if (val === 'start') {
+        await handleStartModel(row);
+        message.success(intl.formatMessage({ id: 'common.message.success' }));
+        updateExpandedRowKeys([row.id, ...expandedRowKeys]);
+        onStart?.();
+      }
 
-  const handleChildSelect = useCallback(
+      if (val === 'api') {
+        handleViewAPIInfo(row);
+      }
+
+      if (val === 'stop') {
+        modalRef.current?.show({
+          content: 'models.instances',
+          title: 'common.title.stop.confirm',
+          okText: 'common.button.stop',
+          operation: 'common.stop.single.confirm',
+          name: row.name,
+          async onOk() {
+            await handleStopModel(row);
+            onStop?.([row.id]);
+          }
+        });
+      }
+
+      if (val === 'accessControl') {
+        setOpenAccessControlModal({
+          title: intl.formatMessage({ id: 'models.button.accessSettings' }),
+          action: PageAction.EDIT,
+          currentData: row,
+          open: true
+        });
+      }
+    } catch (error) {
+      // ignore
+    }
+  });
+
+  const handleChildSelect = useMemoizedFn(
     (val: any, row: ModelInstanceListItem) => {
       if (val === 'delete') {
         handleDeleteInstace(row);
@@ -535,8 +511,7 @@ const Models: React.FC<ModelsProps> = ({
       if (val === 'viewlog') {
         handleViewLogs(row);
       }
-    },
-    [handleViewLogs, handleDeleteInstace]
+    }
   );
 
   const renderChildren = useCallback(
@@ -568,9 +543,7 @@ const Models: React.FC<ModelsProps> = ({
     if (config) {
       setOpenDeployModal({
         ...config,
-        hasLinuxWorker: hasLinuxWorker,
-        gpuOptions: gpuDeviceList.current,
-        modelFileOptions: modelFileOptions
+        hasLinuxWorker: hasLinuxWorker
       });
     }
   };
@@ -613,192 +586,118 @@ const Models: React.FC<ModelsProps> = ({
     }
   };
 
-  const columns: SealColumnProps[] = useMemo(() => {
-    return [
-      {
-        title: intl.formatMessage({ id: 'common.table.name' }),
-        dataIndex: 'name',
-        key: 'name',
-        width: 400,
-        span: 6,
-        render: (text: string, record: ListItem) => (
-          <span className="flex-center" style={{ maxWidth: '100%' }}>
-            <AutoTooltip ghost>
-              <span className="m-r-5">{text}</span>
-            </AutoTooltip>
-            <ModelTag categoryKey={record.categories?.[0] || ''} />
-          </span>
-        )
-      },
-      {
-        title: intl.formatMessage({ id: 'models.form.source' }),
-        dataIndex: 'source',
-        key: 'source',
-        span: 7,
-        render: (text: string, record: ListItem) => (
-          <span className="flex flex-column" style={{ width: '100%' }}>
-            <AutoTooltip ghost>{generateSource(record)}</AutoTooltip>
-          </span>
-        )
-      },
-      {
-        title: (
-          <Tooltip
-            title={intl.formatMessage(
-              { id: 'models.form.replicas.tips' },
-              { api: `${window.location.origin}/v1` }
-            )}
-          >
-            <span style={{ fontWeight: 'var(--font-weight-medium)' }}>
-              {intl.formatMessage({ id: 'models.form.replicas' })}
-            </span>
-            <QuestionCircleOutlined className="m-l-5" />
-          </Tooltip>
-        ),
-        dataIndex: 'replicas',
-        key: 'replicas',
-        align: 'center',
-        span: 4,
-        editable: {
-          valueType: 'number',
-          title: intl.formatMessage({ id: 'models.table.replicas.edit' })
-        },
-        render: (text: number, record: ListItem) => (
-          <span style={{ paddingLeft: 10, minWidth: '33px' }}>
-            {record.ready_replicas} / {record.replicas}
-          </span>
-        )
-      },
-      {
-        title: intl.formatMessage({ id: 'common.table.createTime' }),
-        dataIndex: 'created_at',
-        key: 'created_at',
-        defaultSortOrder: 'descend',
-        sortOrder,
-        sorter: false,
-        span: 4,
-        render: (text: number) => (
-          <AutoTooltip ghost>
-            {dayjs(text).format('YYYY-MM-DD HH:mm:ss')}
-          </AutoTooltip>
-        )
-      },
-      {
-        title: intl.formatMessage({ id: 'common.table.operation' }),
-        key: 'operation',
-        dataIndex: 'operation',
-        span: 3,
-        render: (text, record) => (
-          <DropdownButtons
-            items={setModelActionList(record)}
-            onSelect={(val) => handleSelect(val, record)}
-          />
-        )
-      }
-    ];
-  }, [sortOrder, intl, handleSelect]);
+  const options = useMemo(() => {
+    return {
+      handleSelect,
+      clusterList,
+      sortOrder
+    };
+  }, [handleSelect, clusterList, sortOrder]);
 
-  const handleOnClick = async () => {
-    if (isLoading) {
-      return;
-    }
+  const columns = useModelsColumns(options);
 
-    const data = catalogList?.[0] || {};
-    try {
-      setIsLoading(true);
-      const modelData = await createModel({
-        data: data
-      });
-      writeState(IS_FIRST_LOGIN, false);
-      setIsFirstLogin(false);
-      setTimeout(() => {
-        updateExpandedRowKeys([modelData.id]);
-      }, 300);
-      message.success(intl.formatMessage({ id: 'common.message.success' }));
-      handleSearch?.();
-    } catch (error) {
-      // ingore
-    } finally {
-      setIsLoading(false);
+  const handleToggleExpandAll = useMemoizedFn((expanded: boolean) => {
+    const keys = dataSource.map((item) => item.id);
+    handleExpandAll(expanded, keys);
+    if (expanded) {
+      handleOnToggleExpandAll();
     }
+  });
+
+  const handleCancelAccessControl = () => {
+    setOpenAccessControlModal({
+      ...openAccessControlModal,
+      currentData: null,
+      open: false
+    });
   };
 
-  const handleToggleExpandAll = useCallback(
-    (expanded: boolean) => {
-      const keys = dataSource.map((item) => item.id);
-      handleExpandAll(expanded, keys);
-      if (expanded) {
-        handleOnToggleExpandAll();
-      }
-    },
-    [dataSource]
-  );
-
-  const renderEmpty = useMemo(() => {
-    if (dataSource.length || !isFirstLogin || !catalogList?.length) {
-      return null;
+  const { noResourceResult } = useNoResourceResult({
+    loadend: loadend,
+    loading: loading,
+    dataSource: dataSource,
+    queryParams: queryParams,
+    iconType: 'icon-resources',
+    title: intl.formatMessage({ id: 'noresult.deployments.title' }),
+    noClusters: !clusterList.length,
+    noWorkers: workerList.length === 0 && clusterList.length > 0,
+    defaultContent: {
+      subTitle: intl.formatMessage({ id: 'noresult.deployments.subTitle' }),
+      noFoundText: intl.formatMessage({ id: 'noresult.mymodels.nofound' }),
+      buttonText: intl.formatMessage({ id: 'models.table.button.deploy' }),
+      onClick: () => handleClickDropdown({ key: 'catalog' })
     }
-    return (
-      <div
-        className="flex-column justify-center flex-center"
-        style={{ height: 300 }}
-      >
-        <Empty description=""></Empty>
-        <Typography.Title level={4} style={{ marginBottom: 30 }}>
-          {intl.formatMessage({ id: 'models.table.list.empty' })}
-        </Typography.Title>
-        <div>
-          <Button type="primary" onClick={handleOnClick} loading={isLoading}>
-            <span
-              className="flex-center"
-              dangerouslySetInnerHTML={{
-                __html: intl.formatMessage({ id: 'models.table.list.getStart' })
-              }}
-            ></span>
-          </Button>
-        </div>
-      </div>
-    );
-  }, [dataSource.length, isFirstLogin, isLoading, intl]);
+  });
+
+  useEffect(() => {
+    if (modelsSession.source && loadend) {
+      handleClickDropdown({
+        key: modelsSession.source
+      });
+    }
+    return () => {
+      setModelsSession({});
+    };
+  }, [loadend]);
 
   return (
     <>
-      <Wrapper>
-        <PageContainer
-        className="models-page-container"
-        ghost
-        header={{
-          title: intl.formatMessage({ id: 'menu.models.deployment' }),
-          style: {
-            paddingInline: 'var(--layout-content-header-inlinepadding)'
-          },
-          breadcrumb: {}
-        }}
-        extra={[]}
-        >
+      <PageBox>
         <PageTools
           marginBottom={22}
+          marginTop={0}
           left={
             <Space>
               <Input
+                prefix={
+                  <SearchOutlined
+                    style={{ color: 'var(--ant-color-text-placeholder)' }}
+                  ></SearchOutlined>
+                }
                 placeholder={intl.formatMessage({ id: 'common.filter.name' })}
-                style={{ width: 230 }}
+                style={{ width: 200 }}
                 size="large"
                 allowClear
                 onChange={handleNameChange}
               ></Input>
-              <Select
+              <BaseSelect
                 allowClear
                 showSearch={false}
                 placeholder={intl.formatMessage({
                   id: 'models.filter.category'
                 })}
-                style={{ width: 180 }}
+                style={{ width: 160 }}
                 size="large"
                 maxTagCount={1}
                 onChange={handleCategoryChange}
                 options={modelCategories.filter((item) => item.value)}
-              ></Select>
+              ></BaseSelect>
+              {page !== 'clusters' && (
+                <BaseSelect
+                  allowClear
+                  showSearch={false}
+                  placeholder={intl.formatMessage({
+                    id: 'clusters.filterBy.cluster'
+                  })}
+                  style={{ width: 160 }}
+                  size="large"
+                  maxTagCount={1}
+                  onChange={handleClusterChange}
+                  options={clusterList}
+                ></BaseSelect>
+              )}
+              <BaseSelect
+                allowClear
+                showSearch={false}
+                placeholder={intl.formatMessage({ id: 'common.filter.status' })}
+                style={{ width: 180 }}
+                size="large"
+                maxTagCount={1}
+                optionRender={optionRender}
+                labelRender={labelRender}
+                options={statusOptions}
+                onChange={handleStatusChange}
+              ></BaseSelect>
               <Button
                 type="text"
                 style={{ color: 'var(--ant-color-text-tertiary)' }}
@@ -809,22 +708,23 @@ const Models: React.FC<ModelsProps> = ({
           }
           right={
             <Space size={20}>
-              <DropDownActions
-                menu={{
-                  items: sourceOptions,
-                  onClick: handleClickDropdown
-                }}
-                trigger={['hover']}
-                placement="bottomRight"
-              >
-                <Button
-                  icon={<DownOutlined></DownOutlined>}
-                  type="primary"
-                  iconPosition="end"
+              {page !== 'clusters' && (
+                <DropDownActions
+                  menu={{
+                    items: sourceOptions,
+                    onClick: handleClickDropdown
+                  }}
+                  placement="bottomRight"
                 >
-                  {intl?.formatMessage?.({ id: 'models.button.deploy' })}
-                </Button>
-              </DropDownActions>
+                  <Button
+                    icon={<DownOutlined></DownOutlined>}
+                    type="primary"
+                    iconPlacement="end"
+                  >
+                    {intl?.formatMessage?.({ id: 'models.button.deploy' })}
+                  </Button>
+                </DropDownActions>
+              )}
               <DropdownButtons
                 items={ButtonList}
                 extra={
@@ -843,9 +743,11 @@ const Models: React.FC<ModelsProps> = ({
 
         <SealTable
           columns={columns}
+          sortDirections={TABLE_SORT_DIRECTIONS}
           dataSource={dataSource}
           rowSelection={rowSelection}
           expandedRowKeys={expandedRowKeys}
+          showSorterTooltip={false}
           onExpand={handleExpandChange}
           onExpandAll={handleToggleExpandAll}
           loading={loading}
@@ -853,13 +755,14 @@ const Models: React.FC<ModelsProps> = ({
           rowKey="id"
           childParentKey="model_id"
           expandable={true}
-          onSort={handleOnSort}
+          onTableSort={handleOnSort}
           onCell={handleOnCell}
           pollingChildren={false}
           watchChildren={true}
           loadChildren={getModelInstances}
           loadChildrenAPI={generateChildrenRequestAPI}
           renderChildren={renderChildren}
+          empty={noResourceResult}
           pagination={{
             showSizeChanger: true,
             pageSize: queryParams.perPage,
@@ -869,16 +772,16 @@ const Models: React.FC<ModelsProps> = ({
             onChange: handlePageChange
           }}
         ></SealTable>
-        </PageContainer>
-      </Wrapper>
-      <UpdateModel
+      </PageBox>
+      <UpdateModelModal
         open={openAddModal}
         action={PageAction.EDIT}
         title={intl.formatMessage({ id: 'models.title.edit' })}
         updateFormInitials={updateFormInitials}
+        clusterList={clusterList}
         onCancel={handleModalCancel}
         onOk={handleModalOk}
-      ></UpdateModel>
+      ></UpdateModelModal>
       <DeployModal
         open={openDeployModal.show}
         action={PageAction.CREATE}
@@ -887,12 +790,12 @@ const Models: React.FC<ModelsProps> = ({
         width={openDeployModal.width}
         isGGUF={openDeployModal.isGGUF}
         hasLinuxWorker={openDeployModal.hasLinuxWorker}
-        gpuOptions={openDeployModal.gpuOptions}
-        modelFileOptions={openDeployModal.modelFileOptions || []}
+        clusterList={clusterList}
         onCancel={handleDeployModalCancel}
         onOk={handleCreateModel}
       ></DeployModal>
       <ViewLogsModal
+        status={currentInstance.status}
         url={currentInstance.url}
         tail={currentInstance.tail}
         id={currentInstance.id}
@@ -911,6 +814,13 @@ const Models: React.FC<ModelsProps> = ({
           });
         }}
       ></APIAccessInfoModal>
+      <AccessControlModal
+        onCancel={handleCancelAccessControl}
+        title={openAccessControlModal.title}
+        open={openAccessControlModal.open}
+        currentData={openAccessControlModal.currentData}
+        action={openAccessControlModal.action}
+      ></AccessControlModal>
     </>
   );
 };

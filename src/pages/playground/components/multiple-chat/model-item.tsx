@@ -1,6 +1,7 @@
 import AutoTooltip from '@/components/auto-tooltip';
 import IconFont from '@/components/icon-font';
 import OverlayScroller from '@/components/overlay-scroller';
+import BaseSelect from '@/components/seal-form/base/select';
 import {
   ClearOutlined,
   DeleteOutlined,
@@ -8,7 +9,7 @@ import {
   SettingOutlined
 } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Checkbox, Dropdown, Popover, Select, Spin } from 'antd';
+import { Button, Checkbox, Dropdown, Popover, Spin } from 'antd';
 import _ from 'lodash';
 import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
@@ -46,7 +47,8 @@ interface ModelItemProps {
 }
 
 const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
-  const { modelList, model, instanceId } = props;
+  const { modelList, ...restProps } = props;
+  const { model, instanceId } = restProps;
   const {
     globalParams,
     setGlobalParams,
@@ -65,14 +67,20 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
     paramsConfig,
     initialValues,
     parameters
-  } = useInitLLmMeta(props, {
-    defaultValues: {
-      ...llmInitialValues,
-      model: model
+  } = useInitLLmMeta(
+    {
+      ...restProps,
+      modelList: modelFullList
     },
-    defaultParamsConfig: ChatParamsConfig,
-    metaKeys: LLM_METAKEYS
-  });
+    {
+      defaultValues: {
+        ...llmInitialValues,
+        model: model
+      },
+      defaultParamsConfig: ChatParamsConfig,
+      metaKeys: LLM_METAKEYS
+    }
+  );
   const intl = useIntl();
   const isApplyToAllModels = useRef(false);
   const [systemMessage, setSystemMessage] = useState<string>('');
@@ -239,7 +247,7 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
     <div className="model-item">
       <div className="header">
         <span className="title">
-          <Select
+          <BaseSelect
             style={{ width: '100%' }}
             variant="borderless"
             options={modelFullList}
@@ -253,7 +261,7 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
                     placement: 'right'
                   }}
                   minWidth={60}
-                  maxWidth={180}
+                  maxWidth={220}
                 >
                   {data.label}
                 </AutoTooltip>
@@ -267,13 +275,13 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
                     placement: 'right'
                   }}
                   minWidth={60}
-                  maxWidth={180}
+                  maxWidth={220}
                 >
                   {data.label}
                 </AutoTooltip>
               );
             }}
-          ></Select>
+          ></BaseSelect>
         </span>
         {tokenResult && !loading && (
           <ReferenceParams usage={tokenResult} scaleable></ReferenceParams>
@@ -293,7 +301,12 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
           </Dropdown>
           <Popover
             autoAdjustOverflow={true}
-            overlayInnerStyle={{ width: 375, paddingInline: 0 }}
+            styles={{
+              container: {
+                width: 375,
+                paddingInline: 0
+              }
+            }}
             content={
               <OverlayScroller
                 maxHeight={500}
@@ -360,4 +373,4 @@ const ModelItem: React.FC<ModelItemProps> = forwardRef((props, ref) => {
   );
 });
 
-export default React.memo(ModelItem);
+export default ModelItem;

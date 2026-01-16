@@ -48,7 +48,7 @@ const SealSlider: React.FC<SealSliderProps> = (props) => {
     props.onChange?.(newValue);
   };
 
-  const renderLabel = React.useMemo(() => {
+  const renderLabel = () => {
     return (
       <span
         className="slider-label"
@@ -70,13 +70,13 @@ const SealSlider: React.FC<SealSliderProps> = (props) => {
         )}
       </span>
     );
-  }, [label, labelWidth, description, value, max, min, step, defaultValue]);
+  };
   return (
     <SliderWrapper className="slider-wrapper">
       <Wrapper
         required={required}
         status={checkStatus || status}
-        label={renderLabel}
+        label={renderLabel()}
         isFocus={true}
         variant="borderless"
       >
@@ -89,6 +89,17 @@ const SealSlider: React.FC<SealSliderProps> = (props) => {
           style={{ marginBottom: 0, marginTop: 16, marginInline: 0 }}
           tooltip={tooltip}
           value={value}
+          styles={{
+            rail: {
+              borderRadius: 3
+            },
+            track: {
+              borderRadius: 3
+            },
+            tracks: {
+              borderRadius: 3
+            }
+          }}
           onChange={handleChange}
         ></Slider>
       </Wrapper>

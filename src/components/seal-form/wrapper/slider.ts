@@ -6,8 +6,15 @@ const SliderWrapper = styled.div`
     height: 100%;
     justify-content: center;
   }
+  .label-wrapper {
+    width: 100%;
+  }
+
   .borderless {
     background-color: transparent;
+  }
+  .ant-slider {
+    flex: 1;
   }
   padding-block: 0;
   padding-inline: 2px;
@@ -34,7 +41,7 @@ const SliderWrapper = styled.div`
     .label-val {
       position: absolute !important;
       top: -14px;
-      right: -10px;
+      right: 0px;
       width: 80px;
       border-radius: var(--border-radius-base);
       text-align: center;

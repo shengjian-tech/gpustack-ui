@@ -6,12 +6,14 @@ export default {
   'menu.playground.chat': 'Chat',
   'menu.playground.speech': 'Audio',
   'menu.playground.text2images': 'Image',
+  'menu.playground.video': 'Video',
   'menu.compare': 'Compare',
   'menu.models': 'Models',
   'menu.models.modelList': 'Deploy & Manage',
   'menu.models.modelCatalog': 'Catalog',
   'menu.models.catalog': 'Model Catalog',
   'menu.models.deployment': 'Deployments',
+  'menu.models.userModels': 'My Models',
   'menu.modelCatalog': 'Catalog',
   'menu.resources': 'Resources',
   'menu.apikeys': 'API Keys',
@@ -25,5 +27,11 @@ export default {
   'menu.profile': 'Profile',
   'menu.login': 'Login',
   'menu.usage': 'Usage',
-  'menu.404': '404'
+  'menu.404': '404',
+  'menu.clusterManagement': 'Cluster Management',
+  'menu.clusterManagement.clusters': 'Clusters',
+  'menu.clusterManagement.credentials': 'Cloud Credentials',
+  'menu.clusterManagement.clusterDetail': 'Cluster Detail',
+  'menu.clusterManagement.clusterCreate': 'Create Cluster',
+  'menu.resources.backendsList': 'Inference Backends'
 };

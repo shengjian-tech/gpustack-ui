@@ -1,9 +1,10 @@
 import { MoreOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Dropdown, Tooltip, type MenuProps } from 'antd';
+import { Button, Dropdown, Space, Tooltip, type MenuProps } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import React from 'react';
+import styled from 'styled-components';
 import './index.less';
 
 type Trigger = 'click' | 'hover';
@@ -19,7 +20,20 @@ interface DropdownButtonsProps {
   onSelect: (val: any, item?: any) => void;
 }
 
-const DropdownButtons: React.FC<DropdownButtonsProps> = ({
+const DropdownWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ant-color-bg-elevated);
+  padding: 5px;
+  align-items: flex-start;
+  border-radius: var(--border-radius-base);
+  box-shadow: var(--ant-box-shadow-secondary);
+  min-width: 160px;
+`;
+
+const DropdownButtons: React.FC<
+  DropdownButtonsProps & { items: MenuProps['items'] }
+> = ({
   items,
   size = 'middle',
   trigger = ['hover'],
@@ -60,75 +74,64 @@ const DropdownButtons: React.FC<DropdownButtonsProps> = ({
           ></Button>
         </Tooltip>
       ) : (
-        <Dropdown.Button
-          disabled={disabled}
-          trigger={trigger}
-          type="primary"
-          dropdownRender={(menus: any) => {
-            return (
-              <div
-                className="flex flex-column "
-                style={{
-                  backgroundColor: 'var(--ant-color-bg-elevated)',
-                  padding: 5,
-                  alignItems: 'flex-start',
-                  borderRadius: 'var(--border-radius-base)',
-                  boxShadow: 'var(--ant-box-shadow-secondary)'
-                }}
+        <Space.Compact>
+          <>
+            {showText ? (
+              <Button
+                {...headItem?.props}
+                disabled={headItem?.disabled || disabled}
+                className={classNames('dropdown-button', size)}
+                onClick={handleButtonClick}
+                size={size}
+                icon={headItem?.icon}
+                variant={variant}
+                color={color}
               >
-                {_.map(_.tail(items), (item: any) => {
-                  return (
-                    <Button
-                      {...item.props}
-                      type="text"
-                      size={size}
-                      icon={item.icon}
-                      key={item.key}
-                      disabled={item.disabled}
-                      onClick={() => handleMenuClick(item)}
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
-                    >
-                      {intl.formatMessage({ id: item.label })}
-                    </Button>
-                  );
+                {intl.formatMessage({
+                  id: headItem?.label
                 })}
-              </div>
-            );
-          }}
-          buttonsRender={([leftButton, rightButton]) => [
-            <>
-              {showText ? (
+                {extra}
+              </Button>
+            ) : (
+              <Tooltip
+                title={intl.formatMessage({ id: headItem?.label })}
+                key="leftButton"
+              >
                 <Button
                   {...headItem?.props}
-                  disabled={headItem?.disabled || disabled}
                   className={classNames('dropdown-button', size)}
                   onClick={handleButtonClick}
                   size={size}
                   icon={headItem?.icon}
-                  variant={variant}
-                  color={color}
-                >
-                  {intl.formatMessage({
-                    id: headItem?.label
-                  })}
-                  {extra}
-                </Button>
-              ) : (
-                <Tooltip
-                  title={intl.formatMessage({ id: headItem?.label })}
-                  key="leftButton"
-                >
-                  <Button
-                    {...headItem?.props}
-                    className={classNames('dropdown-button', size)}
-                    onClick={handleButtonClick}
-                    size={size}
-                    icon={headItem?.icon}
-                    disabled={headItem?.disabled}
-                  ></Button>
-                </Tooltip>
-              )}
-            </>,
+                  disabled={headItem?.disabled}
+                ></Button>
+              </Tooltip>
+            )}
+          </>
+          <Dropdown
+            disabled={disabled}
+            trigger={trigger}
+            placement="bottomRight"
+            styles={{
+              root: {
+                minWidth: 160
+              },
+              itemIcon: {
+                fontSize: 14
+              }
+            }}
+            menu={{
+              onClick: handleMenuClick,
+              items: _.tail(items).map((item: any) => ({
+                ...item,
+                ...item.props,
+                label:
+                  item.locale || item.locale === undefined
+                    ? intl.formatMessage({ id: item.label })
+                    : item.label
+              }))
+            }}
+          >
             <Button
               icon={<MoreOutlined />}
               size={size}
@@ -137,8 +140,8 @@ const DropdownButtons: React.FC<DropdownButtonsProps> = ({
               color="default"
               className={classNames('dropdown-button', size)}
             ></Button>
-          ]}
-        ></Dropdown.Button>
+          </Dropdown>
+        </Space.Compact>
       )}
     </>
   );
