@@ -164,12 +164,12 @@ export const ExtraContent = (props: { isDarkTheme?: boolean }) => {
   };
 
   const helpList = [
-    {
-      key: 'site',
-      icon: <HomeOutlined />,
-      label: 'GPUStack',
-      url: externalLinks.site
-    },
+    // {
+    //   key: 'site',
+    //   icon: <HomeOutlined />,
+    //   label: 'GPUStack',
+    //   url: externalLinks.site
+    // },
     {
       key: 'github',
       icon: <GithubOutlined />,

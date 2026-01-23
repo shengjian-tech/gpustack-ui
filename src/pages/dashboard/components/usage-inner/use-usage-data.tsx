@@ -212,7 +212,8 @@ export default function useUseageData<T>(config: {
   const fetchModelsList = async () => {
     try {
       const params = {
-        page: -1
+        page: 1,
+        page_size: 100
       };
 
       const response = await queryModelsList(params);
@@ -231,7 +232,8 @@ export default function useUseageData<T>(config: {
   const fetchUsersList = async () => {
     try {
       const params = {
-        page: -1
+        page: 1,
+        page_size: 100
       };
 
       const response = await queryUsersList(params);

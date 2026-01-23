@@ -204,12 +204,7 @@ const Users: React.FC = () => {
             }}
           ></Table>
         </ConfigProvider>
-<<<<<<< HEAD
-        </PageContainer>
-      </Wrapper>
-=======
       </PageBox>
->>>>>>> upstream/main
       <AddModal
         open={openAddModalStatus.open}
         action={openAddModalStatus.action}

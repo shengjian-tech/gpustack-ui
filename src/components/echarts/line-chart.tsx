@@ -155,7 +155,7 @@ const LineChart: React.FC<ChartProps> = (props) => {
 
   return (
     <>
-      {!seriesData.length ? (
+      {seriesData && !seriesData.length ? (
         <EmptyData
           height={height}
           title={_.get(title, 'text', title || '')}

@@ -27,9 +27,36 @@ const UsageInner: FC<{ maxWidth: number }> = ({ maxWidth }) => {
   console.log('---requestTokenData---', requestTokenData)
 
   return (
-    <div>
-      <Row gutter={maxWidth < breakpoints.xl ? [0, 0] : [20, 20]}>
-        <Col xs={24} sm={24} md={24} lg={24} xl={16}>
+    <>
+      <div className={styles['line-box']}>
+        <p className={styles['title']}>{intl.formatMessage({ id: 'dashboard.usage' })}</p>
+        <div style={{ width: '100%',padding:' 0 10px 10px 10px' }}>
+          <RequestTokenInner
+            requestData={requestTokenData?.requestData}
+            xAxisData={requestTokenData?.xAxisData}
+            tokenData={requestTokenData?.tokenData}
+          ></RequestTokenInner>
+        </div>
+      </div>
+      {/* <PageTools
+        style={{ margin: '26px 0px' }}
+        left={
+          <span className="font-700">
+            {intl.formatMessage({ id: 'dashboard.usage' })}
+          </span>
+        }
+      />
+      <Row style={{ width: '100%' }} gutter={[0, 20]}>
+        <Col
+          xs={24}
+          sm={24}
+          md={24}
+          lg={24}
+          xl={16}
+          style={{
+            paddingRight: maxWidth < breakpoints.xl ? 0 : 20
+          }}
+        >
           <div
             style={{
               display: 'flex',
@@ -72,7 +99,7 @@ const UsageInner: FC<{ maxWidth: number }> = ({ maxWidth }) => {
             topUserList={topUserData.topUserList}
           ></TopUser>
         </Col>
-      </Row>
+      </Row> */}
     </>
   );
 };

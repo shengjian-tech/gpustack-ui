@@ -43,7 +43,7 @@ export const PageContainerInner: React.FC<PageContainerProps> = ({
 };
 
 const PageBox: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <div>{children}</div>;
+  return <div className='out-page-box'>{children}</div>;
 };
 
 export default PageBox;

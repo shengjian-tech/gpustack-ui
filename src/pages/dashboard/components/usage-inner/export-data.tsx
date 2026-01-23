@@ -142,13 +142,28 @@ const ExportData: React.FC<{
       open={open}
       centered={false}
       onCancel={onCancel}
-      destroyOnHidden={true}
+      destroyOnClose={true}
       closeIcon={true}
       maskClosable={false}
       keyboard={false}
       width={1000}
       style={{
         top: '10%'
+      }}
+      styles={{
+        content: {
+          padding: '0px'
+        },
+        header: {
+          padding: 'var(--ant-modal-content-padding)',
+          paddingBottom: '0'
+        },
+        body: {
+          padding: '0 var(--ant-modal-content-padding)'
+        },
+        footer: {
+          padding: '0 var(--ant-modal-content-padding)'
+        }
       }}
       footer={
         <ModalFooter

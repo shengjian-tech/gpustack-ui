@@ -10,6 +10,7 @@ import { SearchOutlined } from '@ant-design/icons';
 import { useIntl, useNavigate } from '@umijs/max';
 import { message } from 'antd';
 import { useAtom } from 'jotai';
+import styled from 'styled-components';
 import _ from 'lodash';
 import React, { useCallback, useEffect, useState } from 'react';
 import NoResult from '../_components/no-result';
@@ -149,7 +150,7 @@ const Catalog: React.FC = () => {
         showSelect={true}
         selectHolder={intl.formatMessage({ id: 'models.filter.category' })}
         marginBottom={22}
-        marginTop={0}
+        marginTop={22}
         buttonText={intl.formatMessage({ id: 'models.catalog.button.explore' })}
         handleSearch={handleSearch}
         handleSelectChange={handleCategoryChange}

@@ -9,8 +9,6 @@ interface TopUserProps {
 const TopUser: React.FC<TopUserProps> = (props) => {
   const { userData, topUserList } = props;
 
-  console.log('TopUser userData:', userData, topUserList);
-
   return (
     <CardWrapper>
       <HBar

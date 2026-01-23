@@ -1,4 +1,5 @@
-import LogoIcon from '@/assets/images/gpustack-logo.png';
+// import LogoIcon from '@/assets/images/gpustack-logo.png';
+import LogoIcon from '@/assets/images/ai-computing power-cloud-logo.svg';
 import { userAtom } from '@/atoms/user';
 import { useIntl, useModel } from '@umijs/max';
 import { Button, Divider, Form, Spin, message } from 'antd';
@@ -106,7 +107,7 @@ const LoginForm = () => {
           <img
             src={LogoIcon}
             alt="logo"
-            style={{ height: '36px', marginLeft: 10 }}
+            style={{ height: '32px', marginLeft: 10 }}
           />
         </div>
       </div>

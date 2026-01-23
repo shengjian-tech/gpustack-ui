@@ -175,7 +175,6 @@ const SiderMenu: React.FC<SiderMenuProps> = (props) => {
         key={key}
       >
         <Link
-          prefetch="intent"
           to={menuItem.path.replace('/*', '')}
           target={menuItem.target}
           className={cx(styles.menuItemWrapper, 'menu-item', {

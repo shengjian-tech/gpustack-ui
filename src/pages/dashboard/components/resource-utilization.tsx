@@ -2,7 +2,8 @@ import LineChart from '@/components/echarts/line-chart';
 import { useIntl } from '@umijs/max';
 import dayjs from 'dayjs';
 import _ from 'lodash';
-import { useMemo } from 'react';
+import { memo, useContext, useMemo } from 'react';
+import { DashboardContext } from '../config/dashboard-context';
 
 const TypeKeyMap = {
   cpu: {
@@ -31,27 +32,9 @@ const TypeKeyMap = {
   }
 };
 
-const UtilizationOvertime: React.FC<{
-  data: {
-    cpu: {
-      timestamp: number;
-      value: number;
-    }[];
-    ram: {
-      timestamp: number;
-      value: number;
-    }[];
-    gpu: {
-      timestamp: number;
-      value: number;
-    }[];
-    vram: {
-      timestamp: number;
-      value: number;
-    }[];
-  };
-}> = ({ data }) => {
+const UtilizationOvertime: React.FC = () => {
   const intl = useIntl();
+  const data = useContext(DashboardContext)?.system_load?.history || {};
 
   const typeList = ['gpu', 'cpu', 'ram', 'vram'];
 
@@ -63,21 +46,20 @@ const UtilizationOvertime: React.FC<{
     const legendData: string[] = [];
     const xAxisData: string[] = [];
     let seriesData: { value: number; time: string; type: string }[] = [];
-    seriesData = _.map(typeList, (label: string) => {
-      const itemConfig = _.get(TypeKeyMap, label, {});
+    seriesData = _.map(typeList, (item: string) => {
+      const itemConfig = _.get(TypeKeyMap, item, {});
       const name = itemConfig.intl
         ? intl.formatMessage({ id: itemConfig.label })
         : itemConfig.label;
       legendData.push(name);
-      const itemDataList = _.get(data, label, []);
+      const itemDataList = _.get(data, item, []);
       return {
         name: name,
         color: itemConfig.color,
         data: _.map(itemDataList, (item: any) => {
-          const time = dayjs(item.timestamp * 1000).format('HH:mm:ss');
-          xAxisData.push(time);
+          xAxisData.push(dayjs(item.timestamp * 1000).format('HH:mm:ss'));
           return {
-            time: item,
+            time: dayjs(item.timestamp * 1000).format('HH:mm:ss'),
             value: _.round(_.get(item, 'value', 0), 1)
           };
         })
@@ -106,4 +88,4 @@ const UtilizationOvertime: React.FC<{
   );
 };
 
-export default UtilizationOvertime;
+export default memo(UtilizationOvertime);

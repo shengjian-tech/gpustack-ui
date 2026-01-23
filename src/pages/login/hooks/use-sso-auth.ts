@@ -78,7 +78,7 @@ export function useSSOAuth({
   };
 
   useEffect(() => {
-    init();
+    // init();
   }, []);
 
   return {

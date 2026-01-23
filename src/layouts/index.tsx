@@ -255,6 +255,15 @@ export default (props: any) => {
     return <SiderMenu {...menuProps}></SiderMenu>;
   };
 
+  const menuItemRender = (item: any, defaultDom: React.ReactNode) => {
+    if (!item || !item.path) return defaultDom;
+    return (
+      <div onClick={() => navigate(item.path)}>
+        {defaultDom}
+      </div>
+    );
+  };
+
   const onPageChange = async (route: any) => {
     const { location } = history;
     const { pathname } = location;
@@ -357,6 +366,7 @@ export default (props: any) => {
         splitMenus={true}
         logo={userSettings.collapsed ? <SLogoIcon /> : <LogoIcon />}
         menuContentRender={menuContentRender}
+        menuItemRender={menuItemRender}
         {...runtimeConfig}
         ErrorBoundary={ErrorBoundary}
         // @ts-ignore
