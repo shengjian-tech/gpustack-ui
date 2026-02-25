@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { BORDERRADIUS, INPUT_INNER_PADDING, INPUTHEIGHT } from '../config';
 
 const SelectWrapper = styled.div`
+  flex: 1;
   .seal-select-wrapper {
     border: none;
     box-shadow: none;
@@ -9,7 +10,10 @@ const SelectWrapper = styled.div`
     &.dropdown-visible {
       .__wrapper__ {
         .ant-cascader.ant-select.ant-select-outlined {
-          border-bottom: none !important;
+          border-color: var(--ant-input-active-border-color) !important;
+          outline: 0;
+          background-color: var(--ant-input-active-bg);
+          border-bottom-color: transparent !important;
           border-radius: ${BORDERRADIUS}px ${BORDERRADIUS}px 0 0;
           transition: all 0.2s ease;
           box-shadow: none;
@@ -20,7 +24,7 @@ const SelectWrapper = styled.div`
             height: 1px;
             margin-inline: 1px;
             bottom: 0;
-            left: 0;
+            left: 0px;
             right: 0;
             background-color: var(--ant-color-split);
           }
@@ -81,13 +85,29 @@ const SelectWrapper = styled.div`
         }
 
         .ant-select .ant-select-input {
-          top: 5px !important;
+          top: -5px !important;
         }
         .ant-select-placeholder {
           position: absolute;
-          top: 10px;
+          top: 1px;
           left: 0;
           right: 0;
+        }
+        .ant-select .ant-select-content {
+          padding-block: 0px 0;
+        }
+        .ant-select-auto-complete {
+          .ant-select-placeholder {
+            top: 1px;
+          }
+        }
+        .ant-select.ant-cascader {
+          .ant-select-placeholder {
+            top: 0px !important;
+          }
+          .ant-select-input {
+            top: -6px !important;
+          }
         }
       }
     }
@@ -118,7 +138,7 @@ const SelectWrapper = styled.div`
       }
 
       .ant-select-content {
-        padding-block: 20px 0 !important;
+        padding-block: 20px 0;
         box-shadow: none !important;
       }
       &.ant-cascader {
@@ -161,8 +181,11 @@ const SelectWrapper = styled.div`
     }
 
     &.validate-status-error {
-      &.dropdown-visible {
-        .ant-select-dropdown {
+      .ant-select-dropdown {
+        border-color: var(--ant-color-error) !important;
+      }
+      .__wrapper__ {
+        .ant-cascader.ant-select.ant-select-outlined {
           border-color: var(--ant-color-error) !important;
         }
       }

@@ -135,6 +135,7 @@ const AddModal: FC<AddModalProps> = (props) => {
   });
   const requestModelIdRef = useRef<number>(0);
   const currentSelectedModel = useRef<any>({});
+  const flatBackendOptionsRef = useRef<any[]>([]);
 
   const { run: fetchModelFiles } = useDeferredRequest(
     () => modelFileRef.current?.fetchModelFiles?.(),
@@ -259,7 +260,8 @@ const AddModal: FC<AddModalProps> = (props) => {
 
     const modelInfo = onSelectModel(selectedModel, {
       source: props.source,
-      defaultBackend: form.current?.getFieldValue?.('backend')
+      defaultBackend: form.current?.getFieldValue?.('backend'),
+      flatBackendOptions: flatBackendOptionsRef.current
     });
 
     form.current?.setFieldsValue?.({
@@ -267,9 +269,11 @@ const AddModal: FC<AddModalProps> = (props) => {
       huggingface_filename: item.fakeName,
       model_scope_file_path: item.fakeName,
       backend_parameters: [],
-      backend_version: '',
+      backend_version: null,
       backend: modelInfo.backend,
-      env: {},
+      env: {
+        ...modelInfo.env
+      },
       categories: getCategory(item)
     });
 
@@ -291,7 +295,9 @@ const AddModal: FC<AddModalProps> = (props) => {
     manual?: boolean
   ) => {
     if (item.name === currentSelectedModel.current.name) {
-      return manual ? modelName : form.current?.getFieldValue?.('name');
+      return manual
+        ? modelName
+        : form.current?.getFieldValue?.('name') || modelName;
     }
     return modelName;
   };
@@ -309,11 +315,10 @@ const AddModal: FC<AddModalProps> = (props) => {
     handleCancelFiles();
     if (
       _.isEmpty(item) ||
-      (item.isGGUF === selectedModel.isGGUF && item.name === selectedModel.name)
+      (item.isGGUF === selectedModel.isGGUF && item.name === selectedModel.name) // --- because sometimes has the same model name with different isGGUF value
     ) {
       return;
     }
-    console.log('handleOnSelectModel:', item, selectedModel);
     setIsGGUF(item.isGGUF);
     clearCacheFormValues();
     unlockWarningStatus();
@@ -321,20 +326,24 @@ const AddModal: FC<AddModalProps> = (props) => {
       state: EvaluateProccess.model,
       requestModelId: updateRequestModelId()
     });
-    updateSelectedModel(item);
 
     // TODO
     form.current?.resetFields(resetFields);
     const modelInfo = onSelectModel(item, {
-      source: props.source
+      source: props.source,
+      flatBackendOptions: flatBackendOptionsRef.current
     });
     form.current?.setFieldsValue?.({
       ...defaultFormValues,
       ...modelInfo,
+      env: {
+        ...modelInfo.env
+      },
+      name: generateNameValue(item, modelInfo.name, manual),
       categories: getCategory(item)
     });
 
-    console.log('modelInfo:', modelInfo);
+    updateSelectedModel(item);
 
     let warningStatus: MessageStatus = {
       show: true,
@@ -366,21 +375,27 @@ const AddModal: FC<AddModalProps> = (props) => {
     });
     handleCancelFiles();
     const modelInfo = onSelectModel(item, {
-      source: props.source
+      source: props.source,
+      flatBackendOptions: flatBackendOptionsRef.current
     });
 
     if (
       evaluateStateRef.current.state === EvaluateProccess.model &&
       item.evaluated
     ) {
+      const defaultSpec = getDefaultSpec(item);
       const newFormValues = {
         ...(manual
           ? { ...defaultFormValues }
           : _.omit(form.current?.form?.getFieldsValue?.(), [
               ...dropFieldsFromForm
             ])),
-        ...getDefaultSpec(item),
+        ...defaultSpec,
         ...modelInfo,
+        env: {
+          ...modelInfo.env,
+          ...defaultSpec.env
+        },
         name: generateNameValue(item, modelInfo.name, manual),
         categories: getCategory(item)
       };
@@ -405,12 +420,10 @@ const AddModal: FC<AddModalProps> = (props) => {
   };
 
   const handleSetIsGGUF = async (flag: boolean) => {
-    console.log('isgguf==================>', flag);
     setIsGGUF(flag);
   };
 
   const handleBackendChange = async (backend: string) => {
-    console.log('handleBackendChange:', backend);
     const data = form.current.form.getFieldsValue?.();
     const res = handleBackendChangeBefore(data);
     if (res.show) {
@@ -464,6 +477,8 @@ const AddModal: FC<AddModalProps> = (props) => {
       })
     ]);
 
+    flatBackendOptionsRef.current = backendOptions;
+
     if (props.deploymentType === 'modelFiles') {
       form.current?.form?.setFieldsValue({
         ...props.initialValues
@@ -487,8 +502,12 @@ const AddModal: FC<AddModalProps> = (props) => {
           versions: { label: string; value: string }[];
         }) => item.value === backend
       );
+
       form.current?.setFieldsValue?.({
         backend,
+        env: {
+          ...currentDefaultBackend?.default_env
+        },
         default_version: currentDefaultBackend?.default_version,
         backend_parameters: currentDefaultBackend?.default_backend_param || [],
         cluster_id: initClusterId()
@@ -573,6 +592,7 @@ const AddModal: FC<AddModalProps> = (props) => {
                     onCollapse={setCollapsed}
                     collapsed={collapsed}
                     modelSource={props.source}
+                    isGGUF={isGGUF}
                     setIsGGUF={handleSetIsGGUF}
                   ></ModelCard>
                   {isGGUF && (

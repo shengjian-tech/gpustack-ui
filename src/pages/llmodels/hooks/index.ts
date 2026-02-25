@@ -240,6 +240,7 @@ export const useCheckCompatibility = () => {
         message: ''
       };
     }
+
     const {
       compatible,
       compatibility_messages = [],
@@ -263,18 +264,15 @@ export const useCheckCompatibility = () => {
       Object.entries(resource_claim_by_cluster_id || {})
     );
 
-    // current cluster resource claim
+    // current cluster resource claim: {ram: number, vram: number}
     const resource_claim = resourceClaimMap.get(`${cluster_id}`);
 
-    const hasClaim = !!resource_claim?.ram || !!resource_claim?.vram;
-
-    // current cluster is not available, but other clusters are available
-    const othersAvailable = !hasClaim && resourceClaimMap.size > 0;
+    const hasClaim = resourceClaimMap.has(`${cluster_id}`);
 
     let compatibilityMessage = compatibility_messages.join(' ');
 
     compatibilityMessage = compatibilityMessage.startsWith(
-      'The model file path you specified does not exist on the GPUStack server'
+      `The model file path you specified does not exist on the GPUStack server. It's recommended`
     )
       ? intl.formatMessage({ id: 'models.form.modelfile.notfound' })
       : compatibilityMessage;
@@ -287,10 +285,15 @@ export const useCheckCompatibility = () => {
           : compatibilityMessage
     };
 
+    let noResourceClaim = false;
+
     if (hasClaim) {
-      const ram = convertFileSize(resource_claim.ram, 2);
-      const vram = convertFileSize(resource_claim.vram, 2);
+      const ram = convertFileSize(resource_claim?.ram || 0, 2);
+      const vram = convertFileSize(resource_claim?.vram || 0, 2);
       let messageId = 'models.form.check.claims';
+      // when no ram and no vram
+      noResourceClaim = !ram && !vram;
+
       if (!ram) {
         messageId = 'models.form.check.claims2';
       }
@@ -301,30 +304,11 @@ export const useCheckCompatibility = () => {
         title: intl.formatMessage({ id: 'models.form.check.passed' }),
         message: intl.formatMessage({ id: messageId }, { ram, vram })
       };
-    } else if (
-      othersAvailable &&
-      !scheduling_messages?.length &&
-      !compatibility_messages?.length
-    ) {
-      // no specific messages, but other clusters are available
-      msgData = {
-        title: intl.formatMessage({
-          id: 'models.form.check.clusterUnavailable'
-        }),
-        message: intl.formatMessage(
-          {
-            id: 'models.form.check.otherClustersAvailable'
-          },
-          {
-            clusters: getAvailableClusters(Array.from(resourceClaimMap.keys()))
-          }
-        )
-      };
     }
 
     return {
-      show: !compatible || hasClaim || othersAvailable,
-      type: !compatible || othersAvailable ? 'warning' : 'success',
+      show: noResourceClaim ? false : !compatible || hasClaim,
+      type: !compatible ? 'warning' : 'success',
       ...msgData
     };
   };
@@ -532,9 +516,14 @@ export const useSelectModel = (data: { gpuOptions: any[] }) => {
 
   const onSelectModel = (
     selectModel: any,
-    options: { source: string; defaultBackend?: string }
+    options: {
+      source: string;
+      defaultBackend?: string;
+      flatBackendOptions?: any[];
+    }
   ) => {
-    const { source, defaultBackend } = options;
+    console.log('options==========', options);
+    const { source, defaultBackend, flatBackendOptions } = options;
     let name = _.split(selectModel.name, '/').slice(-1)[0];
     const reg = /(-gguf)$/i;
     name = _.toLower(name).replace(reg, '');
@@ -548,6 +537,10 @@ export const useSelectModel = (data: { gpuOptions: any[] }) => {
       gpuOptions: gpuOptions
     });
 
+    const selectedBackend = flatBackendOptions?.find(
+      (item) => item.value === backend
+    );
+
     return {
       ...(source === modelSourceMap.huggingface_value
         ? { huggingface_repo_id: selectModel.name }
@@ -556,6 +549,9 @@ export const useSelectModel = (data: { gpuOptions: any[] }) => {
         ? { model_scope_model_id: selectModel.name }
         : {}),
       ...modelTaskData,
+      env: {
+        ...(selectedBackend?.default_env || {})
+      },
       name: name,
       source: source,
       backend: backend

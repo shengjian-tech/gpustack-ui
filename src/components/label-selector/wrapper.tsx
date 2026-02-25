@@ -6,6 +6,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 interface WrapperProps {
+  required?: boolean;
   label?: React.ReactNode;
   description?: React.ReactNode;
   labelExtra?: React.ReactNode;
@@ -13,7 +14,13 @@ interface WrapperProps {
   btnText?: string;
   disabled?: boolean;
   onAdd?: () => void;
+  styles?: {
+    wrapper?: React.CSSProperties;
+  };
   button?: React.ReactNode;
+  styles?: {
+    wrapper?: React.CSSProperties;
+  };
 }
 
 const Container = styled.div`
@@ -39,6 +46,7 @@ const ButtonWrapper = styled.div`
 `;
 
 const Wrapper: React.FC<WrapperProps> = ({
+  required,
   children,
   label,
   description,
@@ -46,14 +54,16 @@ const Wrapper: React.FC<WrapperProps> = ({
   onAdd,
   btnText,
   disabled,
-  button
+  button,
+  styles
 }) => {
   const intl = useIntl();
   return (
-    <Container>
+    <Container style={styles?.wrapper}>
       {label && (
         <span className="label">
           <LabelInfo
+            required={required}
             label={label}
             description={description}
             labelExtra={labelExtra}

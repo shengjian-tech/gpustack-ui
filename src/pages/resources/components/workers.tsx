@@ -3,11 +3,12 @@ import { FilterBar } from '@/components/page-tools';
 import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useTableFetch from '@/hooks/use-table-fetch';
 import PageBox from '@/pages/_components/page-box';
-import { queryClusterList } from '@/pages/cluster-management/apis';
 import { DockerStepsFromWorker } from '@/pages/cluster-management/components/add-worker/config';
 import { ClusterListItem } from '@/pages/cluster-management/config/types';
 import useAddWorker from '@/pages/cluster-management/hooks/use-add-worker';
+import { useQueryClusterList } from '@/pages/cluster-management/services/use-query-cluster-list';
 import useNoResourceResult from '@/pages/llmodels/hooks/use-no-resource-result';
+import useGranfanaLink from '@/pages/resources/hooks/use-grafana-link';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table, message } from 'antd';
@@ -20,14 +21,14 @@ import {
   updateWorker
 } from '../apis';
 import { ListItem } from '../config/types';
-import useTerminalTabs from '../hooks/use-terminal-tabs';
 import useWorkerColumns from '../hooks/use-worker-columns';
 import useWorkerMaintenance from '../hooks/use-worker-maintenance';
 import UpdateLabels from './update-labels';
 import WorkerDetailModal from './worker-detail-modal';
+import WorkerRightActions from './worker-right-actions';
 
 const Workers: React.FC<{
-  clusterId: string | number | null;
+  clusterId?: string | number | null;
   showSelect?: boolean;
   showAddButton?: boolean;
   widths?: { input: number };
@@ -55,6 +56,7 @@ const Workers: React.FC<{
     handleQueryChange,
     handleNameChange
   } = useTableFetch<ListItem>({
+    events: ['UPDATE', 'DELETE', 'CREATE'],
     fetchAPI: queryWorkersList,
     deleteAPI: deleteWorker,
     contentForDelete: 'resources.worker',
@@ -65,9 +67,14 @@ const Workers: React.FC<{
       cluster_id: clusterId
     }
   });
-  const { TerminalPanel, terminals, handleAddTerminal } = useTerminalTabs();
+  const { goToGrafana, ActionButton } = useGranfanaLink({
+    type: 'worker'
+  });
   const { MaintenanceModal, handleStopMaintenance, setOpenStatus } =
     useWorkerMaintenance({ fetchData: handleSearch });
+  const { fetchClusterList } = useQueryClusterList({
+    useStateData: false
+  });
 
   const intl = useIntl();
   const [updateLabelsData, setUpdateLabelsData] = useState<{
@@ -104,15 +111,15 @@ const Workers: React.FC<{
       const params = {
         page: -1
       };
-      const res = await queryClusterList(params);
-      const clusterMap = res?.items?.reduce(
+      const items = await fetchClusterList(params);
+      const clusterMap = items?.reduce(
         (acc: Record<number, string>, item: any) => {
           acc[item.id] = item.name;
           return acc;
         },
         {}
       );
-      const list = res?.items?.map((item: any) => ({
+      const list = items?.map((item: any) => ({
         label: item.name,
         value: item.id,
         id: item.id,
@@ -199,9 +206,8 @@ const Workers: React.FC<{
     if (val === 'stop_maintenance') {
       handleStopMaintenance(record);
     }
-
-    if (val === 'terminal') {
-      handleAddTerminal(record);
+    if (val === 'metrics') {
+      goToGrafana(record);
     }
   });
 
@@ -269,11 +275,19 @@ const Workers: React.FC<{
           handleDeleteByBatch={handleDeleteBatch}
           handleSearch={handleSearch}
           handleSelectChange={handleClusterChange}
-          handleClickPrimary={showAddButton ? handleOnAddWorker : undefined}
+          handleClickPrimary={handleOnAddWorker}
           handleInputChange={handleNameChange}
           rowSelection={rowSelection}
           selectOptions={clusterData.list}
           widths={widths}
+          right={
+            <WorkerRightActions
+              handleDeleteByBatch={handleDeleteBatch}
+              handleClickPrimary={handleOnAddWorker}
+              rowSelection={rowSelection}
+              MonitorButton={ActionButton()}
+            ></WorkerRightActions>
+          }
         ></FilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
           <Table

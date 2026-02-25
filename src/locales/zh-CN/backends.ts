@@ -10,6 +10,7 @@ export default {
   'backend.framework': '框架',
   'backend.builtin': '内置',
   'backend.custom': '自定义',
+  'backend.community': '社区',
   'backend.isDefault': '默认',
   'backend.availableFrameworks': '支持框架',
   'backend.addVersion': '添加版本',
@@ -34,5 +35,11 @@ export default {
   'backend.replaceEntrypoint': '覆盖镜像入口命令',
   'backend.entrypoint': '镜像入口命令',
   'backend.entrypoint.tips':
-    '如指定，镜像中定义的 ENTRYPOINT 将被忽略，下面的命令将作为容器启动入口命令使用。'
+    '如指定，镜像中定义的 ENTRYPOINT 将被忽略，下面的命令将作为容器启动入口命令使用。',
+  'backend.form.defaultEnvironment': '默认环境变量',
+  'backend.recommendModels': '推荐模型',
+  'backend.filter.source': '按来源过滤',
+  'backend.add.custom': '自定义',
+  'backend.add.community': '社区',
+  'backend.community.title': '社区后端市场'
 };

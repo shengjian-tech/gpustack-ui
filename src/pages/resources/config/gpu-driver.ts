@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export const GPUDriverMap = {
   NVIDIA: 'cuda',
   AMD: 'rocm',
@@ -7,7 +9,7 @@ export const GPUDriverMap = {
   ILUVATAR: 'corex',
   CAMBRICON: 'neuware',
   METAX: 'maca',
-  THEAD: 'ppu'
+  THEAD: 'hggc'
 };
 
 export const ManufacturerMap = {
@@ -75,7 +77,7 @@ export const GPUsConfigs: Record<
     driver: 'mx-smi'
   },
   [GPUDriverMap.THEAD]: {
-    label: 'T-Head',
+    label: 'T-Head PPU',
     value: GPUDriverMap.THEAD,
     runtime: '', // TODO: confirm runtime name
     driver: 'ppu-smi'
@@ -155,10 +157,12 @@ interface AddWorkerCommandParams {
 }
 
 const generateEnvArgs = (params: any) => {
-  const registrationInfo = params.registrationInfo || {};
-  registrationInfo.env = {
-    ...registrationInfo.env,
-    ...params.extraEnv
+  const registrationInfo = {
+    ...params.registrationInfo,
+    env: {
+      ...(params.registrationInfo?.env || {}),
+      ...params.extraEnv
+    }
   };
   // generate environment variables args from registrationInfo.env
   let envArgs = '';
@@ -175,6 +179,32 @@ const generateEnvArgs = (params: any) => {
   return envArgs;
 };
 
+// concat the args, the args is a key-value
+const generateExtraArgs = (params: any) => {
+  const args = params.registrationInfo?.args || [];
+  if (args.length === 0) {
+    return '';
+  }
+  let argsStr = '';
+  args.forEach((item: string[]) => {
+    argsStr += `${item[0]} ${_.isBoolean(item[1]) ? item[1] : item[1] || ''} \\\n      `;
+  });
+  return argsStr;
+};
+
+const generateExtraModelDirArg = (modelDir: string) => {
+  const pathList = modelDir
+    ?.split(',')
+    .map((item) => item.trim())
+    .filter((item) => item);
+  if (pathList && pathList.length > 0) {
+    return pathList
+      .map((item) => `--volume ${item}:${item} \\`)
+      .join('\n      ');
+  }
+  return '';
+};
+
 const setNormalArgs = (params: any) => {
   return `sudo docker run -d --name ${params.containerName || 'gpustack-worker'} \\
       -e "GPUSTACK_RUNTIME_DEPLOY_MIRRORED_NAME=${params.containerName || 'gpustack-worker'}" \\
@@ -184,7 +214,7 @@ const setNormalArgs = (params: any) => {
       --network=host \\
       --volume /var/run/docker.sock:/var/run/docker.sock \\
       --volume ${params.gpustackDataVolume || 'gpustack-data'}:/var/lib/gpustack \\
-      ${params.modelDir ? `--volume ${params.modelDir}:${params.modelDir} \\` : ''}
+      ${generateExtraModelDirArg(params.modelDir)}
       ${params.cacheDir ? `--volume ${params.cacheDir}:/var/lib/gpustack/cache \\` : ''}`;
 };
 
@@ -272,9 +302,7 @@ const registerIluvatarWorker = (params: AddWorkerCommandParams) => {
   const commonArgs = setNormalArgs(params);
   const imageArgs = setImageArgs(params);
   return `${commonArgs}
-      --volume /lib/modules:/lib/modules:ro \\
       --volume /usr/local/corex:/usr/local/corex:ro \\
-      --volume /usr/bin/ixsmi:/usr/bin/ixsmi \\
       --runtime ${config.runtime} \\
       ${imageArgs}
       ${setWorkerIPArg(params)}`;

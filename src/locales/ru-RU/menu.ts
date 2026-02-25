@@ -13,6 +13,10 @@ export default {
   'menu.models.modelCatalog': 'Каталог',
   'menu.models.catalog': 'Каталог моделей',
   'menu.models.deployment': 'Запуск',
+  'menu.models.benchmark': 'Benchmarks',
+  'menu.models.benchmarkDetail': 'Benchmark Details',
+  'menu.models.providers': 'Providers',
+  'menu.models.routes': 'Routes',
   'menu.modelCatalog': 'Каталог',
   'menu.resources': 'Ресурсы',
   'menu.apikeys': 'API-ключи',
@@ -37,5 +41,8 @@ export default {
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-
+// 1. 'menu.models.benchmark': 'Benchmarks',
+// 2. 'menu.models.benchmarkDetail': 'Benchmark Details',
+// 3. 'menu.models.providers': 'Providers',
+// 4. 'menu.models.routes': 'Routes',
 // ========== End of To-Do List ==========

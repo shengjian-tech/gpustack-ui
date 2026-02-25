@@ -163,5 +163,15 @@ export default {
   'playground.uploadImage.url.holder': 'Enter an image URL',
   'playground.uploadImage.url.button': 'Add Image from URL',
   'playground.params.duration': 'Duration (seconds)',
-  'playground.params.resolution': 'Resolution'
+  'playground.params.resolution': 'Resolution',
+  'playground.params.taskType': 'Task Type',
+  'playground.params.instructions': 'Instructions',
+  'playground.params.instructions.tips': 'Voice style/emotion instructions',
+  'playground.params.maxTokens': 'Max New Tokens',
+  'playground.params.refAudio': 'Reference Audio',
+  'playground.params.refAudio.tips':
+    'Enter a reference audio URL, or upload an audio file.',
+  'playground.params.refAudio.text':
+    'Transcript of Reference Audio (for ICL mode)',
+  'playground.params.refAudio.vectorMode': 'Use Speaker Embedding Only (no ICL)'
 };

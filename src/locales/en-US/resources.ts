@@ -30,7 +30,7 @@ export default {
   'resources.table.vram': 'VRAM',
   'resources.table.index': 'Index',
   'resources.table.workername': 'Worker Name',
-  'resources.table.vender': 'Vendor',
+  'resources.table.vendor': 'Vendor',
   'resources.table.temperature': 'Temperature',
   'resources.table.core': 'Cores',
   'resources.table.utilization': 'Utilization',
@@ -106,5 +106,6 @@ export default {
   'resources.worker.maintenance.tips':
     'When enter the maintenance mode, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
   'resources.worker.noCluster.tips':
-    'No available clusters. Please create a cluster before adding a node.'
+    'No available clusters. Please create a cluster before adding a node.',
+  'resources.metrics.details': 'Monitoring'
 };

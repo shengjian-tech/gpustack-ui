@@ -40,12 +40,30 @@ export default {
   'noresult.resources.worker':
     'No workers available. Add a worker to get started.',
   'noresult.resources.gotocluster': 'Create Your First Cluster',
-  'noresult.resources.gotoworker': 'Add Worker'
+  'noresult.resources.gotoworker': 'Add Worker',
+  'noresult.benchmark.title': 'No Benchmarks',
+  'noresult.benchmark.subTitle': 'No benchmarks have been added yet.',
+  'noresult.benchmark.nofound': 'No matching benchmarks found.',
+  'noresult.providers.title': 'No Providers',
+  'noresult.providers.subTitle': 'No providers have been added yet.',
+  'noresult.providers.nofound': 'No matching providers found.',
+  'noresult.routes.title': 'No Routes',
+  'noresult.routes.subTitle': 'No routes have been added yet.',
+  'noresult.routes.nofound': 'No matching routes found.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
 // 1. 'noresult.resources.cluster': 'No clusters available. Add a cluster to get started.',
 // 2. 'noresult.resources.worker': 'No workers available. Add a worker to get started.',
 // 3. 'noresult.resources.gotocluster': 'Create Your First Cluster',
-// 4. 'noresult.resources.gotoworker': 'Add Worker'
+// 4. 'noresult.resources.gotoworker': 'Add Worker',
+// 5. 'noresult.benchmark.title': 'No Benchmarks',
+// 6. 'noresult.benchmark.subTitle': 'No benchmarks have been added yet.',
+// 7. 'noresult.benchmark.nofound': 'No matching benchmarks found.'
+// 5. 'noresult.providers.title': 'No Providers',
+// 6. 'noresult.providers.subTitle': 'No providers have been added yet.',
+// 7. 'noresult.providers.nofound': 'No matching providers found.',
+// 8. 'noresult.routes.title': 'No Routes',
+// 9. 'noresult.routes.subTitle': 'No routes have been added yet.',
+// 10. 'noresult.routes.nofound': 'No matching routes found.'
 // ========================================================================

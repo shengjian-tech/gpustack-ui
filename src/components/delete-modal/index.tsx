@@ -72,6 +72,7 @@ interface Configuration {
   checked: boolean;
 }
 
+// default need to pass content and operation
 const DeleteModal = forwardRef((props, ref) => {
   const intl = useIntl();
   const { styles } = useStyles();
@@ -80,6 +81,7 @@ const DeleteModal = forwardRef((props, ref) => {
   const [configuration, setConfiguration] = useState<Configuration>({
     checked: false
   });
+  const [delLoading, setDelLoading] = useState(false);
   const [config, setConfig] = useState<ModalFuncProps & DataOptions>({} as any);
 
   const show = (data: ModalFuncProps & DataOptions) => {
@@ -104,6 +106,7 @@ const DeleteModal = forwardRef((props, ref) => {
 
   const handleOk = async () => {
     try {
+      setDelLoading(true);
       const res = await config.onOk?.();
       const isArray = Array.isArray(res);
       if (isArray) {
@@ -120,6 +123,7 @@ const DeleteModal = forwardRef((props, ref) => {
       // Handle error if needed
     } finally {
       setVisible(false);
+      setDelLoading(false);
       restoreScrollHeight();
     }
   };
@@ -155,7 +159,13 @@ const DeleteModal = forwardRef((props, ref) => {
               ? intl.formatMessage({ id: config.cancelText })
               : intl.formatMessage({ id: 'common.button.cancel' })}
           </Button>
-          <Button type="primary" onClick={handleOk} size="middle" danger>
+          <Button
+            type="primary"
+            onClick={handleOk}
+            size="middle"
+            danger
+            loading={delLoading}
+          >
             {config.okText
               ? intl.formatMessage({ id: config.okText })
               : intl.formatMessage({ id: 'common.button.delete' })}

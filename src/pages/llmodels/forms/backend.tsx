@@ -9,6 +9,8 @@ import styled from 'styled-components';
 import { backendTipsList } from '../config';
 import { backendOptionsMap } from '../config/backend-parameters';
 import { useFormContext } from '../config/form-context';
+import useCompareEnvs from '../hooks/use-compare-envs';
+import EnvsOverridePopover from './envs-override-popover';
 
 const CaretDownWrapper = styled.span`
   display: flex;
@@ -27,39 +29,26 @@ const BackendFields: React.FC = () => {
   const navigate = useNavigate();
   const { getRuleMessage } = useAppUtils();
   const form = Form.useFormInstance();
-  const { onValuesChange, backendOptions, onBackendChange } = useFormContext();
+  const {
+    action,
+    initialValues,
+    onValuesChange,
+    backendOptions,
+    flatBackendOptions,
+    onBackendChange
+  } = useFormContext();
   const backend = Form.useWatch('backend', form);
   const [showDeprecated, setShowDeprecated] = React.useState<boolean>(false);
+  const { openTips, diffEnvs, handleCloseTips, handleCompareEnvs } =
+    useCompareEnvs();
 
-  const handleBackendVersionOnChange = (value: any) => {
+  const handleBackendVersionOnChange = (value: any, option: any) => {
+    if (Object.keys(option.data?.env || {}).length > 0) {
+      form.setFieldValue('env', { ...(option?.data?.env || {}) });
+    }
+
     onValuesChange?.({}, form.getFieldsValue());
   };
-
-  const backendGroupedOptions = useMemo(() => {
-    const builtInBackends = backendOptions?.filter(
-      (item) => item.isBuiltIn || item.value === backendOptionsMap.custom
-    );
-    const customBackends = backendOptions?.filter(
-      (item) => !item.isBuiltIn && item.value !== backendOptionsMap.custom
-    );
-
-    const options = [];
-
-    if (builtInBackends && builtInBackends.length > 0) {
-      options.push({
-        label: intl.formatMessage({ id: 'backend.builtin' }),
-        options: builtInBackends
-      });
-    }
-
-    if (customBackends && customBackends.length > 0) {
-      options.push({
-        label: intl.formatMessage({ id: 'models.form.backend.custom' }),
-        options: customBackends
-      });
-    }
-    return options;
-  }, [backendOptions, intl]);
 
   const backendVersions = useMemo((): {
     builtIn: any[];
@@ -74,13 +63,14 @@ const BackendFields: React.FC = () => {
       };
     }
 
-    // find the backend item from backendOptions
-    const backendItem = backendOptions.find((item) => item.value === backend);
+    const selectedBackend = flatBackendOptions.find(
+      (item) => item.value === backend
+    );
 
-    const versions = backendItem?.versions || [];
+    const versions = selectedBackend?.versions || [];
 
     // if it's a custom backend,
-    if (backendItem && !backendItem.isBuiltIn) {
+    if (selectedBackend && !selectedBackend.isBuiltIn) {
       return {
         builtIn: [],
         custom: versions.filter((item) => !item.is_deprecated),
@@ -108,18 +98,9 @@ const BackendFields: React.FC = () => {
       custom: customVersions,
       deprecated: deprecatedVersions
     };
-  }, [backend, backendOptions, intl]);
-
-  const optionRender = (option: any) => {
-    return option.data.title;
-  };
-
-  const labelRender = (option: any) => {
-    return option.title;
-  };
+  }, [backend, flatBackendOptions, intl]);
 
   const backendVersionLabelRender = (option: any) => {
-    console.log('backendVersionLabelRender option:', option);
     return option.title;
   };
 
@@ -130,12 +111,27 @@ const BackendFields: React.FC = () => {
     return (
       <Select.OptGroup label={label}>
         {values.map((item) => (
-          <Select.Option key={item.value} value={item.value} label={item.label}>
+          <Select.Option
+            data={item}
+            key={item.value}
+            value={item.value}
+            label={item.label}
+          >
             {item.label}
           </Select.Option>
         ))}
       </Select.OptGroup>
     );
+  };
+
+  const handleOnBackendChange = (value: any, option: any) => {
+    form.setFieldsValue({
+      backend: value
+    });
+    form.setFieldValue('env', {
+      ...(option.default_env || {})
+    });
+    onBackendChange?.(value, option);
   };
 
   const renderDeprecatedVersionOptions = (values: any[]) => {
@@ -167,6 +163,29 @@ const BackendFields: React.FC = () => {
     );
   };
 
+  const handleOnSaveEnvsOverride = (envs: Record<string, any>) => {
+    form.setFieldsValue({
+      env: { ...envs }
+    });
+    onValuesChange?.({}, form.getFieldsValue());
+    handleCloseTips();
+  };
+
+  const optionRender = (option: any) => {
+    return option.data.title;
+  };
+
+  const labelRender = (option: any) => {
+    return option.title;
+  };
+
+  const backendGroupList = useMemo(() => {
+    if (backendOptions.length === 1) {
+      return [...backendOptions[0].options];
+    }
+    return backendOptions;
+  }, [backendOptions]);
+
   return (
     <>
       <Form.Item
@@ -180,16 +199,27 @@ const BackendFields: React.FC = () => {
       >
         <SealSelect
           required
-          onChange={onBackendChange}
+          showSearch
+          onChange={handleOnBackendChange}
           label={intl.formatMessage({ id: 'models.form.backend' })}
           description={<TooltipList list={backendTipsList}></TooltipList>}
-          options={backendGroupedOptions}
+          options={backendGroupList}
           optionRender={optionRender}
           labelRender={labelRender}
         ></SealSelect>
       </Form.Item>
       {backendOptionsMap.custom !== backend && (
-        <Form.Item name="backend_version">
+        <Form.Item
+          name="backend_version"
+          help={
+            openTips && (
+              <EnvsOverridePopover
+                onSave={handleOnSaveEnvsOverride}
+                diffEnvs={diffEnvs}
+              ></EnvsOverridePopover>
+            )
+          }
+        >
           <SealSelect
             allowClear
             showSearch
@@ -198,6 +228,7 @@ const BackendFields: React.FC = () => {
             placeholder={intl.formatMessage({
               id: 'models.form.backendVersion.holder'
             })}
+            description={<TooltipList list={backendTipsList}></TooltipList>}
             onChange={handleBackendVersionOnChange}
             label={intl.formatMessage({ id: 'models.form.backendVersion' })}
             footer={

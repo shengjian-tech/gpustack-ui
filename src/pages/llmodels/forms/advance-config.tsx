@@ -1,6 +1,9 @@
 import LabelSelector from '@/components/label-selector';
 import CheckboxField from '@/components/seal-form/checkbox-field';
 import SealSelect from '@/components/seal-form/seal-select';
+import { PageAction } from '@/config';
+import DocLink from '@/pages/_components/doc-link';
+import { genericReferLink } from '@/pages/model-routes/config';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
@@ -16,12 +19,20 @@ const AdvanceConfig = () => {
   const form = Form.useFormInstance();
   const EnviromentVars = Form.useWatch('env', form);
   const backend = Form.useWatch('backend', form);
-  const { onValuesChange, backendOptions, isGGUF, modelContextData } =
-    useFormContext();
+  const modelRouteEnable = Form.useWatch('enable_model_route', form);
+  const {
+    onValuesChange,
+    realAction,
+    action,
+    backendOptions,
+    flatBackendOptions,
+    isGGUF,
+    modelContextData
+  } = useFormContext();
 
   const currentBackendOptions = useMemo(() => {
-    return backendOptions?.find((item) => item.value === backend);
-  }, [backend, backendOptions]);
+    return flatBackendOptions?.find((item) => item.value === backend);
+  }, [backend, flatBackendOptions]);
 
   const handleEnviromentVarsChange = (labels: Record<string, any>) => {
     form.setFieldValue('env', labels);
@@ -127,20 +138,42 @@ const AdvanceConfig = () => {
           })}
         ></CheckboxField>
       </Form.Item>
-      <Form.Item<FormData>
-        name="generic_proxy"
-        valuePropName="checked"
-        style={{ marginBottom: 8 }}
-      >
-        <CheckboxField
-          description={intl.formatMessage({
-            id: 'models.form.generic_proxy.tips'
-          })}
-          label={intl.formatMessage({
-            id: 'models.form.generic_proxy'
-          })}
-        ></CheckboxField>
-      </Form.Item>
+      {realAction === PageAction.COPY || action === PageAction.CREATE ? (
+        <>
+          <Form.Item<FormData>
+            name="enable_model_route"
+            valuePropName="checked"
+            style={{ marginBottom: 8 }}
+          >
+            <CheckboxField
+              label={intl.formatMessage({
+                id: 'models.form.enableModelRoute'
+              })}
+            ></CheckboxField>
+          </Form.Item>
+          {modelRouteEnable && (
+            <Form.Item<FormData>
+              name="generic_proxy"
+              valuePropName="checked"
+              style={{ marginBottom: 8 }}
+            >
+              <CheckboxField
+                description={
+                  <DocLink
+                    title={intl.formatMessage({
+                      id: 'models.form.generic_proxy.tips'
+                    })}
+                    link={genericReferLink}
+                  ></DocLink>
+                }
+                label={intl.formatMessage({
+                  id: 'models.form.generic_proxy'
+                })}
+              ></CheckboxField>
+            </Form.Item>
+          )}
+        </>
+      ) : null}
     </>
   );
 };

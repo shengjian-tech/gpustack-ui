@@ -33,52 +33,6 @@ interface ActionItem {
   };
 }
 
-export const ActionList: ActionItem[] = [
-  {
-    label: 'common.button.edit',
-    key: 'edit',
-    icon: icons.EditOutlined
-  },
-  // {
-  //   label: 'common.button.detail',
-  //   key: 'details',
-  //   icon: icons.FileTextOutlined
-  // },
-  {
-    label: 'models.openinplayground',
-    key: 'chat',
-    icon: icons.ExperimentOutlined
-  },
-  {
-    label: 'common.button.start',
-    key: 'start',
-    icon: icons.Play
-  },
-  {
-    label: 'models.table.button.apiAccessInfo',
-    key: 'api',
-    icon: icons.ApiOutlined
-  },
-  {
-    label: 'models.button.accessSettings',
-    key: 'accessControl',
-    icon: icons.Permission
-  },
-  {
-    label: 'common.button.stop',
-    key: 'stop',
-    icon: icons.Stop
-  },
-  {
-    label: 'common.button.delete',
-    key: 'delete',
-    props: {
-      danger: true
-    },
-    icon: icons.DeleteOutlined
-  }
-];
-
 export const ButtonList = [
   {
     label: 'common.button.start',
@@ -199,24 +153,3 @@ export const hotkeyConfigs = [
   },
   { keys: HotKeys.NEW4, width: 600, source: modelSourceMap.local_path_value }
 ];
-
-/**
- * hotkeyConfigs.map(({ keys, width, source }) =>
-       useHotkeys(
-         keys.join(','),
-         () => {
-           setOpenDeployModal({
-             show: true,
-             width,
-             source,
-             gpuOptions: gpuDeviceList.current
-           });
-         },
-         {
-           preventDefault: true,
-           enabled: !openAddModal && !openDeployModal.show && !openLogModal
-         }
-       )
-     );
- * 
- */

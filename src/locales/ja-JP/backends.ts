@@ -10,6 +10,7 @@ export default {
   'backend.framework': 'Framework',
   'backend.builtin': 'Built-in',
   'backend.custom': 'Custom',
+  'backend.community': 'Community',
   'backend.isDefault': 'Default',
   'backend.availableFrameworks': 'Supported Frameworks',
   'backend.addVersion': 'Add Version',
@@ -37,5 +38,11 @@ export default {
   'backend.replaceEntrypoint': 'Override Image Entrypoint',
   'backend.entrypoint': 'Image Entrypoint',
   'backend.entrypoint.tips':
-    'If specified, the ENTRYPOINT defined in the image will be ignored, and the command below will be used as the container startup entrypoint.'
+    'If specified, the ENTRYPOINT defined in the image will be ignored, and the command below will be used as the container startup entrypoint.',
+  'backend.form.defaultEnvironment': 'Default Environment Variables',
+  'backend.recommendModels': 'Recommended Models',
+  'backend.filter.source': 'Filter by source',
+  'backend.add.custom': 'Custom',
+  'backend.add.community': 'Community',
+  'backend.community.title': 'Community Backend Marketplace'
 };

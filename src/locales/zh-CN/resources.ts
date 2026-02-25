@@ -30,7 +30,7 @@ export default {
   'resources.table.vram': '显存',
   'resources.table.index': '序号',
   'resources.table.workername': '节点名称',
-  'resources.table.vender': '厂商',
+  'resources.table.vendor': '厂商',
   'resources.table.temperature': '温度',
   'resources.table.core': '核数',
   'resources.table.gpuutilization': 'GPU 利用率',
@@ -102,5 +102,6 @@ export default {
   'resources.worker.maintenance.remark.rules': '请输入维护备注',
   'resources.worker.maintenance.tips':
     '进入维护模式后，节点将停止调度新的模型实例部署任务，正在运行的实例不会受到影响。',
-  'resources.worker.noCluster.tips': '当前无可用集群，请先创建集群再添加节点。'
+  'resources.worker.noCluster.tips': '当前无可用集群，请先创建集群再添加节点。',
+  'resources.metrics.details': '监控'
 };

@@ -1,13 +1,18 @@
 import { userAtom } from '@/atoms/user';
 import { clearAtomStorage } from '@/atoms/utils';
-import { RequestConfig, history } from '@umijs/max';
+import { history, RequestConfig } from '@umijs/max';
 import { message } from 'antd';
 import { DEFAULT_ENTER_PAGE } from './config/settings';
+import ErrorMessageContent from './pages/_components/error-message-content';
 
 //  these APIs do not via the GPUSTACK_API_BASE_URL
 const NoBaseURLAPIs = ['/auth', '/v1', '/version', '/proxy', '/update'];
 
 export const requestConfig: RequestConfig = {
+  headers: {
+    'Content-Security-Policy': "frame-ancestors 'self'",
+    'X-Frame-Options': 'SAMEORIGIN'
+  },
   errorConfig: {
     errorThrower: (res: any) => {
       // to do something
@@ -20,7 +25,9 @@ export const requestConfig: RequestConfig = {
         errorMessage;
 
       if (!opts?.skipErrorHandler && response?.status) {
-        message.error(errMsg);
+        message.error({
+          content: <ErrorMessageContent errMsg={errMsg}></ErrorMessageContent>
+        });
       }
       if (response?.status === 401) {
         clearAtomStorage(userAtom);

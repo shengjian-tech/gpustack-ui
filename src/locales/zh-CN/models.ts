@@ -2,6 +2,7 @@ export default {
   'models.button.deploy': '部署模型',
   'models.title': '模型',
   'models.title.edit': '编辑模型',
+  'models.title.duplicate': '克隆模型',
   'models.table.models': '模型',
   'models.table.name': '模型名称',
   'models.form.source': '来源',
@@ -89,10 +90,11 @@ export default {
   'models.form.backend.llamabox':
     '用于 GGUF 格式模型，支持 Linux, macOS 和 Windows。',
   'models.form.backend.vllm':
-    '内置支持 NVIDIA、AMD、昇腾、海光、天数智芯和沐曦设备。',
+    '内置支持 NVIDIA、AMD、昇腾、海光、摩尔线程、天数智芯、沐曦和平头哥 PPU 设备。',
   'models.form.backend.voxbox': '仅支持 NVIDIA GPU 和 CPU。',
   'models.form.backend.mindie': '仅支持昇腾 NPU。',
-  'models.form.backend.sglang': '内置支持 NVIDIA/AMD GPU 和昇腾 NPU。',
+  'models.form.backend.sglang':
+    '内置支持 NVIDIA、AMD、昇腾、摩尔线程、沐曦和平头哥 PPU 设备。',
   'models.form.search.gguftips':
     '当 macOS 或 Windows 作节点时勾选 GGUF（搜索语音模型时取消勾选）',
   'models.form.button.addlabel': '添加标签',
@@ -206,7 +208,7 @@ export default {
   'models.form.gpusAllocationType.custom.tips':
     '您可以指定每个副本的 GPU 数量。',
   'models.mymodels.status.inactive': '已停止',
-  'models.mymodels.status.degrade': '异常',
+  'models.mymodels.status.degrade': '未就绪',
   'models.mymodels.status.active': '可用',
   'models.form.kvCache.tips':
     '扩展 KV 缓存和推测解码仅在内置后端（vLLM / SGLang）可用，请切换后端以启用。',
@@ -243,6 +245,8 @@ export default {
   'models.catalog.precision': '精度',
   'models.form.gpuPerReplica.tips': '输入自定义数值',
   'models.form.generic_proxy': '启用通用代理',
+  'models.form.enableModelRoute': '启用模型路由',
+  'models.form.enableModelRoute.tips': '启用模型路由',
   'models.form.generic_proxy.tips':
     '启用通用代理后可支持访问非 OpenAI-API 标准的 URI 路径。',
   'models.form.generic_proxy.button': '通用代理',
@@ -256,7 +260,9 @@ export default {
   'models.form.backendVersions.tips': `如需使用更多版本，请前往{link}页面并编辑对应的后端以添加版本。`,
   'models.catalog.nogpus.tips': '所选集群中没有兼容该模型的 GPU。',
   'models.form.modelfile.notfound':
-    '你指定的模型文件路径在 GPUStack 服务器上不存在。建议在 GPUStack 服务器和 GPUStack 节点上使用相同的模型文件路径，这有助于 GPUStack 做出更优的调度与决策。',
+    '你指定的模型文件路径在 GPUStack Server 节点上不存在。建议在 GPUStack Server 节点和 GPUStack 节点上使用相同的模型文件路径，这有助于 GPUStack 做出更优的调度与决策。',
   'models.form.readyWorkers': '节点就绪',
-  'models.form.maxContextLength': '最大上下文长度'
+  'models.form.maxContextLength': '最大上下文长度',
+  'models.form.backend.helperText': '该社区后端暂未启用，部署后将自动启用',
+  'models.table.instance.benchmark': '运行基准测试'
 };

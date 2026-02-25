@@ -102,6 +102,27 @@ export default [
         component: './llmodels/index'
       },
       {
+        name: 'routes',
+        path: '/models/routes',
+        key: 'routes',
+        icon: 'icon-captive_portal',
+        selectedIcon: 'icon-captive_portal',
+        defaultIcon: 'icon-captive_portal',
+        access: 'canSeeAdmin',
+        component: './model-routes/index'
+      },
+      {
+        name: 'providers',
+        path: '/models/providers',
+        key: 'modelProviders',
+        icon: 'icon-extension-outline',
+        selectedIcon: 'icon-extension-filled',
+        defaultIcon: 'icon-extension-outline',
+        access: 'canSeeAdmin',
+        component: './maas-provider/index'
+      },
+
+      {
         name: 'userModels',
         path: '/models/user-models',
         key: 'userModels',
@@ -110,6 +131,27 @@ export default [
         defaultIcon: 'icon-models',
         access: 'canSeeUser',
         component: './llmodels/user-models'
+      },
+      {
+        name: 'benchmark',
+        path: '/models/benchmark',
+        key: 'benchmark',
+        icon: 'icon-speed',
+        selectedIcon: 'icon-speed-filled',
+        defaultIcon: 'icon-speed',
+        access: 'canSeeAdmin',
+        component: './benchmark/index'
+      },
+      {
+        name: 'benchmarkDetail',
+        path: '/models/benchmark/detail',
+        key: 'benchmarkDetail',
+        icon: 'icon-speed',
+        selectedIcon: 'icon-speed-filled',
+        defaultIcon: 'icon-speed',
+        access: 'canSeeAdmin',
+        hideInMenu: true,
+        component: './benchmark/details'
       }
     ]
   },

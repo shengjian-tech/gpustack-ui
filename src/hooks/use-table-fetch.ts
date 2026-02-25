@@ -1,4 +1,3 @@
-import { WatchEventType } from '@/config';
 import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useSetChunkRequest, {
   createAxiosToken
@@ -58,17 +57,12 @@ export default function useTableFetch<T>(
     updateManually
   } = options;
   const pollingRef = useRef<any>(null);
-  const chunkRequedtRef = useRef<any>(null);
+  const chunkRequestRef = useRef<any>(null);
   const modalRef = useRef<any>(null);
   const rowSelection = useTableRowSelection();
   const { sortOrder, handleMultiSortChange } = useTableMultiSort();
-  const axiosTokenRef = useRef<string | null>(null);
-
-  // ======= to resolve worker upate issue =======
-  const shouldUpdateRef = useRef(false);
-  const loadendRef = useRef(false);
-  const currentWatchParamsRef = useRef<any>(null);
-  // ============================================
+  const axiosTokenRef = useRef<any>(null);
+  const timerIDRef = useRef<any>(null);
 
   // for skeleton loading
   const [extraStatus, setExtraStatus] = useState<Record<string, any>>({
@@ -95,26 +89,18 @@ export default function useTableFetch<T>(
     sort_by: '',
     ...defaultQueryParams
   });
+  const queryParamsRef = useRef(queryParams);
+
+  // for recognize the current watch trigger time, so that we can ignore the previous events
+  const triggerAtRef = useRef<number>(0);
 
   const { setChunkRequest } = useSetChunkRequest();
-  const { updateChunkedList, cacheDataListRef } = useUpdateChunkedList({
-    events: events,
-    dataList: dataSource.dataList,
-    setDataList(list, opts?: any) {
-      setDataSource((pre) => {
-        return {
-          total: pre.total,
-          totalPage: pre.totalPage,
-          loading: false,
-          loadend: true,
-          dataList: list,
-          deletedIds: opts?.deletedIds || []
-        };
-      });
-    }
-  });
 
   const debounceSetExtraStatus = _.debounce(setExtraStatus, 3000);
+
+  useEffect(() => {
+    queryParamsRef.current = queryParams;
+  }, [queryParams]);
 
   const fetchData = async (
     externalParams?: { query: Record<string, any>; loadmore?: boolean },
@@ -131,16 +117,11 @@ export default function useTableFetch<T>(
       const params = {
         ..._.pickBy(query || queryParams, (val: any) => !!val)
       };
-      currentWatchParamsRef.current = {
-        query: { ...params }
-      };
-      axiosTokenRef.current?.cancel?.();
+      axiosTokenRef.current?.cancel?.('CANCEL_PREVIOUS_REQUEST');
       axiosTokenRef.current = createAxiosToken();
       const res = await fetchAPI(params, {
-        token: axiosTokenRef.current.token
+        token: axiosTokenRef.current?.token
       });
-      shouldUpdateRef.current = false;
-      loadendRef.current = true;
       if (!dataSource.loadend) {
         // add a delay to avoid flash
         await new Promise((resolve) => {
@@ -156,11 +137,8 @@ export default function useTableFetch<T>(
           ...params,
           page: res.pagination.totalPage
         };
-        currentWatchParamsRef.current = {
-          query: { ...newParams }
-        };
         const newRes = await fetchAPI(newParams, {
-          token: axiosTokenRef.current.token
+          token: axiosTokenRef.current?.token
         });
 
         setDataSource({
@@ -176,7 +154,7 @@ export default function useTableFetch<T>(
         if (isInfiniteScroll) {
           setQueryParams(newParams);
         }
-        return;
+        return true;
       }
 
       setDataSource({
@@ -194,17 +172,18 @@ export default function useTableFetch<T>(
           ...query
         });
       }
-    } catch (error) {
-      console.log('error', error);
-      setDataSource({
-        dataList: [],
-        loading: false,
-        loadend: true,
-        total: dataSource.total,
-        totalPage: dataSource.totalPage
-      });
-      loadendRef.current = true;
-      shouldUpdateRef.current = false;
+      return true;
+    } catch (error: any) {
+      if (error.message !== 'CANCEL_PREVIOUS_REQUEST') {
+        setDataSource({
+          dataList: [],
+          loading: false,
+          loadend: true,
+          total: dataSource.total,
+          totalPage: dataSource.totalPage
+        });
+      }
+      return false;
     } finally {
       debounceSetExtraStatus({
         firstLoad: false
@@ -212,43 +191,70 @@ export default function useTableFetch<T>(
     }
   };
 
-  // @ts-ignore
+  // @ts-ignore for watch mode
   const debounceFetchData = _.debounce(
-    (params: any) => fetchData(params, true),
-    300
+    () =>
+      fetchData(
+        {
+          query: {
+            ...queryParamsRef.current
+          }
+        },
+        true
+      ),
+    1000
   );
+
+  const { updateChunkedList, cacheDataListRef } = useUpdateChunkedList({
+    limit: queryParams.perPage,
+    events: events,
+    dataList: dataSource.dataList,
+    triggerAt: updateManually ? triggerAtRef : undefined,
+    setDataList(list, opts?: any) {
+      setDataSource((pre) => {
+        return {
+          total: pre.total,
+          totalPage: pre.totalPage,
+          loading: false,
+          loadend: true,
+          dataList: list,
+          deletedIds: opts?.deletedIds || []
+        };
+      });
+    },
+    onCreate: (newItems: any) => {
+      // ======= to resolve worker update issue =======
+      if (updateManually && triggerAtRef.current && newItems.length > 0) {
+        debounceFetchData();
+      }
+    },
+    onDelete: (newItems: any) => {
+      // ======= to resolve worker update issue =======
+      if (updateManually && triggerAtRef.current && newItems.length > 0) {
+        debounceFetchData();
+      }
+    }
+  });
 
   const updateHandler = (list: any) => {
     _.each(list, (data: any) => {
       updateChunkedList(data);
     });
-    shouldUpdateRef.current = list.some(
-      (data: any) =>
-        data.type === WatchEventType.DELETE ||
-        data.type === WatchEventType.CREATE
-    );
-
-    // ======= to resolve worker upate issue =======
-    // when worker list change (create/delete), fetch data again to update the list
-    if (shouldUpdateRef.current && updateManually && loadendRef.current) {
-      debounceFetchData(currentWatchParamsRef.current || undefined);
-    }
-    // ============================================
   };
 
-  const createModelsChunkRequest = async (params?: any) => {
+  const createTableListChunkRequest = async (params?: any) => {
     if (!API || !watch) return;
-    shouldUpdateRef.current = false;
-    chunkRequedtRef.current?.current?.cancel?.();
+    chunkRequestRef.current?.current?.cancel?.();
     try {
       const currentParams = params || queryParams;
 
       const query = _.omit(currentParams, ['page', 'perPage']);
 
-      chunkRequedtRef.current = setChunkRequest({
+      chunkRequestRef.current = setChunkRequest({
         url: `${API}?${qs.stringify(_.pickBy(query, (val: any) => !!val))}`,
         handler: updateHandler
       });
+      triggerAtRef.current = Date.now();
     } catch (error) {
       // ignore
     }
@@ -279,12 +285,13 @@ export default function useTableFetch<T>(
       paginate?: boolean;
     }
   ) => {
-    loadendRef.current = false;
+    // cancel previous chunk request so that we can create a new one with updated params
+    chunkRequestRef.current?.current?.cancel?.();
     const newQueryParams = { ...queryParams, ...params };
     setQueryParams(newQueryParams);
-    await fetchData({ query: newQueryParams });
-    if (watch && !options?.paginate) {
-      createModelsChunkRequest(newQueryParams);
+    const res = await fetchData({ query: newQueryParams });
+    if (watch && !options?.paginate && res) {
+      createTableListChunkRequest(newQueryParams);
     }
   };
 
@@ -336,7 +343,6 @@ export default function useTableFetch<T>(
       name: row.name,
       ...options,
       async onOk() {
-        console.log('OK');
         await deleteAPI?.(row.id, {
           ...modalRef.current?.configuration
         });
@@ -396,17 +402,27 @@ export default function useTableFetch<T>(
   }, [dataSource.loadend, queryParams]);
 
   useEffect(() => {
+    let mounted = true;
+
     const init = async () => {
       await fetchData();
-      setTimeout(() => {
-        createModelsChunkRequest();
+
+      timerIDRef.current = setTimeout(() => {
+        if (mounted) {
+          createTableListChunkRequest();
+        }
       }, 200);
     };
+
     init();
+
     return () => {
-      chunkRequedtRef.current?.cancel?.();
+      mounted = false;
+      clearTimeout(timerIDRef.current);
+      chunkRequestRef.current?.current?.cancel?.();
       axiosTokenRef.current?.cancel?.();
       cacheDataListRef.current = [];
+      triggerAtRef.current = 0;
     };
   }, []);
 
@@ -419,6 +435,7 @@ export default function useTableFetch<T>(
     extraStatus,
     TABLE_SORT_DIRECTIONS,
     debounceFetchData,
+    setDataSource,
     setQueryParams,
     handleDelete,
     handleDeleteBatch,

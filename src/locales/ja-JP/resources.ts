@@ -29,7 +29,7 @@ export default {
   'resources.table.vram': 'VRAM',
   'resources.table.index': 'インデックス',
   'resources.table.workername': 'ワーカー名',
-  'resources.table.vender': 'ベンダー',
+  'resources.table.vendor': 'ベンダー',
   'resources.table.temperature': '温度',
   'resources.table.core': 'コア数',
   'resources.table.utilization': '利用率',
@@ -107,7 +107,8 @@ export default {
   'resources.worker.maintenance.tips':
     'When maintenance mode is enabled, the node will stop scheduling new model deployment tasks. Running instances will not be affected.',
   'resources.worker.noCluster.tips':
-    'No available clusters. Please create a cluster before adding a node.'
+    'No available clusters. Please create a cluster before adding a node.',
+  'resources.metrics.details': 'Monitoring'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

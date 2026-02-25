@@ -51,11 +51,14 @@ export default {
     'If multiple outbound IPs exist, specify the one you want the worker to use. Please double-check with <span class="bold-text">hostname -I | xargs -n1</span>.',
   'clusters.addworker.nvidiaNotes-02':
     'If a model directory already exists on the worker, you can specify the path to mount it.',
-  'clusters.addworker.hygonNotes': `If <span class="bold-text">/opt/hyhal</span> or <span class="bold-text">/opt/dtk</span> does not exist, create symbolic links pointing to the corresponding Hygon installation paths, for example: <span class="desc-fill">ln -s /path/to/hyhal /opt/hyhal</span> <span class="desc-fill">ln -s /path/to/dtk /opt/dtk</span>.`,
-  'clusters.addworker.corexNotes': `If the <span class="bold-text">/lib/modules</span> directory does not exist, create a symbolic link to the Iluvatar installation path:  
-<span class="bold-text">ln -s /path/to/corex /lib/modules</span>. Same applies to the <span class="bold-text">/usr/local/corex</span> directory.`,
-  'clusters.addworker.metaxNotes': `If the <span class="bold-text">/opt/mxdriver</span> directory does not exist, create a symbolic link to the MetaX installation path:  
-<span class="bold-text">ln -s /path/to/metax /opt/mxdriver</span>. Same applies to the <span class="bold-text">/opt/maca</span> directory.`,
+  'clusters.addworker.hygonNotes': `If <span class="bold-text">/opt/hyhal</span> or <span class="bold-text">/opt/dtk</span> does not exist, create symbolic links pointing to the corresponding Hygon installation paths, for example: 
+  <span class="desc-fill">ln -s /path/to/hyhal /opt/hyhal</span> 
+  <span class="desc-fill">ln -s /path/to/dtk /opt/dtk</span>.`,
+  'clusters.addworker.corexNotes': `If the <span class="bold-text">/usr/local/corex</span> directory does not exist, create a symbolic link to the Iluvatar SDK installation path:  
+<span class="bold-text">ln -s /path/to/corex /usr/local/corex</span>.`,
+  'clusters.addworker.metaxNotes': `If the <span class="bold-text">/opt/mxdriver</span> or <span class="bold-text">/opt/maca</span> directory does not exist, create a symbolic link to the MetaX driver and SDK installation path:  
+<span class="desc-fill">ln -s /path/to/mxdriver /opt/mxdriver</span>
+<span class="desc-fill">ln -s /path/to/maca /opt/maca</span>.`,
   'clusters.addworker.cambriconNotes': `If the <span class="bold-text">/usr/local/neuware</span> directory does not exist, create a symbolic link to the Cambricon installation path:  
 <span class="bold-text">ln -s /path/to/neuware /usr/local/neuware</span>.`,
   'clusters.addworker.hygonNotes-02':
@@ -91,7 +94,7 @@ export default {
   'clusters.addworker.notSpecified': 'Not Specified',
   'clusters.addworker.autoDetect': 'Auto',
   'clusters.addworker.extraVolume.holder':
-    'e.g. /data/models (path must start with /)',
+    'e.g. /data/models (path must start with /). Use commas to separate multiple paths.',
   'clusters.addworker.cacheVolume.holder':
     'e.g. /data/cache (path must start with /)',
   'clusters.addworker.vendorNotes.title': 'Notes for {vendor} Device',
@@ -113,7 +116,7 @@ export default {
   'clusters.table.ip.internal': 'Internal',
   'clusters.table.ip.external': 'External',
   'clusters.form.serverUrl.tips':
-    'Specify an externally accessible GPUStack service URL if the worker cannot access GPUStack directly.',
+    'Specify an externally accessible GPUStack service URL if the worker cannot access GPUStack Server directly.',
   'clusters.form.setDefault': 'Set as Default',
   'clusters.form.setDefault.tips': 'Default for deployment.',
   'clusters.addworker.noClusters': 'No available Docker clusters found',
@@ -127,7 +130,7 @@ export default {
   'clusters.create.k8sTips2':
     'You can also skip this step and register it later from the cluster list.',
   'clusters.addworker.theadNotes':
-    'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
+    'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head PPU SDK installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
   'clusters.addworker.theadNotes-02':
     'T-Head PPU uses the Container Device Interface (CDI) for device injection and requires the <span class="bold-text">/var/run/cdi</span> directory to be available for CDI generation.'
 };
@@ -179,8 +182,8 @@ export default {
 // 44. 'clusters.addworker.nvidiaNotes-01': 'If multiple outbound IPs exist, specify the one you want the worker to use. Please double-check with <span class="bold-text">hostname -I | xargs -n1</span>.',
 // 45. 'clusters.addworker.nvidiaNotes-02': 'If a model directory already exists on the worker, you can specify the path to mount it.',
 // 46. 'clusters.addworker.hygonNotes': `If <span class="bold-text">/opt/hyhal</span> or <span class="bold-text">/opt/dtk</span> does not exist, create symbolic links pointing to the corresponding Hygon installation paths, for example: <span class="desc-fill">ln -s /path/to/hyhal /opt/hyhal</span> <span class="desc-fill">ln -s /path/to/dtk /opt/dtk</span>.`,
-// 47. 'clusters.addworker.corexNotes': 'If the <span class="bold-text">/lib/modules</span> directory does not exist, create a symbolic link to the Iluvatar installation path: <span class="bold-text">ln -s /path/to/corex /lib/modules</span>. Same applies to the <span class="bold-text">/usr/local/corex</span> directory.',
-// 48. 'clusters.addworker.metaxNotes': 'If the <span class="bold-text">/opt/mxdriver</span> directory does not exist, create a symbolic link to the MetaX installation path: <span class="bold-text">ln -s /path/to/metax /opt/mxdriver</span>. Same applies to the <span class="bold-text">/opt/maca</span> directory.',
+// 47. 'clusters.addworker.corexNotes': `If the <span class="bold-text">/usr/local/corex</span> directory does not exist, create a symbolic link to the Iluvatar SDK installation path: <span class="bold-text">ln -s /path/to/corex /usr/local/corex</span>.`,
+// 47. 'clusters.addworker.metaxNotes': `If the <span class="bold-text">/opt/mxdriver</span> or <span class="bold-text">/opt/maca</span> directory does not exist, create a symbolic link to the MetaX driver and SDK installation path:  <span class="desc-fill">ln -s /path/to/mxdriver /opt/mxdriver</span><span class="desc-fill">ln -s /path/to/maca /opt/maca</span>.`,
 // 49. 'clusters.addworker.cambriconNotes': 'If the <span class="bold-text">/usr/local/neuware</span> directory does not exist, create a symbolic link to the Cambricon installation path: <span class="bold-text">ln -s /path/to/neuware /usr/local/neuware</span>.'
 // 50. 'clusters.addworker.hygonNotes-02': 'If device detection fails, try removing <span class="bold-text">--env ROCM_SMI_LIB_PATH=/opt/hyhal/lib</span>.',
 // 51.  'clusters.addworker.selectCluster': 'Select Cluster',
@@ -200,7 +203,7 @@ export default {
 // 65. 'clusters.addworker.workerExternalIP': 'Worker External Address',
 // 65. 'clusters.addworker.notSpecified': 'Not Specified',
 // 66. 'clusters.addworker.autoDetect': 'Auto',
-// 67.  'clusters.addworker.extraVolume.holder': 'e.g. /data/models (path must start with /)'
+// 67.  'clusters.addworker.extraVolume.holder': 'e.g. /data/models (path must start with /). Use commas to separate multiple paths.',
 // 68. 'clusters.addworker.vendorNotes.title': 'Notes for {vendor} Device',
 // 69. 'clusters.button.genToken': 'Need to create a new token? Click <a href="{link}" target="_blank">here</a>.',
 // 70. 'clusters.addworker.amdNotes-01': `If the <span class="bold-text">/opt/rocm</span> directory does not exist, please create a symbolic link pointing to the ROCm installed path: <span class="bold-text">ln -s /path/to/rocm /opt/rocm</span>.`,
@@ -217,7 +220,7 @@ export default {
 // 78.  'clusters.addworker.dataVolume.tips': 'Specify a data storage path for GPUStack.',
 // 79.  'clusters.table.ip.internal': 'Internal',
 // 80.  'clusters.table.ip.external': 'External',
-// 81.  'clusters.form.serverUrl.tips': 'Specify an externally accessible GPUStack service URL if the worker cannot access GPUStack directly.',
+// 81.  'clusters.form.serverUrl.tips': 'Specify an externally accessible GPUStack service URL if the worker cannot access GPUStack Server directly.',
 // 82. 'clusters.addworker.externalIP.tips': 'Specify an external IP if the worker is in a VPC or private network.',
 // 83. 'clusters.form.setDefault': 'Set as Default',
 // 84. 'clusters.form.setDefault.tips': 'Default for deployment',
@@ -231,6 +234,6 @@ export default {
 // 92. 'clusters.create.k8sTips1': 'Next, register existing Kubernetes cluster.',
 // 93. 'clusters.create.k8sTips2': 'You can also skip this step and register it later from the cluster list.',
 // 94. 'clusters.create.steps.configure': 'Configure',
-// 99. 'clusters.addworker.theadNotes': 'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
+// 99. 'clusters.addworker.theadNotes': 'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head PPU SDK installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
 // 100. 'clusters.addworker.theadNotes-02': 'T-Head PPU uses the Container Device Interface (CDI) for device injection and requires the <span class="bold-text">/var/run/cdi</span> directory to be available for CDI generation.'
 // ========== End of To-Do List ==========

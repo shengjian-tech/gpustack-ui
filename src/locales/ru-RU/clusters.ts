@@ -51,11 +51,14 @@ export default {
     'Если существует несколько исходящих IP-адресов, укажите тот, который должен использовать воркер. Пожалуйста, перепроверьте с помощью <span class="bold-text">hostname -I | xargs -n1</span>.',
   'clusters.addworker.nvidiaNotes-02':
     'Если директория с моделями уже существует на воркере, вы можете указать путь для её монтирования.',
-  'clusters.addworker.hygonNotes': `If <span class="bold-text">/opt/hyhal</span> or <span class="bold-text">/opt/dtk</span> does not exist, create symbolic links pointing to the corresponding Hygon installation paths, for example: <span class="desc-fill">ln -s /path/to/hyhal /opt/hyhal</span> <span class="desc-fill">ln -s /path/to/dtk /opt/dtk</span>.`,
+  'clusters.addworker.hygonNotes': `If <span class="bold-text">/opt/hyhal</span> or <span class="bold-text">/opt/dtk</span> does not exist, create symbolic links pointing to the corresponding Hygon installation paths, for example: 
+  <span class="desc-fill">ln -s /path/to/hyhal /opt/hyhal</span> 
+  <span class="desc-fill">ln -s /path/to/dtk /opt/dtk</span>.`,
   'clusters.addworker.corexNotes':
-    'Если директория <span class="bold-text">/lib/modules</span> не существует, создайте символическую ссылку на путь установки Iluvatar: <span class="bold-text">ln -s /path/to/corex /lib/modules</span>. Аналогично для директории <span class="bold-text">/usr/local/corex</span>.',
-  'clusters.addworker.metaxNotes':
-    'Если директория <span class="bold-text">/opt/mxdriver</span> не существует, создайте символическую ссылку на путь установки MetaX: <span class="bold-text">ln -s /path/to/metax /opt/mxdriver</span>. Аналогично для директории <span class="bold-text">/opt/maca</span>.',
+    'Если директория <span class="bold-text">/usr/local/corex</span> не существует, создайте символическую ссылку на путь установки Iluvatar SDK: <span class="bold-text">ln -s /path/to/corex /usr/local/corex</span>.',
+  'clusters.addworker.metaxNotes': `If the <span class="bold-text">/opt/mxdriver</span> or <span class="bold-text">/opt/maca</span> directory does not exist, create a symbolic link to the MetaX driver and SDK installation path:  
+  <span class="desc-fill">ln -s /path/to/mxdriver /opt/mxdriver</span>
+  <span class="desc-fill">ln -s /path/to/maca /opt/maca</span>.`,
   'clusters.addworker.cambriconNotes':
     'Если директория <span class="bold-text">/usr/local/neuware</span> не существует, создайте символическую ссылку на путь установки Cambricon: <span class="bold-text">ln -s /path/to/neuware /usr/local/neuware</span>.',
   'clusters.addworker.hygonNotes-02':
@@ -91,9 +94,9 @@ export default {
   'clusters.addworker.notSpecified': 'Не указано',
   'clusters.addworker.autoDetect': 'Автоопределение',
   'clusters.addworker.extraVolume.holder':
-    'напр. /data/models (путь должен начинаться с /)',
+    'e.g. /data/models (path must start with /). Use commas to separate multiple paths.',
   'clusters.addworker.cacheVolume.holder':
-    'напр. /data/cache (путь должен начинаться с /)',
+    'e.g. /data/cache (path must start with /)',
   'clusters.addworker.vendorNotes.title': 'Примечания для устройств {vendor}',
   'clusters.button.genToken':
     'Нужен новый токен? Нажмите <a href="{link}" target="_blank">здесь</a>.',
@@ -113,7 +116,7 @@ export default {
   'clusters.table.ip.internal': 'Внутренний',
   'clusters.table.ip.external': 'Внешний',
   'clusters.form.serverUrl.tips':
-    'Если рабочий узел не может напрямую получить доступ к GPUStack, укажите внешний URL службы GPUStack.',
+    'Если рабочий узел не может напрямую получить доступ к GPUStack Server, укажите внешний URL службы GPUStack Server.',
   'clusters.form.setDefault': 'Установить по умолчанию',
   'clusters.form.setDefault.tips':
     'Использовать по умолчанию для развертывания.',
@@ -128,7 +131,7 @@ export default {
   'clusters.create.k8sTips2':
     'You can also skip this step and register it later from the cluster list.',
   'clusters.addworker.theadNotes':
-    'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
+    'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head PPU SDK installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
   'clusters.addworker.theadNotes-02':
     'T-Head PPU uses the Container Device Interface (CDI) for device injection and requires the <span class="bold-text">/var/run/cdi</span> directory to be available for CDI generation.'
 };
@@ -143,6 +146,7 @@ export default {
 // 7. 'clusters.create.k8sTips1': 'Next, register existing Kubernetes cluster.',
 // 8. 'clusters.create.k8sTips2': 'You can also skip this step and register it later from the cluster list.',
 // 9. 'clusters.create.steps.configure': 'Configure',
-// 10. 'clusters.addworker.theadNotes': 'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
+// 10. 'clusters.addworker.theadNotes': 'If the <span class="bold-text>/usr/local/PPU_SDK</span> directory does not exist, please create a symbolic link pointing to the T-Head PPU SDK installed path: <span class="bold-text>ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>',
 // 11. 'clusters.addworker.theadNotes-02': 'T-Head PPU uses the Container Device Interface (CDI) for device injection and requires the <span class="bold-text">/var/run/cdi</span> directory to be available for CDI generation.'
+// 12. 'clusters.addworker.metaxNotes': `If the <span class="bold-text">/opt/mxdriver</span> or <span class="bold-text">/opt/maca</span> directory does not exist, create a symbolic link to the MetaX driver and SDK installation path: <span class="desc-fill">ln -s /path/to/mxdriver /opt/mxdriver</span><span class="desc-fill">ln -s /path/to/maca /opt/maca</span>.`,
 // ================================================================

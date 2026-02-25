@@ -13,10 +13,13 @@ import semverGt from 'semver/functions/gt';
 import styled from 'styled-components';
 import {
   backendActions,
+  BackendSourceLabelMap,
+  BackendSourceValueMap,
   builtInBackendLogos,
   customColors,
   customIcons,
-  getGpuColor
+  getGpuColor,
+  TagColorMap
 } from '../config';
 import { ListItem } from '../config/types';
 
@@ -29,13 +32,14 @@ const StyledCard = styled(Card)`
   }
 `;
 
-const TagInner = styled(Tag)`
+// add height props
+const TagInner = styled(Tag)<{ height?: number }>`
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  height: 28px;
-  width: 28px;
+  height: ${({ height }) => (height ? `${height}px` : '28px')};
+  width: ${({ height }) => (height ? `${height}px` : '28px')};
   border-radius: 6px;
   font-weight: 400;
 `;
@@ -59,8 +63,8 @@ const CardName = styled.div`
   display: flex;
   align-items: center;
   color: var(--ant-color-text);
-  margin-bottom: 4px;
-  gap: 16px;
+  margin-bottom: 8px;
+  gap: 8px;
 `;
 
 const Content = styled.div`
@@ -68,7 +72,7 @@ const Content = styled.div`
   flex-direction: column;
   align-items: flex-start;
   margin-top: 12px;
-  gap: 16px;
+  gap: 8px;
   color: var(--ant-color-text-secondary);
   .description {
     margin-block: 12px;
@@ -103,12 +107,12 @@ const Content = styled.div`
 const InfoItem = styled.div`
   display: grid;
   width: 100%;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
+  grid-template-columns: max-content 1fr minmax(0, max-content);
+  align-items: end;
   gap: 8px;
   color: var(--ant-color-text-tertiary);
   .icon {
-    color: var(--ant-color-text-tertiary);
+    color: var(--ant-color-text-quaternary);
   }
   .label {
     display: flex;
@@ -120,10 +124,40 @@ const InfoItem = styled.div`
 interface BackendCardProps {
   onClick?: (data: any) => void;
   onSelect?: (item: any) => void;
+  actionsRenderer?: (data: ListItem) => React.ReactNode;
   data: ListItem;
+  layout?: 'default' | 'community';
+  active?: boolean;
 }
 
-const BackendCard: React.FC<BackendCardProps> = ({ data, onSelect }) => {
+export const generateIcon = (data: ListItem, height?: number) => {
+  const innHeight = height || 20;
+  if (builtInBackendLogos[data.backend_name]) {
+    return (
+      <img src={builtInBackendLogos[data.backend_name]} height={innHeight} />
+    );
+  }
+  if (data.icon) {
+    return <img src={data.icon} height={innHeight} />;
+  }
+  const color = customColors[data.id % customColors.length];
+  const icon = customIcons[data.id % customIcons.length];
+
+  return (
+    <TagInner color={color} variant="filled" height={height || 28}>
+      {icon}
+    </TagInner>
+  );
+};
+
+const BackendCard: React.FC<BackendCardProps> = ({
+  data,
+  onClick,
+  onSelect,
+  actionsRenderer,
+  layout = 'default',
+  active
+}) => {
   const intl = useIntl();
 
   const handleOnSelect = (item: any) => {
@@ -132,30 +166,23 @@ const BackendCard: React.FC<BackendCardProps> = ({ data, onSelect }) => {
 
   const handleClick = () => {
     onSelect?.({ action: 'view_versions', data: data });
+    onClick?.(data);
   };
 
   const renderIcon = () => {
-    if (builtInBackendLogos[data.backend_name]) {
-      return <img src={builtInBackendLogos[data.backend_name]} height={20} />;
-    }
-    const color = customColors[data.id % customColors.length];
-    const icon = customIcons[data.id % customIcons.length];
-
-    return (
-      <TagInner color={color} variant="filled">
-        {icon}
-      </TagInner>
-    );
+    return generateIcon(data);
   };
 
   const actions = useMemo(() => {
-    if (data.is_built_in) {
-      return backendActions.filter((item) => item.key !== 'delete');
-    }
-    return backendActions.filter((item) => item.key !== 'view_versions');
-  }, [data.is_built_in]);
+    return backendActions.filter((item) => {
+      if (item.show) {
+        return item.show(data);
+      }
+      return true;
+    });
+  }, [data]);
 
-  const onClick = (e: React.MouseEvent) => {
+  const handleonClickAction = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
@@ -213,47 +240,85 @@ const BackendCard: React.FC<BackendCardProps> = ({ data, onSelect }) => {
     );
   };
 
+  const renderSource = () => {
+    if (layout === 'community') {
+      return null;
+    }
+    const source = data.is_built_in
+      ? BackendSourceLabelMap[BackendSourceValueMap.BUILTIN] || ''
+      : BackendSourceLabelMap[data.backend_source] || '';
+    if (!source) {
+      return null;
+    }
+    return (
+      <Tag
+        color={
+          TagColorMap[
+            data.is_built_in
+              ? BackendSourceValueMap.BUILTIN
+              : data.backend_source
+          ]
+        }
+        className="font-400"
+        variant="filled"
+        style={{
+          borderRadius: 'var(--ant-border-radius)',
+          margin: 0,
+          width: 'max-content'
+        }}
+      >
+        {intl.formatMessage({
+          id: source
+        })}
+      </Tag>
+    );
+  };
+
+  const renderActions = () => {
+    return actionsRenderer ? (
+      actionsRenderer(data)
+    ) : (
+      <span onClick={handleonClickAction} className="operations">
+        <DropDownActions
+          menu={{
+            items: actions,
+            onClick: handleOnSelect
+          }}
+        >
+          <Button
+            icon={<IconFont type="icon-more"></IconFont>}
+            size="small"
+            type="text"
+          ></Button>
+        </DropDownActions>
+      </span>
+    );
+  };
+
   return (
     <StyledCard
       onClick={handleClick}
       clickable={true}
       hoverable={true}
       disabled={false}
-      height={140}
+      active={active}
+      height={136}
       ghost
       header={
         <Header>
           <div className="title">{renderIcon()}</div>
-          <span onClick={onClick} className="operations">
-            <DropDownActions
-              menu={{
-                items: actions,
-                onClick: handleOnSelect
-              }}
-            >
-              <Button
-                icon={<IconFont type="icon-more"></IconFont>}
-                size="small"
-                type="text"
-              ></Button>
-            </DropDownActions>
-          </span>
+          {renderActions()}
         </Header>
       }
     >
       <Content>
         <CardName>
-          <span>{data.backend_name}</span>
-          {data.is_built_in && (
-            <Tag
-              color="geekblue"
-              className="font-400"
-              variant="filled"
-              style={{ borderRadius: 'var(--ant-border-radius)', margin: 0 }}
-            >
-              {intl.formatMessage({ id: 'backend.builtin' })}
-            </Tag>
-          )}
+          <span>
+            {data.backend_source === BackendSourceValueMap.CUSTOM
+              ? data.backend_name.replace(/-custom$/g, '')
+              : data.backend_name}
+          </span>
+          {renderSource()}
         </CardName>
         {renderFrameworks()}
       </Content>

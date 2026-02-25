@@ -15,6 +15,7 @@ export interface ListItem {
   ready_replicas: number;
   speech_to_text?: boolean;
   text_to_speech?: boolean;
+  enable_model_route?: boolean;
   replicas: number;
   s3Address: string;
   name: string;
@@ -44,6 +45,7 @@ export type SourceType =
 export interface FormData {
   image_name?: string;
   run_command?: string;
+  enable_model_route?: boolean;
   backend: string;
   restart_on_error?: boolean;
   env?: Record<string, any>;
@@ -114,6 +116,7 @@ export interface DistributedServers {
 }
 export interface ModelInstanceListItem {
   backend?: string;
+  cluster_id: number;
   backend_version?: string;
   source: string;
   huggingface_repo_id: string;
@@ -303,6 +306,24 @@ export interface BackendGroupOption {
   versions: { label: string; value: string; title?: string }[];
 }
 
+export interface BackendGroupItem {
+  value: string;
+  label: string;
+  title?: string;
+  default_backend_param: string[];
+  default_version: string;
+  isBuiltIn: boolean;
+  backend_source: string;
+  enabled: boolean;
+  versions: {
+    label: string;
+    value: string;
+    title?: string;
+    env?: Record<string, any>;
+    is_deprecated: boolean;
+  }[];
+}
+
 export interface BackendOption {
   value: string;
   label: string;
@@ -310,10 +331,14 @@ export interface BackendOption {
   default_backend_param: string[];
   default_version: string;
   isBuiltIn: boolean;
+  backend_source: string;
+  default_env?: Record<string, any>;
+  enabled: boolean;
   versions: {
     label: string;
     value: string;
     title?: string;
+    env?: Record<string, any>;
     is_deprecated: boolean;
   }[];
 }
@@ -329,8 +354,11 @@ export interface BackendItem {
   default_version: string;
   default_backend_param: string[];
   is_built_in: boolean;
+  backend_source: string;
+  enabled: boolean;
   versions: {
     version: string;
+    env?: Record<string, any>;
     is_deprecated: boolean;
   }[];
 }

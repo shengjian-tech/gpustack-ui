@@ -11,7 +11,8 @@ import Wrapper from './wrapper';
 import SelectWrapper from './wrapper/select';
 
 const SealSelect: React.FC<
-  SelectProps & SealFormItemProps & { footer?: React.ReactNode }
+  SelectProps &
+    SealFormItemProps & { footer?: React.ReactNode; alwaysFocus?: boolean }
 > = (props) => {
   const {
     label,
@@ -25,6 +26,8 @@ const SealSelect: React.FC<
     notFoundContent = null,
     loading,
     footer,
+    alwaysFocus = false,
+    styles,
     ...rest
   } = props;
   const intl = useIntl();
@@ -99,7 +102,7 @@ const SealSelect: React.FC<
         className="seal-select-wrapper"
         status={status}
         label={label}
-        isFocus={isFocus}
+        isFocus={alwaysFocus || isFocus}
         required={required}
         description={description}
         disabled={props.disabled}
@@ -107,6 +110,8 @@ const SealSelect: React.FC<
       >
         <BaseSelect
           {...rest}
+          styles={styles}
+          placeholder={placeholder}
           footer={footer}
           ref={inputRef}
           options={children ? null : _options}

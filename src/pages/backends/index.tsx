@@ -1,7 +1,7 @@
 import DeleteModal from '@/components/delete-modal';
 import IconFont from '@/components/icon-font';
 import { FilterBar } from '@/components/page-tools';
-import { PageActionType } from '@/config/types';
+import { PageAction } from '@/config';
 import useTableFetch from '@/hooks/use-table-fetch';
 import { useIntl } from '@umijs/max';
 import useMemoizedFn from 'ahooks/lib/useMemoizedFn';
@@ -19,12 +19,20 @@ import {
   updateBackend,
   updateBackendFromYAML
 } from './apis';
+import AddCommunityModal from './community/add-community-modal';
 import AddModal from './components/add-modal';
 import BackendCardList from './components/backend-list';
 import VersionInfoModal from './components/version-info-modal';
-import { json2Yaml, yaml2Json } from './config';
+import {
+  backendSourceOptions,
+  BackendSourceValueMap,
+  json2Yaml,
+  yaml2Json
+} from './config';
 import { FormData, ListItem } from './config/types';
+import useCreateBackend from './hooks/use-create-backend';
 import useExportYAML from './hooks/use-export-yaml';
+import useEnableBackend from './services/use-enable-backend';
 
 const BackendList = () => {
   const intl = useIntl();
@@ -34,6 +42,7 @@ const BackendList = () => {
     rowSelection,
     queryParams,
     modalRef,
+    handleQueryChange,
     fetchData,
     handleDelete,
     handleSearch,
@@ -50,40 +59,46 @@ const BackendList = () => {
     }
   });
   const { exportYAML } = useExportYAML();
-  const [openModalStatus, setOpenModalStatus] = useState<{
-    open: boolean;
-    action: PageActionType;
-    currentData?: Partial<ListItem>;
-  }>({ open: false, action: 'create' });
   const [openVersionInfoModal, setOpenVersionInfoModal] = useState<{
     open: boolean;
-    currentData?: Partial<ListItem>;
+    currentData?: ListItem;
   }>({ open: false });
+  const { handleEnableBackend } = useEnableBackend();
+  const {
+    addBackend,
+    editBackend,
+    closeBackendModal,
+    openCommunityModalStatus,
+    openBackendModalStatus,
+    addActions
+  } = useCreateBackend();
 
   // built_in_version_configs is read-only, but needs to be included when updating
   const handleOnSubmit = async (values: FormData) => {
     try {
-      if (openModalStatus.action === 'create') {
+      if (openBackendModalStatus.action === 'create') {
         await createBackend({ data: values });
       } else {
-        const omitFields = openModalStatus.currentData?.is_built_in
-          ? ['built_in_version_configs', 'default_version']
-          : ['built_in_version_configs'];
+        console.log(
+          'openBackendModalStatus.currentData',
+          openBackendModalStatus
+        );
+        const omitFields =
+          openBackendModalStatus.currentData?.backend_source ===
+          BackendSourceValueMap.BUILTIN
+            ? ['built_in_version_configs', 'default_version']
+            : ['built_in_version_configs'];
 
-        await updateBackend(openModalStatus.currentData!.id!, {
+        await updateBackend(openBackendModalStatus.currentData!.id!, {
           data: {
             built_in_version_configs:
-              openModalStatus.currentData?.built_in_version_configs,
+              openBackendModalStatus.currentData?.built_in_version_configs,
             ..._.omit(values, omitFields),
             health_check_path: values.health_check_path || null
           }
         });
       }
-      setOpenModalStatus({
-        open: false,
-        action: 'create',
-        currentData: undefined
-      });
+      closeBackendModal('custom');
       handleSearch();
     } catch (error) {}
   };
@@ -91,51 +106,83 @@ const BackendList = () => {
   // built_in_version_configs needs to be included when updating from YAML, but not allowed to be changed
   const handleOnSubmitYaml = async (values: { content: string }) => {
     try {
-      if (openModalStatus.action === 'create') {
+      if (openBackendModalStatus.action === 'create') {
         await createBackendFromYAML({ data: values });
       } else {
         const jsonData = yaml2Json(values.content);
         const yamlContent = json2Yaml({
-          backend_name: openModalStatus.currentData?.backend_name,
-          default_version: openModalStatus.currentData?.default_version,
+          backend_name: openBackendModalStatus.currentData?.backend_name,
+          default_version: openBackendModalStatus.currentData?.default_version,
           built_in_version_configs:
-            openModalStatus.currentData?.built_in_version_configs,
+            openBackendModalStatus.currentData?.built_in_version_configs,
           ...jsonData
         });
-        await updateBackendFromYAML(openModalStatus.currentData!.id!, {
+        await updateBackendFromYAML(openBackendModalStatus.currentData!.id!, {
           data: {
             content: yamlContent
           }
         });
       }
-      setOpenModalStatus({
-        open: false,
-        action: 'create',
-        currentData: undefined
-      });
+      closeBackendModal('custom');
       handleSearch();
     } catch (error) {}
   };
 
-  const handleAddBackend = () => {
-    setOpenModalStatus({
-      open: true,
-      action: 'create'
+  const handleFilterBySource = (value: string) => {
+    handleQueryChange({
+      backend_source: value,
+      page: 1
     });
   };
 
-  const handleOnSelect = (item: any) => {
+  const handleAddBackend = (item: { key: 'community' | 'custom' }) => {
+    addBackend(item.key);
+  };
+
+  const handleDisableCommunityBackend = async (item: any) => {
+    // use disable for community backend deletion
+    handleEnableBackend({
+      id: item.data.id,
+      data: {
+        ...item.data,
+        enabled: item.action === 'enable'
+      },
+      showMessage: false
+    });
+    // delay 200ms to refresh list
+    await new Promise((resolve) => {
+      setTimeout(resolve, 300);
+    });
+    handleSearch();
+  };
+
+  const handleOnSelect = async (item: any) => {
+    // ================ Edit ================
     if (item.action === 'edit') {
-      setOpenModalStatus({
-        open: true,
-        action: 'edit',
-        currentData: item.data
-      });
-    } else if (item.action === 'delete') {
-      handleDelete(item.data, {
-        name: item.data.backend_name
-      });
-    } else if (item.action === 'export') {
+      editBackend(PageAction.EDIT, '', item.data);
+      return;
+    }
+    // ================ Delete ================
+    if (item.action === 'delete') {
+      if (item.data.backend_source === BackendSourceValueMap.COMMUNITY) {
+        modalRef.current?.show({
+          content: 'backends.title',
+          operation: 'common.delete.single.confirm',
+          name: item.data.backend_name,
+          async onOk() {
+            handleDisableCommunityBackend(item);
+          }
+        });
+      } else {
+        handleDelete(item.data, {
+          name: item.data.backend_name
+        });
+      }
+      return;
+    }
+
+    // ================ Export YAML ================
+    if (item.action === 'export') {
       const currentData = structuredClone(item.data);
 
       currentData.version_configs = _.mapValues(
@@ -146,7 +193,11 @@ const BackendList = () => {
       );
 
       exportYAML(_.omit(currentData, ['id', 'created_at', 'updated_at']));
-    } else if (item.action === 'view_versions') {
+      return;
+    }
+
+    // ================ View Versions ================
+    if (item.action === 'view_versions') {
       setOpenVersionInfoModal({
         open: true,
         currentData: item.data
@@ -159,11 +210,11 @@ const BackendList = () => {
       open: false,
       currentData: undefined
     });
-    setOpenModalStatus({
-      open: true,
-      action: 'edit',
-      currentData: openVersionInfoModal.currentData
-    });
+    editBackend(
+      PageAction.EDIT,
+      '',
+      openVersionInfoModal.currentData as ListItem
+    );
   };
 
   const loadMore = useMemoizedFn((nextPage: number) => {
@@ -184,15 +235,22 @@ const BackendList = () => {
         widths={{
           input: 300
         }}
+        actionItems={addActions}
+        actionType="dropdown"
         inputHolder={intl.formatMessage({ id: 'common.filter.name' })}
+        selectHolder={intl.formatMessage({ id: 'backend.filter.source' })}
         buttonText={intl.formatMessage({ id: 'backend.button.add' })}
         handleClickPrimary={handleAddBackend}
         handleSearch={handleSearch}
+        handleSelectChange={handleFilterBySource}
         handleInputChange={handleNameChange}
         rowSelection={rowSelection}
-        showSelect={false}
+        showSelect={true}
+        selectOptions={backendSourceOptions.map((item) => ({
+          label: intl.formatMessage({ id: item.label }),
+          value: item.value
+        }))}
       ></FilterBar>
-
       <ScrollerContext.Provider
         value={{
           total: dataSource.totalPage,
@@ -220,23 +278,28 @@ const BackendList = () => {
           })}
           title={intl.formatMessage({ id: 'noresult.backend.title' })}
           subTitle={intl.formatMessage({ id: 'noresult.backend.subTitle' })}
-          onClick={handleAddBackend}
+          onClick={() => handleAddBackend({ key: 'community' })}
           buttonText={intl.formatMessage({ id: 'noresult.button.add' })}
         ></NoResult>
       </ScrollerContext.Provider>
       <AddModal
-        action={openModalStatus.action}
-        onClose={() => setOpenModalStatus({ open: false, action: 'create' })}
+        action={openBackendModalStatus.action}
+        onClose={() => closeBackendModal('custom')}
         onSubmit={handleOnSubmit}
         onSubmitYaml={handleOnSubmitYaml}
-        currentData={openModalStatus.currentData as ListItem}
-        open={openModalStatus.open}
+        currentData={openBackendModalStatus.currentData as ListItem}
+        open={openBackendModalStatus.open}
         title={
-          openModalStatus.action === 'create'
+          openBackendModalStatus.action === PageAction.CREATE
             ? intl.formatMessage({ id: 'backend.button.add' })
             : intl.formatMessage({ id: 'backend.button.edit' })
         }
       ></AddModal>
+      <AddCommunityModal
+        open={openCommunityModalStatus.open}
+        onRefresh={handleSearch}
+        onClose={() => closeBackendModal('community')}
+      ></AddCommunityModal>
       <VersionInfoModal
         addVersion={handleAddVersion}
         open={openVersionInfoModal.open}

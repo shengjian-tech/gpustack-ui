@@ -97,7 +97,7 @@ export default {
   'common.form.field.input.required': 'required',
   'common.form.field.select.required': 'required',
   'common.select.option': 'All',
-  'common.checbox.all': 'Select all',
+  'common.checkbox.all': 'Select all',
   'common.select.all': 'All {type}',
   'common.data.unkonwn': 'Unknown',
   'common.data.none': 'No Data',
@@ -229,7 +229,7 @@ export default {
   'common.options.none': 'None',
   'common.options.auto': 'Auto',
   'common.search.empty': 'No matching results found.',
-  'common.button.downloadLog': 'Download Log',
+  'common.button.downloadLog': 'Download Logs',
   'common.button.faq': 'FAQ',
   'common.button.moreInfo': 'More Info',
   'common.text.warning': 'Warning',
@@ -259,6 +259,7 @@ export default {
   'common.sso.noConfig':
     'Single sign-on is not enabled on this system. Please contact your administrator.',
   'common.button.edit.item': 'Edit {name}',
+  'common.button.copy.item': 'Duplicate {name}',
   'common.button.terminal': 'Terminal',
   'common.button.addItem': 'Add Item',
   'common.help.default': 'Default: {content}',
@@ -269,5 +270,11 @@ export default {
   'common.button.dontshowagain': "Don't show again",
   'common.sorter.tips.ascend': 'Click to sort ascending',
   'common.sorter.tips.descend': 'Click to sort descending',
-  'common.sorter.tips.cancel': 'Click to cancel sorting'
+  'common.sorter.tips.cancel': 'Click to cancel sorting',
+  'common.button.enable': 'Enable',
+  'common.button.disable': 'Disable',
+  'common.status.enabled': 'Enabled',
+  'common.status.disabled': 'Disabled',
+  'common.button.duplicate': 'Duplicate',
+  'common.option.other': 'Other'
 };

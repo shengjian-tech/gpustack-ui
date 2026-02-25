@@ -1,3 +1,4 @@
+import { systemConfigAtom } from '@/atoms/system';
 import AutoTooltip from '@/components/auto-tooltip';
 import DropdownButtons from '@/components/drop-down-buttons';
 import LabelsCell from '@/components/label-cell';
@@ -5,6 +6,7 @@ import ProgressBar from '@/components/progress-bar';
 import InfoColumn from '@/components/simple-table/info-column';
 import StatusTag from '@/components/status-tag';
 import { tableSorter } from '@/config/settings';
+import GrafanaIcon from '@/pages/_components/grafana-icon';
 import { convertFileSize } from '@/utils';
 import {
   DeleteOutlined,
@@ -17,6 +19,7 @@ import {
 import { useIntl } from '@umijs/max';
 import { Tooltip } from 'antd';
 import { ColumnsType } from 'antd/lib/table';
+import { useAtomValue } from 'jotai';
 import _ from 'lodash';
 import { useMemo } from 'react';
 import styled from 'styled-components';
@@ -42,6 +45,15 @@ const IPWrapper = styled.span`
 
 const ActionList = [
   { label: 'common.button.edit', key: 'edit', icon: <EditOutlined /> },
+  {
+    label: 'resources.metrics.details',
+    key: 'metrics',
+    icon: (
+      <span className="flex-center">
+        <GrafanaIcon style={{ width: 14, height: 14 }}></GrafanaIcon>
+      </span>
+    )
+  },
   // {
   //   label: 'common.button.detail',
   //   key: 'details',
@@ -76,21 +88,6 @@ const ActionList = [
     icon: <DeleteOutlined />
   }
 ];
-
-const setActions = (row: ListItem) => {
-  return ActionList.filter((action) => {
-    if (action.key === 'download_ssh_key') {
-      return !!row.ssh_key_id;
-    }
-    if (action.key === 'star_maintenance') {
-      return !row.maintenance?.enabled;
-    }
-    if (action.key === 'stop_maintenance') {
-      return row.maintenance?.enabled;
-    }
-    return true;
-  });
-};
 
 const fieldList = [
   {
@@ -130,7 +127,10 @@ const GPUCell = ({ devices }: { devices: GPUDeviceItem[] }) => (
       _.sortBy(devices || [], ['index']),
       (item: GPUDeviceItem, index: number) => (
         <span className="flex-center" key={index}>
-          <span className="m-r-5" style={{ display: 'flex', width: 25 }}>
+          <span
+            className="m-r-5"
+            style={{ display: 'flex', width: 25, lineHeight: 1 }}
+          >
             [{item.index}]
           </span>
           {item.core ? (
@@ -162,7 +162,10 @@ const VRAMCell = ({
       _.sortBy(devices || [], ['index']),
       (item: GPUDeviceItem, index: number) => (
         <span key={index} className="flex-center">
-          <span className="m-r-5" style={{ display: 'flex', width: 25 }}>
+          <span
+            className="m-r-5"
+            style={{ display: 'flex', width: 25, lineHeight: 1 }}
+          >
             [{item.index}]
           </span>
           <ProgressBar
@@ -246,6 +249,7 @@ const useWorkerColumns = ({
   handleSelect: (action: string, record: ListItem) => void;
 }): ColumnsType<ListItem> => {
   const intl = useIntl();
+  const systemConfig = useAtomValue(systemConfigAtom);
 
   const renderIP = (text: string, record: ListItem) => {
     if (record.advertise_address === record.ip) {
@@ -269,6 +273,25 @@ const useWorkerColumns = ({
       );
     }
     return record.ip || record.advertise_address || '';
+  };
+
+  const setActions = (row: ListItem) => {
+    return ActionList.filter((action) => {
+      if (action.key === 'download_ssh_key') {
+        return !!row.ssh_key_id;
+      }
+      if (action.key === 'star_maintenance') {
+        return !row.maintenance?.enabled;
+      }
+      if (action.key === 'stop_maintenance') {
+        return row.maintenance?.enabled;
+      }
+
+      if (action.key === 'metrics') {
+        return systemConfig.showMonitoring;
+      }
+      return true;
+    });
   };
 
   return useMemo<ColumnsType<ListItem>>(
@@ -330,33 +353,42 @@ const useWorkerColumns = ({
         title: 'CPU',
         dataIndex: 'status.cpu.utilization_rate',
         sorter: tableSorter(4),
-        render: (text: string, record) =>
-          statusAvailable(record) ? (
-            <ProgressBar
-              percent={_.round(record?.status?.cpu?.utilization_rate, 0)}
-            />
-          ) : (
-            <HolderStatus />
-          )
+        render: (text: string, record) => (
+          <span className="flex-center flex-full">
+            {statusAvailable(record) ? (
+              <ProgressBar
+                percent={_.round(record?.status?.cpu?.utilization_rate, 0)}
+              />
+            ) : (
+              <HolderStatus />
+            )}
+          </span>
+        )
       },
       {
         title: intl.formatMessage({ id: 'resources.table.memory' }),
         dataIndex: 'status.memory.utilization_rate',
         sorter: tableSorter(5),
-        render: (_, record) =>
-          statusAvailable(record) ? (
-            <ProgressBar
-              percent={formateUtilization(
-                record?.status?.memory?.used,
-                record?.status?.memory?.total
-              )}
-              label={
-                <InfoColumn fieldList={fieldList} data={record.status.memory} />
-              }
-            />
-          ) : (
-            <HolderStatus />
-          )
+        render: (_, record) => (
+          <span className="flex-center flex-full">
+            {statusAvailable(record) ? (
+              <ProgressBar
+                percent={formateUtilization(
+                  record?.status?.memory?.used,
+                  record?.status?.memory?.total
+                )}
+                label={
+                  <InfoColumn
+                    fieldList={fieldList}
+                    data={record.status.memory}
+                  />
+                }
+              />
+            ) : (
+              <HolderStatus />
+            )}
+          </span>
+        )
       },
       {
         title: 'GPU',
@@ -387,12 +419,15 @@ const useWorkerColumns = ({
       {
         title: intl.formatMessage({ id: 'resources.table.disk' }),
         dataIndex: 'storage',
-        render: (_, record) =>
-          statusAvailable(record) ? (
-            <StorageCell files={record.status?.filesystem} />
-          ) : (
-            <HolderStatus />
-          )
+        render: (_, record) => (
+          <span className="flex-center flex-full">
+            {statusAvailable(record) ? (
+              <StorageCell files={record.status?.filesystem} />
+            ) : (
+              <HolderStatus />
+            )}
+          </span>
+        )
       },
       {
         title: intl.formatMessage({ id: 'common.table.operation' }),

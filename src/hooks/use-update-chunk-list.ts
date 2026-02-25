@@ -14,6 +14,7 @@ type EventsType = 'CREATE' | 'UPDATE' | 'DELETE' | 'INSERT';
 export function useUpdateChunkedList(options: {
   events?: EventsType[];
   dataList?: any[];
+  triggerAt?: React.MutableRefObject<number>;
   limit?: number;
   onCreate?: (args: any) => void;
   onUpdate?: (args: any) => void;
@@ -24,7 +25,8 @@ export function useUpdateChunkedList(options: {
   mapFun?: (args: any) => any;
   computedID?: (d: object) => string;
 }) {
-  const { events = ['CREATE', 'DELETE', 'UPDATE', 'INSERT'] } = options;
+  const { events = ['CREATE', 'DELETE', 'UPDATE', 'INSERT'], triggerAt } =
+    options;
   const deletedIdsRef = useRef<Set<number | string>>(new Set());
   const cacheDataListRef = useRef<any[]>(options.dataList || []);
   const timerRef = useRef<any>(null);
@@ -45,7 +47,7 @@ export function useUpdateChunkedList(options: {
     }, 200);
   };
   const updateChunkedList = (data: ChunkedCollection) => {
-    console.log('updateChunkedList data:', data);
+    // console.log('updateChunkedList data:', data);
     let collections = data?.collection || [];
     if (options?.computedID) {
       collections = collections?.map((item: any) => {
@@ -63,15 +65,24 @@ export function useUpdateChunkedList(options: {
 
     // CREATE
     if (data?.type === WatchEventType.CREATE && events.includes('CREATE')) {
+      const latestCreateList: any[] = [];
       const newDataList = collections.reduce((acc: any[], item: any) => {
         const updateIndex = cacheDataListRef.current?.findIndex(
           (sItem: any) => sItem.id === item.id
         );
         const updateItem = { ...item };
-        if (updateIndex === -1) {
+        if (updateIndex === -1 && !triggerAt?.current) {
           acc.push(updateItem);
-        } else {
+        } else if (!triggerAt?.current) {
           cacheDataListRef.current[updateIndex] = updateItem;
+        }
+
+        // TODO： only push items created after triggerAt
+        if (
+          triggerAt?.current &&
+          Date.parse(item.created_at) >= triggerAt.current
+        ) {
+          latestCreateList.push(updateItem);
         }
 
         return acc;
@@ -82,13 +93,21 @@ export function useUpdateChunkedList(options: {
         ...cacheDataListRef.current
       ].slice(0, limit);
 
-      options.onCreate?.(newDataList);
+      options.onCreate?.(latestCreateList);
     }
 
     // DELETE
     if (data?.type === WatchEventType.DELETE && events.includes('DELETE')) {
+      const deletedList: any[] = [];
+
       cacheDataListRef.current = cacheDataListRef.current?.filter(
         (item: any) => {
+          // collect deleted items
+          if (triggerAt?.current) {
+            if (ids?.includes(item.id)) {
+              deletedList.push(item);
+            }
+          }
           return !ids?.includes(item.id);
         }
       );
@@ -96,6 +115,8 @@ export function useUpdateChunkedList(options: {
       options.setDataList?.([...cacheDataListRef.current], {
         deletedIds: [...deletedIdsRef.current]
       });
+
+      options.onDelete?.(deletedList);
     }
 
     // UPDATE
@@ -112,7 +133,11 @@ export function useUpdateChunkedList(options: {
             updateItem,
             ...cacheDataListRef.current.slice(0, limit - 1)
           ];
-          options.onCreate?.([updateItem]);
+          if (options.onUpdate && triggerAt?.current) {
+            if (Date.parse(item.created_at) >= triggerAt.current) {
+              options.onUpdate?.([updateItem]);
+            }
+          }
         }
       });
     }

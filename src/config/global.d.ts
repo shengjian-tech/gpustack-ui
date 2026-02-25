@@ -1,4 +1,4 @@
-type PageActionType = 'create' | 'update' | 'view' | 'edit';
+type PageActionType = 'create' | 'update' | 'view' | 'edit' | 'copy';
 declare namespace Global {
   type WithFalse<T> = T | false;
   interface Pagination {
@@ -56,7 +56,7 @@ declare namespace Global {
     currentUser?: UserInfo;
   }
 
-  type SearchParams = Pagination & { search?: string };
+  type SearchParams = Pagination & { search?: string; [key: string]: any };
 
   type MessageType = 'transition' | 'warning' | 'danger' | 'success' | 'info';
 

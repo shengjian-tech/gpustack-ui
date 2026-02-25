@@ -1,31 +1,28 @@
-import { PageContainer } from '@ant-design/pro-components';
 import { Spin } from 'antd';
-import { useState } from 'react';
+import { useEffect } from 'react';
+import PageBox from '../_components/page-box';
 import DashboardInner from './components/dahboard-inner';
+import DashboardContext from './config/dashboard-context';
+import useQueryDashboard from './services/use-query-dashboard';
 
 const Dashboard: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const { fetchData, loading, data, cancelRequest } = useQueryDashboard();
+
+  useEffect(() => {
+    fetchData({});
+    return () => {
+      cancelRequest();
+    };
+  }, []);
 
   return (
-    <>
-      <PageContainer
-        ghost
-        extra={[]}
-        header={{
-          title: null,
-          style: {
-          }
-        }}
-        style={{
-          position: 'relative',
-          top:'-40px'
-        }}
-      >
-        <Spin spinning={loading}>
-          <DashboardInner setLoading={setLoading} />
+    <DashboardContext.Provider value={{ ...data, fetchData: fetchData }}>
+      <PageBox>
+        <Spin spinning={loading} style={{ minHeight: 300 }}>
+          <DashboardInner />
         </Spin>
-      </PageContainer>
-    </>
+      </PageBox>
+    </DashboardContext.Provider>
   );
 };
 

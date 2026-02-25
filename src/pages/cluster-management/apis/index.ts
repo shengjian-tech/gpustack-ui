@@ -106,10 +106,14 @@ export async function deleteCredential(id: number) {
 
 // ===================== Cluster =====================
 
-export async function queryClusterList(params: Global.SearchParams) {
+export async function queryClusterList(
+  params: Global.SearchParams,
+  options?: any
+) {
   return request<Global.PageResponse<ClusterListItem>>(`${CLUSTERS_API}`, {
     method: 'GET',
-    params
+    params,
+    cancelToken: options?.token
   });
 }
 
@@ -156,9 +160,15 @@ export async function queryClusterItem(params: { id: number }, options?: any) {
   });
 }
 
-export async function queryClusterToken(params: { id: number }) {
+export async function queryClusterToken(
+  params: { id: number },
+  options?: {
+    token?: any;
+  }
+) {
   return request(`${CLUSTERS_API}/${params.id}/${CLUSTER_TOKEN}`, {
-    method: 'GET'
+    method: 'GET',
+    cancelToken: options?.token
   });
 }
 

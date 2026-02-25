@@ -39,5 +39,14 @@ export default {
   'noresult.resources.worker':
     'No workers available. Add a worker to get started.',
   'noresult.resources.gotocluster': 'Create Your First Cluster',
-  'noresult.resources.gotoworker': 'Add Worker'
+  'noresult.resources.gotoworker': 'Add Worker',
+  'noresult.benchmark.title': 'No Benchmarks',
+  'noresult.benchmark.subTitle': 'No benchmarks have been added yet.',
+  'noresult.benchmark.nofound': 'No matching benchmarks found.',
+  'noresult.providers.title': 'No Providers',
+  'noresult.providers.subTitle': 'No providers have been added yet.',
+  'noresult.providers.nofound': 'No matching providers found.',
+  'noresult.routes.title': 'No Routes',
+  'noresult.routes.subTitle': 'No routes have been added yet.',
+  'noresult.routes.nofound': 'No matching routes found.'
 };

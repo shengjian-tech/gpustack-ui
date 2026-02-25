@@ -35,7 +35,7 @@ const renderTag = (props: any) => {
 const OptionNodes = (props: {
   data: any;
   notFoundContent?: React.ReactNode;
-  optionNode: React.FC<{ data: any }>;
+  optionNode?: React.FC<{ data: any }>;
 }) => {
   const intl = useIntl();
   const { data, optionNode: OptionNode, notFoundContent } = props;
@@ -68,16 +68,25 @@ const OptionNodes = (props: {
   if (data.parent) {
     return (
       <AutoTooltip ghost {...width}>
-        {data.label}
+        <span>{data.label}</span>
       </AutoTooltip>
     );
   }
-  return OptionNode ? <OptionNode data={data}></OptionNode> : data.label;
+  return OptionNode ? (
+    <OptionNode data={data}></OptionNode>
+  ) : (
+    <AutoTooltip ghost>
+      <span>{data.label}</span>
+    </AutoTooltip>
+  );
 };
 
 const SealCascader: React.FC<
   CascaderAutoProps &
-    SealFormItemProps & { optionNode?: React.FC<{ data: any }> }
+    SealFormItemProps & {
+      alwaysFocus?: boolean;
+      optionNode?: React.FC<{ data: any }>;
+    }
 > = (props) => {
   const {
     label,
@@ -88,6 +97,7 @@ const SealCascader: React.FC<
     options,
     allowNull,
     isInFormItems = true,
+    alwaysFocus = false,
     optionNode,
     notFoundContent,
     tagRender,
@@ -102,7 +112,9 @@ const SealCascader: React.FC<
   // the status can be controlled by Form.Item
   if (isInFormItems) {
     const statusData = Form?.Item?.useStatus?.();
-    status = statusData?.status || '';
+    status = props.status || statusData?.status || '';
+  } else {
+    status = props.status || '';
   }
 
   const _options = useMemo(() => {
@@ -157,6 +169,7 @@ const SealCascader: React.FC<
 
   const handleDropdownVisibleChange = (open: boolean) => {
     setVisible(open);
+    props.onOpenChange?.(open);
   };
 
   return (
@@ -166,7 +179,7 @@ const SealCascader: React.FC<
         classList={visible ? 'dropdown-visible' : ''}
         status={status}
         label={label}
-        isFocus={isFocus}
+        isFocus={alwaysFocus || isFocus}
         required={required}
         description={description}
         disabled={props.disabled}
@@ -174,18 +187,15 @@ const SealCascader: React.FC<
       >
         <Cascader
           {...rest}
+          placeholder={placeholder}
           suffixIcon={<IconFont type="icon-down"></IconFont>}
-          optionRender={
-            optionNode
-              ? (data) => (
-                  <OptionNodes
-                    data={data}
-                    notFoundContent={notFoundContent}
-                    optionNode={optionNode}
-                  ></OptionNodes>
-                )
-              : undefined
-          }
+          optionRender={(data) => (
+            <OptionNodes
+              data={data}
+              notFoundContent={notFoundContent}
+              optionNode={optionNode}
+            ></OptionNodes>
+          )}
           tagRender={tagRender ?? renderTag}
           ref={inputRef}
           options={children ? null : _options}

@@ -2,6 +2,7 @@ export default {
   'models.button.deploy': 'Deploy Model',
   'models.title': 'Models',
   'models.title.edit': 'Edit Model',
+  'models.title.duplicate': 'Clone Model',
   'models.table.models': 'models',
   'models.table.name': 'Model Name',
   'models.form.source': 'Source',
@@ -90,11 +91,11 @@ export default {
   'models.form.backend.llamabox':
     'For GGUF format models, supports Linux, macOS, and Windows.',
   'models.form.backend.vllm':
-    'Built-in support for NVIDIA, AMD, Ascend, Hygon, Iluvatar, and MetaX devices.',
+    'Built-in support for NVIDIA, AMD, Ascend, Hygon, Moore Threads, Iluvatar, MetaX, T-Head PPU devices.',
   'models.form.backend.voxbox': 'Only supports NVIDIA GPUs and CPUs.',
   'models.form.backend.mindie': 'Only supports Ascend NPUs.',
   'models.form.backend.sglang':
-    'Built-in support for NVIDIA/AMD GPUs and Ascend NPUs.',
+    'Built-in support for NVIDIA, AMD, Ascend, Moore Threads, MetaX, T-Head PPU devices.',
   'models.form.search.gguftips':
     'If using macOS or Windows as a worker, check GGUF (uncheck for audio models).',
   'models.form.button.addlabel': 'Add Label',
@@ -256,6 +257,8 @@ export default {
   'models.catalog.precision': 'Precision',
   'models.form.gpuPerReplica.tips': 'Enter a custom number',
   'models.form.generic_proxy': 'Enable Generic Proxy',
+  'models.form.enableModelRoute': 'Enable Model Route',
+  'models.form.enableModelRoute.tips': 'Enable Model Route',
   'models.form.generic_proxy.tips':
     'After enabling the generic proxy, you can access URI paths that do not follow the OpenAI API standard.',
   'models.form.generic_proxy.button': 'Generic Proxy',
@@ -274,5 +277,8 @@ export default {
     'No compatible GPUs are available in the selected cluster for this model.',
   'models.form.modelfile.notfound': `The model file path you specified does not exist on the GPUStack server. It's recommended to place the model file at the same path on both the GPUStack server and GPUStack workers. This helps GPUStack make better decisions.`,
   'models.form.readyWorkers': 'workers ready',
-  'models.form.maxContextLength': 'Maximum Context Length'
+  'models.form.maxContextLength': 'Maximum Context Length',
+  'models.form.backend.helperText':
+    'Not enabled yet. Will be enabled after deployment. ',
+  'models.table.instance.benchmark': 'Run Benchmark'
 };

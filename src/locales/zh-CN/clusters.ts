@@ -52,12 +52,13 @@ export default {
   'clusters.addworker.hygonNotes': `如果 <span class="bold-text">/opt/hyhal</span> 或 <span class="bold-text">/opt/dtk</span> 不存在，请创建指向对应海光安装路径的符号链接，例如：
   <span class="desc-fill line-6">ln -s /path/to/hyhal /opt/hyhal</span>
   <span class="desc-fill line-6">ln -s /path/to/dtk /opt/dtk</span>`,
-  'clusters.addworker.corexNotes':
-    '如果 <span class="bold-text">/lib/modules</span> 目录不存在，请创建指向天数智芯安装路径的符号链接：<span class="bold-text">ln -s /path/to/corex /lib/modules</span>。与 <span class="bold-text">/usr/local/corex</span> 目录相同。',
-  'clusters.addworker.metaxNotes':
-    '如果 <span class="bold-text">/opt/mxdriver</span> 目录不存在，请创建指向沐曦安装路径的符号链接：<span class="bold-text">ln -s /path/to/metax /opt/mxdriver</span>。与 <span class="bold-text">/opt/maca</span> 目录相同。',
-  'clusters.addworker.cambriconNotes':
-    '如果 <span class="bold-text">/usr/local/neuware</span> 目录不存在，请创建指向寒武纪安装路径的符号链接：<span class="bold-text">ln -s /path/to/neuware /usr/local/neuware</span>。',
+  'clusters.addworker.corexNotes': `如果 <span class="bold-text">/usr/local/corex</span> 目录不存在，请创建指向天数智芯 SDK 安装路径的符号链接：
+    <span class="bold-text">ln -s /path/to/corex /usr/local/corex</span>。`,
+  'clusters.addworker.metaxNotes': `如果 <span class="bold-text">/opt/mxdriver</span> 或 <span class="bold-text">/opt/maca</span> 目录不存在，请创建指向沐曦驱动和 SDK 安装路径的符号链接：
+    <span class="desc-fill">ln -s /path/to/mxdriver /opt/mxdriver</span>
+    <span class="desc-fill">ln -s /path/to/maca /opt/maca</span>。`,
+  'clusters.addworker.cambriconNotes': `如果 <span class="bold-text">/usr/local/neuware</span> 目录不存在，请创建指向寒武纪安装路径的符号链接：
+  <span class="bold-text">ln -s /path/to/neuware /usr/local/neuware</span>。`,
   'clusters.addworker.hygonNotes-02':
     '如果未能检测到设备，请尝试移除 <span class="bold-text">--env ROCM_SMI_LIB_PATH=/opt/hyhal/lib</span>。',
   'clusters.addworker.selectCluster': '选择集群',
@@ -90,19 +91,19 @@ export default {
   'clusters.addworker.notSpecified': '未指定',
   'clusters.addworker.autoDetect': '自动检测',
   'clusters.addworker.extraVolume.holder':
-    '例如：/data/models（路径需以 / 开头）',
+    '例如：/data/models（路径需以 / 开头），添加多个请用逗号分隔。',
   'clusters.addworker.cacheVolume.holder':
     '例如：/data/cache（路径需以 / 开头）',
   'clusters.addworker.vendorNotes.title': '{vendor}设备注意事项',
   'clusters.button.genToken':
     '需要创建令牌？点击<a href="{link}" target="_blank">这里</a>。',
-  'clusters.addworker.amdNotes-01':
-    '如果 <span class="bold-text">/opt/rocm</span> 目录不存在，请创建一个指向已安装 ROCm 路径的符号链接：<span class="bold-text">ln -s /path/to/rocm /opt/rocm</span>。',
+  'clusters.addworker.amdNotes-01': `如果 <span class="bold-text">/opt/rocm</span> 目录不存在，请创建一个指向已安装 ROCm 路径的符号链接：
+    <span class="bold-text">ln -s /path/to/rocm /opt/rocm</span>。`,
   'clusters.addworker.message.success_single':
     '已将 {count} 个新节点添加到集群中。',
   'clusters.addworker.message.success_multiple':
     '已将 {count} 个新节点添加到集群中。',
-  'clusters.create.serverUrl': 'GPUStack 服务地址',
+  'clusters.create.serverUrl': 'GPUStack Server 节点地址',
   'clusters.create.workerConfig': '节点配置',
   'clusters.addworker.containerName': '节点容器名称',
   'clusters.addworker.containerName.tips': '为节点容器指定一个名称。',
@@ -111,7 +112,7 @@ export default {
   'clusters.table.ip.internal': '内',
   'clusters.table.ip.external': '外',
   'clusters.form.serverUrl.tips':
-    '如果节点无法直接访问 GPUStack，则指定一个可访问的外部 GPUStack 服务地址。',
+    '如果节点无法直接访问 GPUStack Server，则指定一个可访问的外部 GPUStack Server 地址。',
   'clusters.form.setDefault': '设为默认',
   'clusters.form.setDefault.tips': '部署时的默认集群。',
   'clusters.addworker.noClusters': '无可用的 Docker 集群',
@@ -123,7 +124,7 @@ export default {
   'clusters.create.k8sTips1': '接下来，注册已有的 Kubernetes 集群。',
   'clusters.create.k8sTips2': '你也可以跳过此步骤，稍后在集群列表中进行注册。',
   'clusters.addworker.theadNotes':
-    '如果 <span class="bold-text">/usr/local/PPU_SDK</span> 目录不存在，请创建一个指向已安装平头哥（T-Head）路径的符号链接：<span class="bold-text">ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>。',
+    '如果 <span class="bold-text">/usr/local/PPU_SDK</span> 目录不存在，请创建一个指向已安装平头哥（T-Head）PPU SDK 路径的符号链接：<span class="bold-text">ln -s /path/to/PPU_SDK /usr/local/PPU_SDK</span>。',
   'clusters.addworker.theadNotes-02':
     '平头哥（T-Head）PPU 使用容器设备接口（CDI）进行设备注入，因此需要确保 <span class="bold-text">/var/run/cdi</span> 目录可用以生成 CDI。'
 };

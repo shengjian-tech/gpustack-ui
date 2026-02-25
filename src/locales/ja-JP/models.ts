@@ -2,6 +2,7 @@ export default {
   'models.button.deploy': 'モデルをデプロイ',
   'models.title': 'モデル',
   'models.title.edit': 'モデルを編集',
+  'models.title.duplicate': 'モデルをクローン',
   'models.table.models': 'モデル',
   'models.table.name': 'モデル名',
   'models.form.source': 'ソース',
@@ -90,11 +91,11 @@ export default {
   'models.form.backend.llamabox':
     'GGUF形式のモデル用（Linux、macOS、Windowsをサポート）。',
   'models.form.backend.vllm':
-    'Built-in support for NVIDIA, AMD, Ascend, Hygon, Iluvatar, and MetaX devices.',
+    'Built-in support for NVIDIA, AMD, Ascend, Hygon, Moore Threads, Iluvatar, MetaX, T-Head PPU devices.',
   'models.form.backend.voxbox': 'Only supports NVIDIA GPUs and CPUs.',
   'models.form.backend.mindie': 'Only supports Ascend NPUs.',
   'models.form.backend.sglang':
-    'Built-in support for NVIDIA/AMD GPUs and Ascend NPUs.',
+    'Built-in support for NVIDIA, AMD, Ascend, Moore Threads, MetaX, T-Head PPU devices.',
   'models.form.search.gguftips':
     'macOSまたはWindowsをワーカーとして使用する場合、GGUFをチェックしてください（音声モデルの場合はオフにしてください）。',
   'models.form.button.addlabel': 'ラベルを追加',
@@ -255,6 +256,8 @@ export default {
   'models.catalog.precision': 'Precision',
   'models.form.gpuPerReplica.tips': 'Enter a custom number',
   'models.form.generic_proxy': 'Enable Generic Proxy',
+  'models.form.enableModelRoute': 'Enable Model Route',
+  'models.form.enableModelRoute.tips': 'Enable Model Route',
   'models.form.generic_proxy.tips':
     'After enabling the generic proxy, you can access URI paths that do not follow the OpenAI API standard.',
   'models.form.generic_proxy.button': 'Generic Proxy',
@@ -273,7 +276,10 @@ export default {
     'No compatible GPUs are available in the selected cluster for this model.',
   'models.form.modelfile.notfound': `The model file path you specified does not exist on the GPUStack server. It's recommended to place the model file at the same path on both the GPUStack server and GPUStack workers. This helps GPUStack make better decisions.`,
   'models.form.readyWorkers': 'workers ready',
-  'models.form.maxContextLength': 'Maximum Context Length'
+  'models.form.maxContextLength': 'Maximum Context Length',
+  'models.form.backend.helperText':
+    'Not enabled yet. Will be enabled after deployment. ',
+  'models.table.instance.benchmark': 'Run Benchmark'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -351,10 +357,10 @@ export default {
 // 55. 'models.form.generic_proxy.button': 'Generic Proxy',
 // 56. 'models.accessControlModal.includeusers': 'Include Users',
 // 57. 'models.table.genericProxy': 'Use the following path prefix, and set the model name in either the <span class="bold-text">X-GPUStack-Model</span> request header or the model field in the request body. All requests under this path prefix will be forwarded to the inference backend.'
-// 58. 'models.form.backend.vllm': 'Built-in support for NVIDIA, AMD, Ascend, Hygon, Iluvatar, and MetaX devices.',
+// 58. 'models.form.backend.vllm': 'Built-in support for NVIDIA, AMD, Ascend, Hygon, Moore Threads, Iluvatar, MetaX, T-Head PPU devices.',
 // 59. 'models.form.backend.voxbox': 'Only supports NVIDIA GPUs and CPUs.',
 // 60.  models.form.backend.mindie': 'Only supports Ascend NPUs.',
-// 61. 'models.form.backend.sglang': 'Built-in support for NVIDIA/AMD GPUs and Ascend NPUs.',
+// 61.  'models.form.backend.sglang': 'Built-in support for NVIDIA, AMD, Ascend, Moore Threads, MetaX, T-Head PPU devices.',
 // 62. 'models.form.backend_parameters.vllm.tips': 'For more details about {backend} parameters, see <a href={link} target="_blank">here</a>.',
 // 63. 'models.button.accessSettings.tips': 'Changes to access settings take effect after one minute.',
 // 64.  'models.table.userSelection.tips': 'Admin users can access all models by default.',
@@ -369,5 +375,9 @@ export default {
 // 73. 'models.catalog.nogpus.tips': 'No compatible GPUs are available in the selected cluster for this model.',
 // 74. 'models.form.modelfile.notfound': `The model file path you specified does not exist on the GPUStack server. It's recommended to place the model file at the same path on both the GPUStack server and GPUStack workers. This helps GPUStack make better decisions.`,
 // 75. 'models.form.readyWorkers': 'workers ready',
-// 76. 'models.form.maxContextLength': 'Maximum Context Length'
+// 76. 'models.form.maxContextLength': 'Maximum Context Length',
+// 77. 'models.form.backend.helperText': 'Not enabled yet. Will be enabled after deployment. ',
+// 78. 'models.table.instance.benchmark': 'Run Benchmark'
+// 77. 'models.form.enableModelRoute': 'Enable Model Route',
+// 78.  'models.form.enableModelRoute.tips': 'Enable Model Route',
 // ========== End of To-Do List ==========

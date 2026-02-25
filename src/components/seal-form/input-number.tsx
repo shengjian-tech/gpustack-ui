@@ -22,7 +22,7 @@ const SealInputNumber: React.FC<InputNumberProps & SealFormItemProps> = (
   let status = '';
   if (isInFormItems) {
     const statusData = Form?.Item?.useStatus?.();
-    status = statusData?.status || '';
+    status = props.status || statusData?.status || '';
   } else {
     status = props.status || '';
   }
@@ -76,6 +76,7 @@ const SealInputNumber: React.FC<InputNumberProps & SealFormItemProps> = (
       >
         <InputNumber
           {...rest}
+          placeholder={placeholder}
           ref={inputRef}
           autoComplete="off"
           onFocus={handleOnFocus}

@@ -273,7 +273,11 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Tag
                   variant="filled"
                   color="error"
-                  style={{ padding: '6px 8px', marginBottom: 16 }}
+                  style={{
+                    padding: '6px 8px',
+                    marginBottom: 16,
+                    width: '100%'
+                  }}
                 >
                   {intl.formatMessage({ id: 'apikeys.table.save.tips' })}
                 </Tag>

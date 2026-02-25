@@ -27,66 +27,8 @@ export const imageSizeOptions: {
   { label: '1024x768(4:3)', value: '1024x768', width: 1024, height: 768 },
   { label: '1024x576(16:9)', value: '1024x576', width: 1024, height: 576 },
   { label: '576x1024(9:16)', value: '576x1024', width: 576, height: 1024 },
-  { label: '1024x1024(1:1)', value: '1024x1024', width: 1024, height: 1024 }
-];
-
-export const TTSParamsConfig: ParamsSchema[] = [
-  {
-    type: 'AutoComplete',
-    name: 'voice',
-    options: [],
-    label: {
-      text: 'playground.params.voice',
-      isLocalized: true
-    },
-    rules: [
-      {
-        required: false,
-        message: 'Voice is required'
-      }
-    ]
-  },
-  {
-    type: 'Select',
-    name: 'response_format',
-    options: [
-      { label: 'mp3', value: 'mp3' },
-      // { label: 'opus', value: 'opus' },
-      // { label: 'aac', value: 'aac' },
-      // { label: 'flac', value: 'flac' },
-      { label: 'wav', value: 'wav' }
-      // { label: 'pcm', value: 'pcm' }
-    ],
-    label: {
-      text: 'playground.params.format',
-      isLocalized: true
-    },
-    rules: [
-      {
-        required: false
-      }
-    ]
-  }
-  // {
-  //   type: 'Select',
-  //   name: 'speed',
-  //   options: [
-  //     { label: '0.25x', value: 0.25 },
-  //     { label: '0.5x', value: 0.5 },
-  //     { label: '1x', value: 1 },
-  //     { label: '2x', value: 2 },
-  //     { label: '4x', value: 4 }
-  //   ],
-  //   label: {
-  //     text: 'playground.params.speed',
-  //     isLocalized: true
-  //   },
-  //   rules: [
-  //     {
-  //       required: false
-  //     }
-  //   ]
-  // }
+  { label: '1024x1024(1:1)', value: '1024x1024', width: 1024, height: 1024 },
+  { label: '2048x2048(1:1)', value: '2048x2048', width: 2048, height: 2048 }
 ];
 
 export const RealtimeParamsConfig: ParamsSchema[] = [

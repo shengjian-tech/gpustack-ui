@@ -94,7 +94,7 @@ export default {
   'common.data.unkonwn': '未知',
   'common.data.none': '暂无',
   'common.action.none': '无',
-  'common.checbox.all': '全选',
+  'common.checkbox.all': '全选',
   'common.select.all': '全部{type}',
   'common.button.addfile': '添加文件',
   'common.logout.msg': '登出成功',
@@ -251,6 +251,7 @@ export default {
   'common.external.login': '使用 {type} 登录',
   'common.sso.noConfig': '该系统未启用单点登录，请联系管理员。',
   'common.button.edit.item': '编辑 {name}',
+  'common.button.copy.item': '复制 {name}',
   'common.button.terminal': '终端',
   'common.button.addItem': '添加项',
   'common.help.default': '默认: {content}',
@@ -261,5 +262,11 @@ export default {
   'common.button.dontshowagain': '不再提示',
   'common.sorter.tips.ascend': '点击升序',
   'common.sorter.tips.descend': '点击降序',
-  'common.sorter.tips.cancel': '取消排序'
+  'common.sorter.tips.cancel': '取消排序',
+  'common.button.enable': '启用',
+  'common.button.disable': '禁用',
+  'common.status.enabled': '已启用',
+  'common.status.disabled': '未启用',
+  'common.button.duplicate': '复制',
+  'common.option.other': '其它'
 };

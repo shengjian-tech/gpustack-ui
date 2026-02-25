@@ -18,9 +18,16 @@ interface FormContextProps {
   formKey: DeployFormKey;
   source: string;
   action: PageActionType;
+  realAction?: PageActionType;
   gpuOptions: CascaderOption[];
   workerLabelOptions: CascaderOption[];
-  backendOptions: BackendOption[];
+  backendOptions: {
+    label: string;
+    value: string;
+    title?: string;
+    options: BackendOption[];
+  }[];
+  flatBackendOptions: BackendOption[];
   initialValues?: FormData; // for editing model
   modelContextData?: Record<string, any>;
   clearCacheFormValues?: () => void;

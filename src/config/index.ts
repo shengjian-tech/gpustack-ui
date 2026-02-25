@@ -1,11 +1,12 @@
-import { StatusType } from './types';
+import { PageActionType, StatusType } from './types';
 
-export enum PageAction {
-  CREATE = 'create',
-  UPDATE = 'update',
-  VIEW = 'view',
-  EDIT = 'edit'
-}
+export const PageAction: Record<string, PageActionType> = {
+  CREATE: 'create',
+  UPDATE: 'update',
+  VIEW: 'view',
+  EDIT: 'edit',
+  COPY: 'copy'
+};
 
 export const StatusColorMap: Record<
   StatusType,
@@ -29,7 +30,7 @@ export const StatusColorMap: Record<
   },
   inactive: {
     text: `var(--ant-color-text-tertiary)`,
-    border: `rgba(200,200,200,1)`,
+    border: `var(--ant-color-border)`,
     bg: `var(--ant-color-fill)`
   }
 };

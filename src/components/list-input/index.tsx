@@ -1,9 +1,10 @@
 import _ from 'lodash';
-import React from 'react';
+import React, { useEffect } from 'react';
 import Wrapper from '../label-selector/wrapper';
 import ListItem from './list-item';
 
 interface ListInputProps {
+  required?: boolean;
   dataList: string[];
   label?: React.ReactNode;
   description?: React.ReactNode;
@@ -12,9 +13,20 @@ interface ListInputProps {
   placeholder?: string;
   labelExtra?: React.ReactNode;
   trim?: boolean;
+  styles?: {
+    wrapper?: React.CSSProperties;
+    item?: React.CSSProperties;
+  };
   onChange: (data: string[]) => void;
   onBlur?: (e: any, index: number) => void;
   onDelete?: (index: number) => void;
+  renderItem?: (
+    data: any,
+    props: {
+      onChange: (value: string) => void;
+      onBlur?: (e: any) => void;
+    }
+  ) => React.ReactNode;
 }
 
 const ListInput: React.FC<ListInputProps> = (props) => {
@@ -28,7 +40,10 @@ const ListInput: React.FC<ListInputProps> = (props) => {
     btnText,
     options,
     labelExtra,
-    trim = true
+    trim = true,
+    styles,
+    required,
+    renderItem
   } = props;
   const [list, setList] = React.useState<{ value: string; uid: number }[]>([]);
   const countRef = React.useRef(0);
@@ -78,9 +93,17 @@ const ListInput: React.FC<ListInputProps> = (props) => {
     }
   }, [dataList]);
 
+  useEffect(() => {
+    if (required && list.length === 0) {
+      handleOnAdd();
+    }
+  }, [required]);
+
   return (
     <Wrapper
+      styles={styles}
       label={label}
+      required={required}
       description={description}
       labelExtra={labelExtra}
       onAdd={handleOnAdd}
@@ -90,14 +113,17 @@ const ListInput: React.FC<ListInputProps> = (props) => {
         {_.map(list, (item: any, index: number) => {
           return (
             <ListItem
+              required={required && list.length === 1}
               placeholder={props.placeholder}
               options={options}
+              data={item}
               key={item.uid}
               value={item.value}
               onBlur={(e) => onBlur?.(e, index)}
               onRemove={() => handleOnRemove(index)}
               onChange={(val) => handleOnChange(val, index)}
               trim={trim}
+              renderItem={renderItem}
             />
           );
         })}

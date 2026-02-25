@@ -107,15 +107,58 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
   } = props;
   const intl = useIntl();
 
-  const renderRight = useMemo(() => {
+  const renderLeft = () => {
+    return (
+      <Space>
+        <Input
+          prefix={
+            <SearchOutlined
+              style={{ color: 'var(--ant-color-text-placeholder)' }}
+            ></SearchOutlined>
+          }
+          placeholder={
+            inputHolder ||
+            intl.formatMessage({
+              id: 'common.filter.name'
+            })
+          }
+          style={{ width: widths?.input || 230 }}
+          allowClear
+          onChange={handleInputChange}
+        ></Input>
+        {showSelect && (
+          <BaseSelect
+            allowClear
+            showSearch={false}
+            placeholder={selectHolder}
+            style={{ width: widths?.select || 230 }}
+            size="large"
+            onChange={handleSelectChange}
+            options={selectOptions}
+          ></BaseSelect>
+        )}
+        <Button
+          type="text"
+          style={{ color: 'var(--ant-color-text-tertiary)' }}
+          onClick={handleSearch}
+          icon={<SyncOutlined></SyncOutlined>}
+        ></Button>
+      </Space>
+    );
+  };
+
+  const renderRight = () => {
     if (!handleClickPrimary && !handleDeleteByBatch) {
       return null;
     }
     return (
-      <Space size={20}>
+      <Space size={16}>
         {handleClickPrimary ? (
           actionType === 'dropdown' ? (
             <DropDownActions
+              styles={{
+                root: { minWidth: '140px' }
+              }}
               menu={{
                 items: actionItems,
                 onClick: handleClickPrimary
@@ -156,13 +199,7 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
         )}
       </Space>
     );
-  }, [
-    actionItems,
-    actionType,
-    rowSelection?.selectedRowKeys,
-    handleClickPrimary,
-    intl
-  ]);
+  };
 
   return (
     <PageTools
@@ -206,6 +243,9 @@ export const FilterBar: React.FC<FilterBarProps> = (props) => {
         </Space>
       }
       right={right || renderRight}
+      marginTop={0}
+      left={left || renderLeft()}
+      right={right || renderRight()}
     ></PageTools>
   );
 };

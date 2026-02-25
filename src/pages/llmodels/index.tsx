@@ -35,7 +35,6 @@ const Models: React.FC<{ clusterId?: number }> = ({ clusterId }) => {
     loadend: false,
     total: 0
   });
-
   const chunkRequedtRef = useRef<any>();
   const chunkInstanceRequedtRef = useRef<any>();
   const isPageHidden = useRef(false);
@@ -340,6 +339,17 @@ const Models: React.FC<{ clusterId?: number }> = ({ clusterId }) => {
     });
   };
 
+  const handleOnFilterChange = (filters: any) => {
+    handleQueryChange({
+      page: 1,
+      ...filters
+    });
+    createModelsChunkRequest({
+      search: queryParams.search,
+      ...filters
+    });
+  };
+
   const handleDeleteInstanceFromCache = (id: number) => {
     cacheInsDataListRef.current = cacheInsDataListRef.current.filter(
       (item) => item.id !== id
@@ -452,6 +462,7 @@ const Models: React.FC<{ clusterId?: number }> = ({ clusterId }) => {
         onStop={handleSearchBySilent}
         onStart={handleSearchBySilent}
         onTableSort={handleOnSortChange}
+        onFilterChange={handleOnFilterChange}
         onDeleteInstanceFromCache={handleDeleteInstanceFromCache}
         sortOrder={sortOrder}
         queryParams={queryParams}

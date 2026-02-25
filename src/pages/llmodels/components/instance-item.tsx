@@ -1,3 +1,4 @@
+import { systemConfigAtom } from '@/atoms/system';
 import AutoTooltip from '@/components/auto-tooltip';
 import DropdownButtons from '@/components/drop-down-buttons';
 import IconFont from '@/components/icon-font';
@@ -9,6 +10,7 @@ import StatusTag from '@/components/status-tag';
 import ThemeTag from '@/components/tags-wrapper/theme-tag';
 import { HandlerOptions } from '@/hooks/use-chunk-fetch';
 import useDownloadStream from '@/hooks/use-download-stream';
+import { useBenchmarkTargetInstance } from '@/pages/llmodels/hooks/use-run-benchmark';
 import { ListItem as WorkerListItem } from '@/pages/resources/config/types';
 import { convertFileSize } from '@/utils';
 import {
@@ -22,11 +24,17 @@ import {
 import { useIntl } from '@umijs/max';
 import { Button, Col, Progress, Row, Tooltip, notification } from 'antd';
 import dayjs from 'dayjs';
+import { useAtomValue } from 'jotai';
 import _ from 'lodash';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { MODEL_INSTANCE_API } from '../apis';
-import { InstanceStatusMap, InstanceStatusMapValue, status } from '../config';
+import {
+  InstanceStatusMap,
+  InstanceStatusMapValue,
+  modelCategoriesMap,
+  status
+} from '../config';
 import { backendOptionsMap } from '../config/backend-parameters';
 import { generateSource } from '../config/button-actions';
 import {
@@ -334,6 +342,12 @@ const childActionList = [
     icon: <DownloadOutlined />
   },
   {
+    label: 'models.table.instance.benchmark',
+    key: 'benchmark',
+    status: [InstanceStatusMap.Running],
+    icon: <IconFont type="icon-speed" />
+  },
+  {
     label: 'common.button.delrecreate',
     key: 'delete',
     props: {
@@ -416,6 +430,8 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
   defaultOpenId,
   handleChildSelect
 }) => {
+  const systemConfig = useAtomValue(systemConfigAtom);
+  const { runBenchmarkOnInstance } = useBenchmarkTargetInstance();
   const [api, contextHolder] = notification.useNotification({
     stack: { threshold: 1 }
   });
@@ -423,12 +439,18 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
   const intl = useIntl();
   const actionItems = useMemo(() => {
     return _.filter(childActionList, (action: any) => {
-      if (action.key === 'viewlog' || action.key === 'download') {
+      if (action.key === 'benchmark') {
+        return (
+          action.status.includes(instanceData.state) &&
+          modelData?.categories?.includes(modelCategoriesMap.llm)
+        );
+      }
+      if (action.status && action.status.length > 0) {
         return action.status.includes(instanceData.state);
       }
       return true;
     });
-  }, [instanceData.state]);
+  }, [instanceData.state, modelData, systemConfig.showMonitoring]);
 
   const createFileName = (name: string) => {
     const timestamp = dayjs().format('YYYY-MM-DD_HH-mm-ss');
@@ -635,25 +657,27 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
           <InfoColumn fieldList={fieldList} data={offloadData}></InfoColumn>
         }
       >
-        <ThemeTag
-          opacity={0.75}
-          color="cyan"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            maxWidth: '100%',
-            minWidth: 50,
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            borderRadius: 12
-          }}
-        >
-          <InfoCircleOutlined className="m-r-5" />
-          {intl.formatMessage({
-            id: 'models.table.cpuoffload'
-          })}
-        </ThemeTag>
+        <span>
+          <ThemeTag
+            opacity={0.75}
+            color="cyan"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              maxWidth: '100%',
+              minWidth: 50,
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              borderRadius: 12
+            }}
+          >
+            <InfoCircleOutlined className="m-r-5" />
+            {intl.formatMessage({
+              id: 'models.table.cpuoffload'
+            })}
+          </ThemeTag>
+        </span>
       </Tooltip>
     );
   }, [
@@ -662,7 +686,9 @@ const InstanceItem: React.FC<InstanceItemProps> = ({
   ]);
 
   const handleOnSelect = (val: string) => {
-    if (val === 'download') {
+    if (val === 'benchmark') {
+      runBenchmarkOnInstance(instanceData);
+    } else if (val === 'download') {
       downloadStream({
         url: `${MODEL_INSTANCE_API}/${instanceData.id}/logs`,
         filename: createFileName(instanceData.name),

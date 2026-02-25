@@ -1,11 +1,18 @@
 import AutoTooltip from '@/components/auto-tooltip';
+import CopyButton from '@/components/copy-button';
 import BaseSelect from '@/components/seal-form/base/select';
 import ThemeTag from '@/components/tags-wrapper/theme-tag';
 import { useIntl } from '@umijs/max';
-import { Empty } from 'antd';
+import { Empty, Typography } from 'antd';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { frameworks, getGpuColor } from '../config';
+import {
+  BackendSourceLabelMap,
+  BackendSourceValueMap,
+  frameworks,
+  getGpuColor,
+  TagColorMap
+} from '../config';
 import { VersionListItem } from '../config/types';
 
 const ItemWrapper = styled.div`
@@ -46,7 +53,8 @@ const RowWrapper = styled.div`
 
 const InfoItem = styled.div`
   display: grid;
-  grid-template-columns: max-content 1fr;
+  align-items: center;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 8px;
   .label {
     color: var(--ant-color-text-tertiary);
@@ -76,19 +84,43 @@ interface VersionItemProps {
 
 export const VersionItem: React.FC<VersionItemProps> = ({ data }) => {
   const intl = useIntl();
+
+  const renderSource = () => {
+    console.log('data.is_built_in', data.is_built_in);
+    const source = data.is_built_in
+      ? BackendSourceLabelMap[BackendSourceValueMap.BUILTIN] || ''
+      : BackendSourceLabelMap[data.backend_source || ''] || '';
+    if (!source) {
+      return null;
+    }
+    return (
+      <ThemeTag
+        color={
+          TagColorMap[
+            data.is_built_in
+              ? BackendSourceValueMap.BUILTIN
+              : data.backend_source || ''
+          ]
+        }
+        className="font-400"
+        variant="outlined"
+        style={{
+          borderRadius: 'var(--ant-border-radius)',
+          margin: 0,
+          width: 'max-content'
+        }}
+      >
+        {intl.formatMessage({
+          id: source
+        })}
+      </ThemeTag>
+    );
+  };
   return (
     <ItemWrapper>
       <div className="title">
         <span>{data.version_no}</span>
-        {data.is_built_in && (
-          <ThemeTag
-            color="geekblue"
-            className="font-400"
-            style={{ marginRight: 0 }}
-          >
-            {intl.formatMessage({ id: 'backend.builtin' })}
-          </ThemeTag>
-        )}
+        {renderSource()}
         {!data.is_built_in && data.is_default && (
           <ThemeTag
             color="geekblue"
@@ -105,11 +137,11 @@ export const VersionItem: React.FC<VersionItemProps> = ({ data }) => {
             <span className="label">
               {intl.formatMessage({ id: 'backend.imageName' })}:
             </span>
-            <AutoTooltip ghost minWidth={20}>
+            <CopyButton text={data.image_name} type="link">
               {data.is_built_in
                 ? intl.formatMessage({ id: 'backend.versionInfo.autoImage' })
                 : data.image_name}
-            </AutoTooltip>
+            </CopyButton>
           </InfoItem>
         )}
         {data.entrypoint && (
@@ -127,9 +159,9 @@ export const VersionItem: React.FC<VersionItemProps> = ({ data }) => {
             <span className="label">
               {intl.formatMessage({ id: 'backend.runCommand' })}:
             </span>
-            <AutoTooltip ghost minWidth={20}>
+            <Typography.Text ellipsis={{ tooltip: data.run_command }}>
               {data.run_command}
-            </AutoTooltip>
+            </Typography.Text>
           </InfoItem>
         )}
         <InfoItem>

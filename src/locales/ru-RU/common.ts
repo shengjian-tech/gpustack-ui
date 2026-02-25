@@ -97,7 +97,7 @@ export default {
   'common.form.field.input.required': 'обязательно',
   'common.form.field.select.required': 'обязательно',
   'common.select.option': 'Все',
-  'common.checbox.all': 'Все',
+  'common.checkbox.all': 'Все',
   'common.select.all': 'Все {type}',
   'common.data.unkonwn': 'Неизвестно',
   'common.data.none': 'Нет данных',
@@ -258,6 +258,7 @@ export default {
   'common.sso.noConfig':
     'Единый вход не настроен в этой системе. Пожалуйста, обратитесь к администратору.',
   'common.button.edit.item': 'Редактировать {name}',
+  'common.button.copy.item': 'Duplicate {name}',
   'common.button.terminal': 'Терминал',
   'common.button.addItem': 'Добавить элемент',
   'common.help.default': 'По умолчанию: {content}',
@@ -265,12 +266,19 @@ export default {
   'common.form.rule.selectInput': 'Выберите или введите {name}',
   'common.tag.experimental': 'Экспериментальный',
   'common.title.example': 'Пример',
-  'common.button.dontshowagain': "Больше не показывать",
+  'common.button.dontshowagain': 'Больше не показывать',
   'common.sorter.tips.ascend': 'Нажмите для сортировки по возрастанию',
   'common.sorter.tips.descend': 'Нажмите для сортировки по убыванию',
-  'common.sorter.tips.cancel': 'Нажмите, чтобы отменить сортировку'
+  'common.sorter.tips.cancel': 'Нажмите, чтобы отменить сортировку',
+  'common.button.enable': 'Enable',
+  'common.button.disable': 'Disable',
+  'common.status.enabled': 'Enabled',
+  'common.status.disabled': 'Disabled',
+  'common.button.duplicate': 'Duplicate',
+  'common.option.other': 'Другое'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-
+// 1.  'common.button.copy.item': 'Duplicate {name}',
+// 2. 'common.button.duplicate': 'Duplicate'
 // ========== End of To-Do List ==========

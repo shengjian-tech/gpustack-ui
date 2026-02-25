@@ -2,6 +2,7 @@ import icons from '@/components/icon-font/icons';
 import { StatusMaps } from '@/config';
 import { GPUSTACK_API_BASE_URL } from '@/config/settings';
 import { StatusType } from '@/config/types';
+import { GPUsConfigs } from '@/pages/resources/config/gpu-driver';
 
 export const ClusterStatusValueMap = {
   Provisioning: 'provisioning',
@@ -42,12 +43,14 @@ export const ProviderLabelMap = {
   [ProviderValueMap.Docker]: 'Docker'
 };
 
-export const generateRegisterCommand = (params: {
+export const generateK8sRegisterCommand = (params: {
+  currentGPU?: string;
   server: string;
-  clusterId: number;
+  clusterId: number | null;
   registrationToken: string;
 }) => {
-  return `curl -k -L '${params.server}/${GPUSTACK_API_BASE_URL}/clusters/${params.clusterId}/manifests' \\
+  const runtime = GPUsConfigs[params.currentGPU || '']?.runtime || '';
+  return `curl -k -L '${params.server}/${GPUSTACK_API_BASE_URL}/clusters/${params.clusterId}/manifests${runtime ? `?runtime=${runtime}` : ''}' \\
 --header 'Authorization: Bearer ${params.registrationToken}' | kubectl apply -f -`;
 };
 
@@ -85,48 +88,6 @@ export const credentialActionList = [
     },
     label: 'common.button.delete',
     icon: icons.DeleteOutlined
-  }
-];
-
-export const clusterActionList = [
-  {
-    key: 'edit',
-    label: 'common.button.edit',
-    icon: icons.EditOutlined
-  },
-  {
-    key: 'add_worker',
-    label: 'resources.button.create',
-    provider: ProviderValueMap.Docker,
-    locale: true,
-    icon: icons.DockerOutlined
-  },
-  {
-    key: 'register_cluster',
-    label: 'clusters.button.register',
-    provider: ProviderValueMap.Kubernetes,
-    locale: true,
-    icon: icons.KubernetesOutlined
-  },
-  {
-    key: 'addPool',
-    label: 'clusters.button.addNodePool',
-    provider: ProviderValueMap.DigitalOcean,
-    locale: true,
-    icon: icons.Catalog1
-  },
-  {
-    key: 'isDefault',
-    label: 'clusters.form.setDefault',
-    icon: icons.StarOutlined
-  },
-  {
-    key: 'delete',
-    label: 'common.button.delete',
-    icon: icons.DeleteOutlined,
-    props: {
-      danger: true
-    }
   }
 ];
 

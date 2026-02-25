@@ -1,4 +1,5 @@
 import GSDrawer from '@/components/scroller-modal/gs-drawer';
+import { createAxiosToken } from '@/hooks/use-chunk-request';
 import ColumnWrapper from '@/pages/_components/column-wrapper';
 import useAddWorkerMessage from '@/pages/cluster-management/hooks/use-add-worker-message';
 import { useIntl } from '@umijs/max';
@@ -59,8 +60,9 @@ const AddWorker: React.FC<AddWorkerProps> = (props) => {
     stepList = []
   } = props || {};
   const intl = useIntl();
-  const { addedCount, createModelsChunkRequest } = useAddWorkerMessage();
+  const { addedCount, createModelsChunkRequest, reset } = useAddWorkerMessage();
   const firstLoad = React.useRef(true);
+  const axiosTokenRef = React.useRef<any>(null);
   const [registrationInfo, setRegistrationInfo] = React.useState<{
     token: string;
     image: string;
@@ -75,7 +77,13 @@ const AddWorker: React.FC<AddWorkerProps> = (props) => {
 
   const handleOnClusterChange = async (value: number, row?: any) => {
     try {
-      const data = await queryClusterToken({ id: value });
+      createModelsChunkRequest({ cluster_id: value });
+      axiosTokenRef.current?.cancel?.();
+      axiosTokenRef.current = createAxiosToken();
+      const data = await queryClusterToken(
+        { id: value },
+        { token: axiosTokenRef.current.token }
+      );
       firstLoad.current = false;
       setRegistrationInfo({
         ...data,
@@ -90,16 +98,12 @@ const AddWorker: React.FC<AddWorkerProps> = (props) => {
     if (open && cluster_id && firstLoad.current) {
       handleOnClusterChange(cluster_id);
     }
-    return () => {
+    if (!open) {
+      reset();
+      axiosTokenRef.current?.cancel?.();
       firstLoad.current = true;
-    };
-  }, [open, cluster_id]);
-
-  useEffect(() => {
-    if (open) {
-      createModelsChunkRequest();
     }
-  }, [open]);
+  }, [open, cluster_id]);
 
   const renderMessage = (count: number) => {
     if (count === 1) {

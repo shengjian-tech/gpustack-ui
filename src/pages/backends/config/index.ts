@@ -29,6 +29,44 @@ export const builtInBackendLogos: Record<string, string> = {
   [backendOptionsMap.voxBox]: VoxBoxLogo
 };
 
+export const BackendSourceValueMap = {
+  CUSTOM: 'custom',
+  BUILTIN: 'built_in',
+  COMMUNITY: 'community',
+  USER_DEFINED: 'user_defined'
+};
+
+export const BackendSourceLabelMap: Record<string, string> = {
+  [BackendSourceValueMap.CUSTOM]: 'backend.custom',
+  [BackendSourceValueMap.BUILTIN]: 'backend.builtin',
+  [BackendSourceValueMap.COMMUNITY]: 'backend.community',
+  [BackendSourceValueMap.USER_DEFINED]: 'models.form.backend.custom'
+};
+
+export const TagColorMap: Record<string, string> = {
+  [BackendSourceValueMap.CUSTOM]: 'purple',
+  [BackendSourceValueMap.BUILTIN]: 'geekblue',
+  [BackendSourceValueMap.COMMUNITY]: 'cyan'
+};
+
+export const backendSourceOptions = [
+  {
+    label: BackendSourceLabelMap[BackendSourceValueMap.BUILTIN],
+    value: BackendSourceValueMap.BUILTIN,
+    locale: true
+  },
+  {
+    label: BackendSourceLabelMap[BackendSourceValueMap.COMMUNITY],
+    value: BackendSourceValueMap.COMMUNITY,
+    locale: true
+  },
+  {
+    label: BackendSourceLabelMap[BackendSourceValueMap.CUSTOM],
+    value: BackendSourceValueMap.CUSTOM,
+    locale: true
+  }
+];
+
 export const backendActions = [
   {
     label: 'common.button.edit',
@@ -44,13 +82,34 @@ export const backendActions = [
     locale: true,
     icon: icons.Yaml
   },
+  // {
+  //   label: 'common.button.enable',
+  //   value: 'enable',
+  //   key: 'enable',
+  //   locale: true,
+  //   icon: icons.Charger,
+  //   show: (record: any) =>
+  //     !record.enabled &&
+  //     record.backend_source === BackendSourceValueMap.COMMUNITY
+  // },
+  // {
+  //   label: 'common.button.disable',
+  //   value: 'disable',
+  //   key: 'disable',
+  //   locale: true,
+  //   icon: icons.Disabled,
+  //   show: (record: any) =>
+  //     record.enabled &&
+  //     record.backend_source === BackendSourceValueMap.COMMUNITY
+  // },
   {
     label: 'common.button.delete',
     value: 'delete',
     key: 'delete',
     icon: icons.DeleteOutlined,
     locale: true,
-    danger: true
+    danger: true,
+    show: (record: any) => !record.is_built_in
   }
 ];
 
@@ -226,16 +285,19 @@ default_version: v0.11.0
 health_check_path: /v1/models
 default_backend_param:
   - --host
-default_run_command: vllm serve {{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}
+default_run_command: "{{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}"
+default_env:
 version_configs:
   v0.11.0:
     image_name: lm/vllm:latest
-    run_command: vllm serve {{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}
+    run_command: "{{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}"
     entrypoint: "/bin/sh -c"
     custom_framework: cuda
+    env:
   v0.10.0:
     image_name: lm/vllm:test
     entrypoint: 
     run_command:
     custom_framework: rocm
+    env:
   `;

@@ -50,7 +50,7 @@ export const sliceData = (data: string, loaded: number, loadedSize: any) => {
 
 const useSetChunkRequest = () => {
   const watchRequestList = window.__GPUSTACK_WATCH_REQUEST_CLEAR__.requestList;
-  const [requestReadyState, setRequestReadyState] = useState(3);
+  const [requestReadyState, setRequestReadyState] = useState(0);
   const axiosToken = useRef<any>(null);
   const requestConfig = useRef<any>({});
   const loaded = useRef(0);
@@ -66,7 +66,7 @@ const useSetChunkRequest = () => {
     loaded.current = 0;
     total.current = 0;
     loadedSize.current = 0;
-    setRequestReadyState(3);
+    setRequestReadyState(0);
   };
 
   const createAxiosToken = () => {

@@ -2,10 +2,12 @@ import { setRouteCache } from '@/atoms/route-cache';
 import AlertInfo from '@/components/alert-info';
 import IconFont from '@/components/icon-font';
 import AutoComplete from '@/components/seal-form/auto-complete';
+import FieldComponent from '@/components/seal-form/field-component';
 import SealSelect from '@/components/seal-form/seal-select';
 import SpeechContent from '@/components/speech-content';
 import routeCachekey from '@/config/route-cachekey';
 import useOverlayScroller from '@/hooks/use-overlay-scroller';
+import CollapsePanel from '@/pages/_components/collapse-panel';
 import { getLocale, useIntl, useSearchParams } from '@umijs/max';
 import { Form, Spin } from 'antd';
 import classNames from 'classnames';
@@ -21,8 +23,12 @@ import React, {
   useState
 } from 'react';
 import { AUDIO_TEXT_TO_SPEECH_API, CHAT_API, textToSpeech } from '../apis';
+import { RefAudioFormItem } from '../audio/form';
+import {
+  TTSParamsConfig as paramsConfig,
+  TTSAdvancedParamsConfig
+} from '../audio/params-config';
 import { extractErrorMessage } from '../config';
-import { TTSParamsConfig as paramsConfig } from '../config/params-config';
 import { MessageItem, ParamsSchema } from '../config/types';
 import '../style/ground-llm.less';
 import '../style/system-message-wrap.less';
@@ -30,6 +36,14 @@ import { TextToSpeechCode } from '../view-code/audio';
 import DynamicParams from './dynamic-params';
 import MessageInput from './message-input';
 import ViewCommonCode from './view-common-code';
+
+const MetaFields = [
+  'task_type',
+  'language',
+  'instructions',
+  'max_new_tokens',
+  'ref_audio'
+];
 
 interface MessageProps {
   modelList: Global.BaseOption<string>[];
@@ -75,10 +89,14 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
   const [voiceDataList, setVoiceList] = useState<Global.BaseOption<string>[]>(
     []
   );
+  const [modelMeta, setModelMeta] = useState<any>({});
   const formRef = useRef<any>(null);
 
   const { initialize } = useOverlayScroller();
   const { initialize: innitializeParams } = useOverlayScroller();
+  const [activeKey, setActiveKey] = useState<string | string[]>(
+    'advanced_config'
+  );
 
   useImperativeHandle(ref, () => {
     return {
@@ -96,11 +114,28 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
     return selectModel || modelList[0]?.value || '';
   }, [modelList]);
 
+  const dropEmptyFields = (parameters: Record<string, any>) => {
+    const fields = [
+      'task_type',
+      'instructions',
+      'max_new_tokens',
+      'ref_audio',
+      'ref_text',
+      'language',
+      'x_vector_only_mode'
+    ];
+    const newParams = { ...parameters };
+
+    return _.omitBy(newParams, (value: any, key: string) => {
+      return fields.includes(key) && !value;
+    });
+  };
+
   const viewCodeContent = useMemo(() => {
     return TextToSpeechCode({
       api: AUDIO_TEXT_TO_SPEECH_API,
       parameters: {
-        ...parameters,
+        ...dropEmptyFields(parameters),
         input: currentPrompt
       }
     });
@@ -167,7 +202,7 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
       const signal = controllerRef.current.signal;
 
       const params = {
-        ...parameters,
+        ...dropEmptyFields(parameters),
         input: current?.content || currentPrompt
       };
       const res: any = await textToSpeech({
@@ -175,6 +210,8 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
         url: CHAT_API,
         signal
       });
+
+      setParams(params);
 
       console.log('result:', res);
 
@@ -226,31 +263,32 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
     setShow(false);
   };
 
-  const handleSelectModel = useCallback(
-    async (value: string) => {
-      if (!value) {
-        return;
-      }
-      const model = modelList.find((item) => item.value === value);
-      const list = _.map(model?.meta?.voices || [], (item: any) => {
-        return {
-          label: item,
-          value: item
-        };
-      });
+  const handleSelectModel = async (value: string) => {
+    if (!value) {
+      return;
+    }
+    const model = modelList.find((item) => item.value === value);
+    const list = _.map(model?.meta?.voices || [], (item: any) => {
+      return {
+        label: item,
+        value: item
+      };
+    });
 
-      const newList = sortVoiceList(locale, list);
-      setVoiceList(newList);
-      setParams((pre: any) => {
-        return {
-          ...pre,
-          model: value,
-          voice: newList[0]?.value
-        };
-      });
-    },
-    [modelList]
-  );
+    const newList = sortVoiceList(locale, list);
+    setVoiceList(newList);
+    setModelMeta(model?.meta || {});
+    setParams((pre: any) => {
+      return {
+        ...pre,
+        ..._.pick(model?.meta || {}, MetaFields),
+        task_type: model?.meta?.task_type,
+        model: value,
+        language: model?.meta?.languages?.[0] || '',
+        voice: newList[0]?.value
+      };
+    });
+  };
 
   const handleOnValuesChange = useCallback(
     (changeValues: Record<string, any>, allValues: Record<string, any>) => {
@@ -273,7 +311,70 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
     checkvalueRef.current = e.target.checked;
   };
 
-  const renderExtra = useMemo(() => {
+  const handleOnCollapse = (keys: string | string[]) => {
+    setActiveKey(keys);
+  };
+
+  const renderAdvancedFields = () => {
+    const formItems = TTSAdvancedParamsConfig.map((item: ParamsSchema) => {
+      const comProps = {
+        ...item.attrs,
+        label: item.label.isLocalized
+          ? intl.formatMessage({ id: item.label.text })
+          : item.label.text
+      };
+      return (
+        <>
+          <Form.Item
+            name={item.name}
+            rules={item.rules}
+            key={item.name}
+            {...item.formItemAttrs}
+          >
+            <FieldComponent
+              {...comProps}
+              description={
+                item.description?.isLocalized
+                  ? intl.formatMessage({ id: item.description.text })
+                  : item.description?.text
+              }
+              onChange={null}
+              {..._.omit(item, [
+                'name',
+                'rules',
+                'disabledConfig',
+                'description'
+              ])}
+              {...item.initAttrs?.(modelMeta)}
+            ></FieldComponent>
+          </Form.Item>
+        </>
+      );
+    });
+
+    return (
+      <CollapsePanel
+        activeKey={activeKey}
+        onChange={handleOnCollapse}
+        accordion={false}
+        items={[
+          {
+            key: 'advanced_config',
+            label: intl.formatMessage({ id: 'resources.form.advanced' }),
+            forceRender: true,
+            children: (
+              <>
+                {formItems}
+                <RefAudioFormItem />
+              </>
+            )
+          }
+        ]}
+      ></CollapsePanel>
+    );
+  };
+
+  const renderExtra = () => {
     return paramsConfig.map((item: ParamsSchema) => {
       const comProps = {
         ...item.attrs,
@@ -283,16 +384,18 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
           : item.label.text
       };
       return (
-        <Form.Item name={item.name} rules={item.rules} key={item.name}>
-          {item.type === 'AutoComplete' ? (
-            <AutoComplete {...comProps} />
-          ) : (
-            <SealSelect {...comProps}></SealSelect>
-          )}
-        </Form.Item>
+        <>
+          <Form.Item name={item.name} rules={item.rules} key={item.name}>
+            {item.type === 'AutoComplete' ? (
+              <AutoComplete {...comProps} />
+            ) : (
+              <SealSelect {...comProps}></SealSelect>
+            )}
+          </Form.Item>
+        </>
       );
     });
-  }, [paramsConfig, intl, voiceList]);
+  };
 
   useEffect(() => {
     if (defaultModel && modelList.length) {
@@ -393,10 +496,16 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
         <div className="box">
           <DynamicParams
             ref={formRef}
+            meta={modelMeta}
             onValuesChange={handleOnValuesChange}
             initialValues={parameters}
             modelList={modelList}
-            extra={[renderExtra]}
+            extra={[
+              <>
+                {renderExtra()}
+                {renderAdvancedFields()}
+              </>
+            ]}
           />
         </div>
       </div>

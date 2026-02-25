@@ -47,6 +47,13 @@ export const workerListAtom = atom<
   }[]
 >([]);
 
-export const backendOptionsAtom = atom<BackendOption[]>([]);
+export interface BackGroupOption {
+  label: string;
+  value: string;
+  title?: string;
+  options: BackendOption[];
+}
+
+export const backendOptionsAtom = atom<BackGroupOption[]>([]);
 
 export const resourceOverviewAtom = atom<Record<string, any>>({});

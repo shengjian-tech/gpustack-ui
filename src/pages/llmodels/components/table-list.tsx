@@ -13,8 +13,13 @@ import { PageActionType } from '@/config/types';
 import useBodyScroll from '@/hooks/use-body-scroll';
 import useExpandedRowKeys from '@/hooks/use-expanded-row-keys';
 import useTableRowSelection from '@/hooks/use-table-row-selection';
+import useWatchList from '@/hooks/use-watch-list';
 import PageBox from '@/pages/_components/page-box';
 import useNoResourceResult from '@/pages/llmodels/hooks/use-no-resource-result';
+import { MODEL_ROUTE_TARGETS } from '@/pages/model-routes/apis';
+import { TargetStatusValueMap } from '@/pages/model-routes/config';
+import useOpenPlayground from '@/pages/model-routes/hooks/use-open-playground';
+import useGranfanaLink from '@/pages/resources/hooks/use-grafana-link';
 import { handleBatchRequest } from '@/utils';
 import { DownOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons';
 import { useIntl, useNavigate, useSearchParams } from '@umijs/max';
@@ -41,12 +46,10 @@ import {
 import {
   InstanceRealtimeLogStatus,
   modelCategories,
-  modelCategoriesMap,
   modelSourceMap
 } from '../config';
 import {
   ButtonList,
-  categoryToPathMap,
   modalConfig,
   sourceOptions
 } from '../config/button-actions';
@@ -56,11 +59,10 @@ import {
   ModelInstanceListItem,
   SourceType
 } from '../config/types';
+import useEditDeployment from '../hooks/use-edit-deployment';
 import useFilterStatus from '../hooks/use-filter-status';
 import useFormInitialValues from '../hooks/use-form-initial-values';
 import useModelsColumns from '../hooks/use-models-columns';
-import AccessControlModal from './access-control-modal';
-import APIAccessInfoModal from './api-access-info';
 import DeployModal from './deploy-modal';
 import Instances from './instances';
 import UpdateModelModal from './update-modal';
@@ -95,6 +97,7 @@ interface ModelsProps {
   onTableSort?: (order: TableOrder | Array<TableOrder>) => void;
   onStatusChange: (value?: any) => void;
   onDeleteInstanceFromCache?: (instanceId: number) => void;
+  onFilterChange?: (filters: any) => void;
   sortOrder: string[];
   queryParams: {
     page: number;
@@ -138,6 +141,7 @@ const Models: React.FC<ModelsProps> = ({
   onTableSort,
   onStatusChange,
   onDeleteInstanceFromCache,
+  onFilterChange,
   sortOrder,
   deleteIds,
   dataSource,
@@ -156,13 +160,12 @@ const Models: React.FC<ModelsProps> = ({
   const [searchParams] = useSearchParams();
   const page = searchParams.get('page');
   const { saveScrollHeight, restoreScrollHeight } = useBodyScroll();
-  const [updateFormInitials, setUpdateFormInitials] = useState<{
-    data: any;
-    isGGUF: boolean;
-  }>({
-    data: {},
-    isGGUF: false
-  });
+  const {
+    openEditModalStatus,
+    openEditModal,
+    openDuplicateModal,
+    closeEditModal
+  } = useEditDeployment();
   const [expandAtom, setExpandAtom] = useAtom(modelsExpandKeysAtom);
   const [modelsSession, setModelsSession] = useAtom(modelsSessionAtom);
   const intl = useIntl();
@@ -175,17 +178,18 @@ const Models: React.FC<ModelsProps> = ({
     removeExpandedRowKey,
     expandedRowKeys
   } = useExpandedRowKeys(expandAtom);
+  const { handleOpenPlayGround } = useOpenPlayground();
   const { labelRender, optionRender, handleStatusChange, statusOptions } =
     useFilterStatus({
       onStatusChange: onStatusChange
     });
+  const { watchDataList: targetList } = useWatchList(MODEL_ROUTE_TARGETS);
 
-  const [apiAccessInfo, setAPIAccessInfo] = useState<any>({
-    show: false,
-    data: {}
+  const { goToGrafana, ActionButton } = useGranfanaLink({
+    type: 'model'
   });
+
   const [openLogModal, setOpenLogModal] = useState(false);
-  const [openAddModal, setOpenAddModal] = useState(false);
   const [openDeployModal, setOpenDeployModal] = useState<{
     show: boolean;
     width: number | string;
@@ -199,7 +203,6 @@ const Models: React.FC<ModelsProps> = ({
     isGGUF: false,
     source: modelSourceMap.huggingface_value as SourceType
   });
-  const currentData = useRef<ListItem>({} as ListItem);
   const [currentInstance, setCurrentInstance] = useState<{
     url: string;
     status: string;
@@ -209,17 +212,6 @@ const Models: React.FC<ModelsProps> = ({
   }>({
     url: '',
     status: ''
-  });
-  const [openAccessControlModal, setOpenAccessControlModal] = useState<{
-    open: boolean;
-    currentData: ListItem | null;
-    title: string;
-    action: PageActionType;
-  }>({
-    open: false,
-    currentData: null,
-    title: '',
-    action: PageAction.CREATE
   });
   const modalRef = useRef<any>(null);
 
@@ -238,10 +230,6 @@ const Models: React.FC<ModelsProps> = ({
       setExpandAtom([]);
     };
   }, []);
-
-  const setCurrentData = (data: ListItem) => {
-    currentData.current = data;
-  };
 
   const handleOnSort = (order: TableOrder | Array<TableOrder>) => {
     onTableSort?.(order);
@@ -269,16 +257,29 @@ const Models: React.FC<ModelsProps> = ({
   };
 
   const handleModalOk = async (data: FormData) => {
+    const currentData = openEditModalStatus.currentData;
     try {
-      await updateModel({
-        data,
-        id: currentData.current?.id as number
-      });
-      setOpenAddModal(false);
-      message.success(intl.formatMessage({ id: 'common.message.success' }));
-      if (data.replicas > currentData.current?.replicas) {
-        updateExpandedRowKeys([currentData.current?.id, ...expandedRowKeys]);
+      if (currentData.realAction === PageAction.COPY) {
+        const modelData = await createModel({
+          data
+        });
+
+        if (data.replicas > 0) {
+          updateExpandedRowKeys([modelData.id, ...expandedRowKeys]);
+        }
       }
+      if (currentData.realAction === PageAction.EDIT) {
+        await updateModel({
+          data,
+          id: currentData.row.id as number
+        });
+
+        if (data.replicas > currentData.row.replicas) {
+          updateExpandedRowKeys([currentData.row.id, ...expandedRowKeys]);
+        }
+      }
+      closeEditModal();
+      message.success(intl.formatMessage({ id: 'common.message.success' }));
       setTimeout(() => {
         handleSearch();
       }, 150);
@@ -287,7 +288,7 @@ const Models: React.FC<ModelsProps> = ({
   };
 
   const handleModalCancel = useCallback(() => {
-    setOpenAddModal(false);
+    closeEditModal();
     restoreScrollHeight();
   }, []);
 
@@ -298,29 +299,28 @@ const Models: React.FC<ModelsProps> = ({
     });
   };
 
-  const handleCreateModel = useCallback(
-    async (data: FormData) => {
-      try {
-        console.log('data:', data, openDeployModal);
+  const refreshListStatus = (modelData: ListItem) => {
+    setTimeout(() => {
+      updateExpandedRowKeys([modelData.id, ...expandedRowKeys]);
+    }, 300);
+    message.success(intl.formatMessage({ id: 'common.message.success' }));
+    setTimeout(() => {
+      handleSearch?.();
+    }, 150);
+  };
 
-        const modelData = await createModel({
-          data
-        });
-        setOpenDeployModal({
-          ...openDeployModal,
-          show: false
-        });
-        setTimeout(() => {
-          updateExpandedRowKeys([modelData.id, ...expandedRowKeys]);
-        }, 300);
-        message.success(intl.formatMessage({ id: 'common.message.success' }));
-        setTimeout(() => {
-          handleSearch?.();
-        }, 150);
-      } catch (error) {}
-    },
-    [openDeployModal]
-  );
+  const handleCreateModel = async (data: FormData) => {
+    try {
+      const modelData = await createModel({
+        data
+      });
+      setOpenDeployModal({
+        ...openDeployModal,
+        show: false
+      });
+      refreshListStatus(modelData);
+    } catch (error) {}
+  };
 
   const handleLogModalCancel = useCallback(() => {
     setOpenLogModal(false);
@@ -363,26 +363,6 @@ const Models: React.FC<ModelsProps> = ({
         return res;
       }
     });
-  };
-
-  const handleOpenPlayGround = (row: any) => {
-    for (const [category, path] of Object.entries(categoryToPathMap)) {
-      if (
-        row.categories?.includes(category) &&
-        [
-          modelCategoriesMap.text_to_speech,
-          modelCategoriesMap.speech_to_text
-        ].includes(category)
-      ) {
-        navigate(`${path}&model=${row.name}`);
-        return;
-      }
-      if (row.categories?.includes(category)) {
-        navigate(`${path}?model=${row.name}`);
-        return;
-      }
-    }
-    navigate(`/playground/chat?model=${row.name}`);
   };
 
   const handleViewLogs = async (row: any) => {
@@ -436,31 +416,23 @@ const Models: React.FC<ModelsProps> = ({
     return `${MODELS_API}/${params.id}/instances`;
   }, []);
 
-  const handleEdit = async (row: ListItem) => {
+  const handleEdit = async (row: ListItem, realAction: PageActionType) => {
     const initialValues = generateFormValues(row, []);
-    setUpdateFormInitials({
-      data: initialValues,
-      isGGUF: false
-    });
-    setCurrentData(row);
-    setOpenAddModal(true);
+    if (realAction === PageAction.EDIT) {
+      openEditModal(initialValues, row);
+    } else if (realAction === PageAction.COPY) {
+      openDuplicateModal(initialValues, row);
+    }
     saveScrollHeight();
   };
-
-  const handleViewAPIInfo = useCallback((row: ListItem) => {
-    setAPIAccessInfo({
-      show: true,
-      data: row
-    });
-  }, []);
 
   const handleSelect = useMemoizedFn(async (val: any, row: ListItem) => {
     try {
       if (val === 'edit') {
-        handleEdit(row);
+        handleEdit(row, PageAction.EDIT);
       }
-      if (val === 'chat') {
-        handleOpenPlayGround(row);
+      if (val === 'copy') {
+        handleEdit(row, PageAction.COPY);
       }
       if (val === 'delete') {
         handleDelete(row);
@@ -470,10 +442,6 @@ const Models: React.FC<ModelsProps> = ({
         message.success(intl.formatMessage({ id: 'common.message.success' }));
         updateExpandedRowKeys([row.id, ...expandedRowKeys]);
         onStart?.();
-      }
-
-      if (val === 'api') {
-        handleViewAPIInfo(row);
       }
 
       if (val === 'stop') {
@@ -489,14 +457,20 @@ const Models: React.FC<ModelsProps> = ({
           }
         });
       }
+      if (val === 'chat') {
+        const targetRoute = targetList.find(
+          (target) =>
+            target.model_id === row.id &&
+            target.state === TargetStatusValueMap.Active
+        );
 
-      if (val === 'accessControl') {
-        setOpenAccessControlModal({
-          title: intl.formatMessage({ id: 'models.button.accessSettings' }),
-          action: PageAction.EDIT,
-          currentData: row,
-          open: true
+        handleOpenPlayGround({
+          categories: row.categories || [],
+          name: targetRoute?.route_name || ''
         });
+      }
+      if (val === 'metrics') {
+        goToGrafana(row);
       }
     } catch (error) {
       // ignore
@@ -590,9 +564,10 @@ const Models: React.FC<ModelsProps> = ({
     return {
       handleSelect,
       clusterList,
-      sortOrder
+      sortOrder,
+      targetList: targetList
     };
-  }, [handleSelect, clusterList, sortOrder]);
+  }, [handleSelect, clusterList, sortOrder, targetList]);
 
   const columns = useModelsColumns(options);
 
@@ -603,14 +578,6 @@ const Models: React.FC<ModelsProps> = ({
       handleOnToggleExpandAll();
     }
   });
-
-  const handleCancelAccessControl = () => {
-    setOpenAccessControlModal({
-      ...openAccessControlModal,
-      currentData: null,
-      open: false
-    });
-  };
 
   const { noResourceResult } = useNoResourceResult({
     loadend: loadend,
@@ -672,20 +639,18 @@ const Models: React.FC<ModelsProps> = ({
                 onChange={handleCategoryChange}
                 options={modelCategories.filter((item) => item.value)}
               ></BaseSelect>
-              {page !== 'clusters' && (
-                <BaseSelect
-                  allowClear
-                  showSearch={false}
-                  placeholder={intl.formatMessage({
-                    id: 'clusters.filterBy.cluster'
-                  })}
-                  style={{ width: 160 }}
-                  size="large"
-                  maxTagCount={1}
-                  onChange={handleClusterChange}
-                  options={clusterList}
-                ></BaseSelect>
-              )}
+              <BaseSelect
+                allowClear
+                showSearch={false}
+                placeholder={intl.formatMessage({
+                  id: 'clusters.filterBy.cluster'
+                })}
+                style={{ width: 160 }}
+                size="large"
+                maxTagCount={1}
+                onChange={handleClusterChange}
+                options={clusterList}
+              ></BaseSelect>
               <BaseSelect
                 allowClear
                 showSearch={false}
@@ -707,7 +672,8 @@ const Models: React.FC<ModelsProps> = ({
             </Space>
           }
           right={
-            <Space size={20}>
+            <Space size={16}>
+              {ActionButton()}
               {page !== 'clusters' && (
                 <DropDownActions
                   menu={{
@@ -774,10 +740,10 @@ const Models: React.FC<ModelsProps> = ({
         ></SealTable>
       </PageBox>
       <UpdateModelModal
-        open={openAddModal}
-        action={PageAction.EDIT}
-        title={intl.formatMessage({ id: 'models.title.edit' })}
-        updateFormInitials={updateFormInitials}
+        open={openEditModalStatus.open}
+        action={openEditModalStatus.action}
+        title={openEditModalStatus.title}
+        currentData={openEditModalStatus.currentData}
         clusterList={clusterList}
         onCancel={handleModalCancel}
         onOk={handleModalOk}
@@ -804,23 +770,6 @@ const Models: React.FC<ModelsProps> = ({
         onCancel={handleLogModalCancel}
       ></ViewLogsModal>
       <DeleteModal ref={modalRef}></DeleteModal>
-      <APIAccessInfoModal
-        open={apiAccessInfo.show}
-        data={apiAccessInfo.data}
-        onClose={() => {
-          setAPIAccessInfo({
-            ...apiAccessInfo,
-            show: false
-          });
-        }}
-      ></APIAccessInfoModal>
-      <AccessControlModal
-        onCancel={handleCancelAccessControl}
-        title={openAccessControlModal.title}
-        open={openAccessControlModal.open}
-        currentData={openAccessControlModal.currentData}
-        action={openAccessControlModal.action}
-      ></AccessControlModal>
     </>
   );
 };

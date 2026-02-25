@@ -2,6 +2,7 @@ export default {
   'models.button.deploy': 'Развернуть модель',
   'models.title': 'Модели',
   'models.title.edit': 'Редактировать модель',
+  'models.title.duplicate': 'Клонировать модель',
   'models.table.models': 'Модели',
   'models.table.name': 'Название модели',
   'models.form.source': 'Источник',
@@ -91,11 +92,11 @@ export default {
   'models.form.backend.llamabox':
     'Для моделей формата GGUF. Поддержка Linux, macOS и Windows.',
   'models.form.backend.vllm':
-    'Встроенная поддержка устройств NVIDIA, AMD, Ascend, Hygon, Iluvatar и MetaX.',
+    'Built-in support for NVIDIA, AMD, Ascend, Hygon, Moore Threads, Iluvatar, MetaX, T-Head PPU devices.',
   'models.form.backend.voxbox': 'Поддерживает только GPU NVIDIA и CPU.',
   'models.form.backend.mindie': 'Поддерживает только Ascend NPU.',
   'models.form.backend.sglang':
-    'Встроенная поддержка GPU NVIDIA/AMD и Ascend NPU.',
+    'Built-in support for NVIDIA, AMD, Ascend, Moore Threads, MetaX, T-Head PPU devices.',
   'models.form.search.gguftips':
     'Для воркеров на macOS/Windows отметьте GGUF (для аудиомоделей снимите).',
   'models.form.button.addlabel': 'Добавить метку',
@@ -260,6 +261,8 @@ export default {
   'models.catalog.precision': 'Точность',
   'models.form.gpuPerReplica.tips': 'Введите произвольное число',
   'models.form.generic_proxy': 'Включить универсальный прокси',
+  'models.form.enableModelRoute': 'Enable Model Route',
+  'models.form.enableModelRoute.tips': 'Enable Model Route',
   'models.form.generic_proxy.tips':
     'После включения универсального прокси вы можете получать доступ к URI-путям, которые не следуют стандарту OpenAI API.',
   'models.form.generic_proxy.button': 'Универсальный прокси',
@@ -277,9 +280,18 @@ export default {
     'В выбранном кластере нет доступных GPU, совместимых с этой моделью.',
   'models.form.modelfile.notfound': `Указанный путь к файлу модели не существует на сервере GPUStack. Рекомендуется размещать файл модели по одному и тому же пути как на сервере GPUStack, так и на воркерах GPUStack. Это поможет системе принимать лучшие решения по распределению ресурсов.`,
   'models.form.readyWorkers': 'воркеров готово',
-  'models.form.maxContextLength': 'Maximum Context Length'
+  'models.form.maxContextLength': 'Maximum Context Length',
+  'models.form.backend.helperText':
+    'Not enabled yet. Will be enabled after deployment. ',
+  'models.table.instance.benchmark': 'Run Benchmark'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-// 1. 'models.form.maxContextLength': 'Maximum Context Length'
+// 1. 'models.form.maxContextLength': 'Maximum Context Length',
+// 2. 'models.form.backend.helperText': 'Not enabled yet. Will be enabled after deployment. ',
+// 3. 'models.table.instance.benchmark': 'Run Benchmark'
+// 2. 'models.form.enableModelRoute': 'Enable Model Route',
+// 3.  'models.form.enableModelRoute.tips': 'Enable Model Route',
+// 4. 'models.form.backend.vllm': 'Built-in support for NVIDIA, AMD, Ascend, Hygon, Moore Threads, Iluvatar, MetaX, T-Head PPU devices.',
+// 5.  'models.form.backend.sglang': 'Built-in support for NVIDIA, AMD, Ascend, Moore Threads, MetaX, T-Head PPU devices.',
 // ========== End of To-Do List ==========

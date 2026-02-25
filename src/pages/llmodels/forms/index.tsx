@@ -50,6 +50,7 @@ interface DataFormProps {
   ref?: any;
   source: SourceType;
   action: PageActionType;
+  realAction?: PageActionType;
   isGGUF: boolean;
   formKey: DeployFormKey;
   sourceDisable?: boolean;
@@ -77,6 +78,7 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
     isGGUF,
     formKey,
     source,
+    realAction,
     initialValues,
     sourceDisable = true,
     sourceList,
@@ -90,7 +92,8 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
     onOk
   } = props;
   const { getScrollElementScrollableHeight } = useWrapperContext();
-  const { backendOptions, getBackendOptions } = useQueryBackends();
+  const { backendOptions, flatBackendOptions, getBackendOptions } =
+    useQueryBackends();
   const { getGPUOptionList, gpuOptions, workerLabelOptions } =
     useGenerateGPUOptions();
   const [form] = Form.useForm();
@@ -168,19 +171,6 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
     };
   };
 
-  const checkIsGGUF = () => {
-    const huggingface_filename = form.getFieldValue('huggingface_filename');
-    const model_scope_model_id = form.getFieldValue('model_scope_model_id');
-    const local_path = form.getFieldValue('local_path');
-
-    if (local_path) {
-      const isEndwithGGUF = _.endsWith(local_path, '.gguf');
-      const isBlobFile = local_path.split('/').pop().includes('sha256');
-      return isEndwithGGUF || isBlobFile;
-    }
-    return huggingface_filename || model_scope_model_id;
-  };
-
   const updateFieldsOnGGUF = () => {
     // when isGGUF is true, set distributed_inference_across_workers and cpu_offloading to true
     return {
@@ -211,7 +201,6 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
       setTimeout(resolve, 100);
     });
     form.setFieldsValue({
-      env: null,
       backend_version: null, // don't set default version here, let the user select it
       backend_parameters: option.default_backend_param || [],
       ...updateKVCacheConfig(val, option),
@@ -392,8 +381,10 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
         formKey: formKey,
         source: props.source,
         action: action,
+        realAction: realAction,
         gpuOptions: gpuOptions,
         backendOptions: backendOptions,
+        flatBackendOptions: flatBackendOptions,
         workerLabelOptions: workerLabelOptions,
         initialValues: initialValues,
         modelContextData: modelContextData,
@@ -429,6 +420,7 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
             restart_on_error: true,
             distributed_inference_across_workers: true,
             mode: 'throughput',
+            enable_model_route: true,
             generic_proxy: false,
             extended_kv_cache: {
               enabled: false,

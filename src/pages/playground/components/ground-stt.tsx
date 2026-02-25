@@ -14,6 +14,7 @@ import { SendOutlined } from '@ant-design/icons';
 import { useIntl, useSearchParams } from '@umijs/max';
 import { Button, Spin, Tooltip } from 'antd';
 import classNames from 'classnames';
+import _ from 'lodash';
 import React, {
   forwardRef,
   useCallback,
@@ -24,8 +25,14 @@ import React, {
   useState
 } from 'react';
 import { AUDIO_SPEECH_TO_TEXT_API, speechToText } from '../apis';
-import { SpeechToTextFormat, extractErrorMessage } from '../config';
+import {
+  SpeechToTextFormat,
+  defaultLanguages,
+  extractErrorMessage
+} from '../config';
+import { allLanguages } from '../config/languages';
 import { RealtimeParamsConfig as paramsConfig } from '../config/params-config';
+import { ParamsSchema } from '../config/types';
 import '../style/ground-llm.less';
 import '../style/speech-to-text.less';
 import '../style/system-message-wrap.less';
@@ -75,6 +82,9 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
 
   const { initialize, updateScrollerPosition } = useOverlayScroller();
   const { initialize: innitializeParams } = useOverlayScroller();
+  const [modelMeta, setModelMeta] = useState<any>(null);
+  const [fieldsConfig, setFieldsConfig] =
+    useState<ParamsSchema[]>(paramsConfig);
 
   useImperativeHandle(ref, () => {
     return {
@@ -265,8 +275,51 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
     );
   };
 
+  const handleSelectModel = (model: string) => {
+    if (!model) return;
+    const selected = modelList.find((item) => item.value === model);
+    setModelMeta(selected?.meta || {});
+    const languages = selected?.meta?.languages || [];
+    let currentLanguage = [...defaultLanguages];
+    if (languages.length > 0) {
+      // sort languages based on the order in the model meta
+      currentLanguage = [];
+
+      languages.forEach((langCode: string) => {
+        const langItem = allLanguages.find((item) => item.value === langCode);
+        if (langItem) {
+          currentLanguage.push(langItem);
+        }
+      });
+
+      const newConfig = paramsConfig.map((item) => {
+        const oItem = _.cloneDeep(item);
+        if (item.name === 'language') {
+          return {
+            ...oItem,
+            options: currentLanguage
+          };
+        }
+        return oItem;
+      });
+      setFieldsConfig(newConfig);
+    }
+    setParams((pre: any) => {
+      return {
+        ...pre,
+        language:
+          selected?.meta?.language || currentLanguage[0]?.value || 'auto',
+        model: model
+      };
+    });
+  };
+
   const handleOnValuesChange = (changedValues: any, allValues: any) => {
-    setParams(allValues);
+    if (changedValues.model) {
+      handleSelectModel(changedValues.model);
+    } else {
+      setParams(allValues);
+    }
   };
 
   useEffect(() => {
@@ -286,6 +339,11 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
       updateScrollerPosition();
     }
   }, [messageList, loading]);
+
+  useEffect(() => {
+    const defaultModel = selectModel || modelList[0]?.value || '';
+    handleSelectModel(defaultModel);
+  }, [modelList, selectModel]);
 
   return (
     <div
@@ -384,10 +442,14 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
                 style={{
                   position: 'absolute',
                   top: 20,
-                  right: 2
+                  right: 32,
+                  zIndex: 10
                 }}
               >
-                <CopyButton text={messageList[0]?.content}></CopyButton>
+                <CopyButton
+                  text={messageList[0]?.content}
+                  type="link"
+                ></CopyButton>
               </span>
             )}
             <div
@@ -447,7 +509,7 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
           <DynamicParams
             ref={formRef}
             onValuesChange={handleOnValuesChange}
-            paramsConfig={paramsConfig}
+            paramsConfig={fieldsConfig}
             initialValues={parameters}
             modelList={modelList}
           />

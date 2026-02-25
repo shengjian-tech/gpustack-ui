@@ -290,12 +290,30 @@ export const modelCategoriesMap = {
 };
 
 export const categoryOptions = [
-  { label: 'LLM', value: modelCategoriesMap.llm },
-  { label: 'Embedding', value: modelCategoriesMap.embedding },
-  { label: 'Reranker', value: modelCategoriesMap.reranker },
-  { label: 'Image', value: modelCategoriesMap.image },
-  { label: 'Text-to-Speech', value: modelCategoriesMap.text_to_speech },
-  { label: 'Speech-to-Text', value: modelCategoriesMap.speech_to_text }
+  {
+    label: 'LLM',
+    value: modelCategoriesMap.llm
+  },
+  {
+    label: 'Embedding',
+    value: modelCategoriesMap.embedding
+  },
+  {
+    label: 'Reranker',
+    value: modelCategoriesMap.reranker
+  },
+  {
+    label: 'Image',
+    value: modelCategoriesMap.image
+  },
+  {
+    label: 'Text-to-Speech',
+    value: modelCategoriesMap.text_to_speech
+  },
+  {
+    label: 'Speech-to-Text',
+    value: modelCategoriesMap.speech_to_text
+  }
 ];
 
 export const modelCategories = [
@@ -400,7 +418,7 @@ export const getBackendParamsTips = (backend: string) => {
     return {
       backend: 'Ascend MindIE',
       releases: '',
-      link: 'http://docs.gpustack.ai/latest/user-guide/inference-backends/#parameters-reference_2',
+      link: 'https://docs.gpustack.ai/latest/user-guide/built-in-inference-backends/?h=parameters+reference#parameters-reference_2',
       version: '1.0.0'
     };
   }
