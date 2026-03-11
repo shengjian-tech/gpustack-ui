@@ -1,36 +1,96 @@
-import breakpoints from '@/config/breakpoints';
 import { useIntl } from '@umijs/max';
-import { Col, Row } from 'antd';
-import { FC, useContext, useEffect, useMemo } from 'react';
-import styled from 'styled-components';
-import { DASHBOARD_STATS_API } from '../../apis';
+import dayjs from 'dayjs';
+import { FC, useContext, useMemo } from 'react';
 import { baseColorMap } from '../../config';
 import { DashboardContext } from '../../config/dashboard-context';
-import { DashboardUsageData } from '../../config/types';
-import ExportData from './export-data';
-import FilterBar from './filter-bar';
-import RequestTokenInner from './request-token-inner';
-import TopUser from './top-user';
-import useUsageData from './use-usage-data';
 import styles from './index.less';
+import RequestTokenInner from './request-token-inner';
 
-const TitleWrapper = styled.div`
-  margin: 0;
-  font-weight: 700;
-`;
+const generateValueMap = (list: { timestamp: number; value: number }[]) =>
+  new Map(
+    list.map((item) => [
+      dayjs(item.timestamp * 1000).format('YYYY-MM-DD'),
+      item.value
+    ])
+  );
+
+const generateData = (dates: string[], valueMap: Map<string, number>) =>
+  dates.map((date) => ({ time: date, value: valueMap.get(date) || 0 }));
+
+const getLast30Days = () => {
+  const dates: string[] = [];
+  for (let i = 29; i >= 0; i--) {
+    dates.push(dayjs().subtract(i, 'day').format('YYYY-MM-DD'));
+  }
+  return dates;
+};
 
 const UsageInner: FC<{ maxWidth: number }> = ({ maxWidth }) => {
   const intl = useIntl();
   const { model_usage } = useContext(DashboardContext);
 
-  const { requestTokenData, topUserData } = useUsageData(model_usage || {});
-  console.log('---requestTokenData---', requestTokenData)
+  const requestTokenData = useMemo(() => {
+    const data = model_usage || {};
+    const completionTokenHistory = data.completion_token_history || [];
+    const promptTokenHistory = data.prompt_token_history || [];
+    const apiRequestHistory = data.api_request_history || [];
+    const dateRange = getLast30Days();
+
+    if (!completionTokenHistory.length) {
+      return { requestData: [], tokenData: [], xAxisData: [] };
+    }
+
+    const requestList = {
+      name: 'API requests',
+      areaStyle: { color: 'rgba(13,171,219,0.15)' },
+      color: baseColorMap.baseR1,
+      data: generateData(dateRange, generateValueMap(apiRequestHistory))
+    };
+
+    const completionDataList = generateData(
+      dateRange,
+      generateValueMap(completionTokenHistory)
+    );
+    const promptDataList = generateData(
+      dateRange,
+      generateValueMap(promptTokenHistory)
+    );
+
+    const completionData = {
+      name: 'Completion tokens',
+      color: baseColorMap.base,
+      data: completionDataList.map((item, index) => ({
+        ...item,
+        itemStyle: {
+          borderRadius: !promptDataList[index].value
+            ? [2, 2, 0, 0]
+            : [0, 0, 0, 0]
+        }
+      }))
+    };
+    const promptData = {
+      name: 'Prompt tokens',
+      color: baseColorMap.baseR3,
+      data: promptDataList.map((item) => ({
+        ...item,
+        itemStyle: { borderRadius: [2, 2, 0, 0] }
+      }))
+    };
+
+    return {
+      requestData: [requestList],
+      tokenData: [completionData, promptData],
+      xAxisData: dateRange
+    };
+  }, [model_usage]);
 
   return (
     <>
       <div className={styles['line-box']}>
-        <p className={styles['title']}>{intl.formatMessage({ id: 'dashboard.usage' })}</p>
-        <div style={{ width: '100%',padding:' 0 10px 10px 10px' }}>
+        <p className={styles['title']}>
+          {intl.formatMessage({ id: 'dashboard.usage' })}
+        </p>
+        <div style={{ width: '100%', padding: ' 0 10px 10px 10px' }}>
           <RequestTokenInner
             requestData={requestTokenData?.requestData}
             xAxisData={requestTokenData?.xAxisData}
