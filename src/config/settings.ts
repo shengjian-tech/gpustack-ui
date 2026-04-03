@@ -30,3 +30,18 @@ export const tableSorter = (order: number | boolean) => {
   // }
   // return order;
 };
+
+export const PaginationKey = {
+  Deployments: 'Deployments',
+  Workers: 'Workers',
+  Clusters: 'Clusters',
+  Routes: 'Routes',
+  Providers: 'Providers',
+  Benchmarks: 'Benchmarks',
+  GPUs: 'GPUs',
+  ModelFiles: 'ModelFiles',
+  Users: 'Users',
+  APIKeys: 'APIKeys',
+  Credentials: 'Credentials',
+  Instances: 'Instances'
+};

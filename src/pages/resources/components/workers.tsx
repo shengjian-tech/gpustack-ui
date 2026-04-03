@@ -1,6 +1,6 @@
 import DeleteModal from '@/components/delete-modal';
 import { FilterBar } from '@/components/page-tools';
-import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
+import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useTableFetch from '@/hooks/use-table-fetch';
 import PageBox from '@/pages/_components/page-box';
 import { DockerStepsFromWorker } from '@/pages/cluster-management/components/add-worker/config';
@@ -12,7 +12,7 @@ import useGranfanaLink from '@/pages/resources/hooks/use-grafana-link';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table, message } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   WORKERS_API,
   deleteWorker,
@@ -27,19 +27,7 @@ import UpdateLabels from './update-labels';
 import WorkerDetailModal from './worker-detail-modal';
 import WorkerRightActions from './worker-right-actions';
 
-const Workers: React.FC<{
-  clusterId?: string | number | null;
-  showSelect?: boolean;
-  showAddButton?: boolean;
-  widths?: { input: number };
-  sourceType?: string;
-}> = ({
-  clusterId,
-  showSelect = true,
-  showAddButton = true,
-  widths = { input: 200 },
-  sourceType = 'resources'
-}) => {
+const Workers = () => {
   const {
     dataSource,
     rowSelection,
@@ -56,16 +44,14 @@ const Workers: React.FC<{
     handleQueryChange,
     handleNameChange
   } = useTableFetch<ListItem>({
+    key: PaginationKey.Workers,
     events: ['UPDATE', 'DELETE', 'CREATE'],
     fetchAPI: queryWorkersList,
     deleteAPI: deleteWorker,
     contentForDelete: 'resources.worker',
     watch: true,
     API: WORKERS_API,
-    updateManually: true,
-    defaultQueryParams: {
-      cluster_id: clusterId
-    }
+    updateManually: true
   });
   const { goToGrafana, ActionButton } = useGranfanaLink({
     type: 'worker'
@@ -254,8 +240,7 @@ const Workers: React.FC<{
     loadend: dataSource.loadend,
     firstLoad: extraStatus.firstLoad,
     sortOrder,
-    handleSelect,
-    sourceType
+    handleSelect
   });
 
   useEffect(() => {
@@ -267,7 +252,7 @@ const Workers: React.FC<{
     <>
       <PageBox>
         <FilterBar
-          showSelect={showSelect}
+          showSelect={true}
           selectHolder={intl.formatMessage({ id: 'clusters.filterBy.cluster' })}
           marginBottom={22}
           marginTop={30}
@@ -279,7 +264,6 @@ const Workers: React.FC<{
           handleInputChange={handleNameChange}
           rowSelection={rowSelection}
           selectOptions={clusterData.list}
-          widths={widths}
           right={
             <WorkerRightActions
               handleDeleteByBatch={handleDeleteBatch}
@@ -295,8 +279,12 @@ const Workers: React.FC<{
             sortDirections={TABLE_SORT_DIRECTIONS}
             showSorterTooltip={false}
             tableLayout={'auto'}
+            className={'scroll-table'}
             dataSource={dataSource.dataList}
-            loading={dataSource.loading}
+            loading={{
+              spinning: dataSource.loading,
+              size: 'middle'
+            }}
             rowKey="id"
             scroll={{ x: 900 }}
             onChange={handleTableChange}

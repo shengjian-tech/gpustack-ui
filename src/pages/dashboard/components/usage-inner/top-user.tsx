@@ -14,7 +14,7 @@ const TopUser: React.FC<TopUserProps> = (props) => {
       <HBar
         seriesData={userData}
         xAxisData={topUserList}
-        height={440}
+        height={380}
         maxItems={10}
       ></HBar>
     </CardWrapper>

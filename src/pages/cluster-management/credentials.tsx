@@ -3,7 +3,7 @@ import DeleteModal from '@/components/delete-modal';
 import IconFont from '@/components/icon-font';
 import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
-import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
+import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import type { PageActionType } from '@/config/types';
 import useTableFetch from '@/hooks/use-table-fetch';
 import { useIntl, useNavigate } from '@umijs/max';
@@ -58,6 +58,7 @@ const Credentials: React.FC = () => {
     handleSearch,
     handleNameChange
   } = useTableFetch<ListItem>({
+    key: PaginationKey.Credentials,
     fetchAPI: queryCredentialList,
     deleteAPI: deleteCredential,
     contentForDelete: 'menu.clusterManagement.credentials'
@@ -205,7 +206,10 @@ const Credentials: React.FC = () => {
             columns={columns}
             dataSource={dataSource.dataList}
             rowSelection={rowSelection}
-            loading={dataSource.loading}
+            loading={{
+              spinning: dataSource.loading,
+              size: 'middle'
+            }}
             sortDirections={TABLE_SORT_DIRECTIONS}
             showSorterTooltip={false}
             rowKey="id"

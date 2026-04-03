@@ -1,4 +1,7 @@
-import { CloseOutlined } from '@ant-design/icons';
+import SmallCloseButton from '@/pages/_components/small-close-button';
+import ThumbImg from '@/pages/playground/components/thumb-img';
+import useAddImage from '@/pages/playground/hooks/use-add-image';
+import { DeleteOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { Button, Input, Tooltip } from 'antd';
 import classNames from 'classnames';
@@ -7,12 +10,23 @@ import './styles/row-textarea.less';
 
 interface SystemMessageProps {
   style?: React.CSSProperties;
-  value: string;
+  data: {
+    content: string;
+    imgs?: { uid: number | string; dataUrl: string }[];
+    uid: number | string;
+    name: string;
+    role?: string;
+  };
   placeholder?: string;
   label?: React.ReactNode;
   height?: number;
+  onUploadImage?: (list: { uid: number | string; dataUrl: string }[]) => void;
+  onDeleteImage?: (
+    updatedImgs: { uid: number | string; dataUrl: string }[]
+  ) => void;
   onChange: (e: any) => void;
   onPaste?: (e: any) => void;
+  onDelete?: () => void;
   onSelect?: (data: {
     start: number;
     end: number;
@@ -23,9 +37,12 @@ interface SystemMessageProps {
 
 const RowTextarea: React.FC<SystemMessageProps> = (props) => {
   const {
-    value,
+    data,
+    onDeleteImage,
+    onUploadImage,
     onChange,
     onSelect,
+    onDelete,
     style,
     label,
     placeholder,
@@ -64,9 +81,6 @@ const RowTextarea: React.FC<SystemMessageProps> = (props) => {
     onChange?.(e);
   };
 
-  const handleClear = () => {
-    onChange?.({ target: { value: '' } });
-  };
   const handleOnPaste = (e: any) => {
     props.onPaste?.(e);
   };
@@ -76,8 +90,8 @@ const RowTextarea: React.FC<SystemMessageProps> = (props) => {
     const start = e.target.selectionStart;
     const end = e.target.selectionEnd;
 
-    const beforeText = value.substring(0, start);
-    const afterText = value.substring(end, value.length);
+    const beforeText = data.content.substring(0, start);
+    const afterText = data.content.substring(end, data.content.length);
     onSelect?.({
       start,
       end,
@@ -86,64 +100,150 @@ const RowTextarea: React.FC<SystemMessageProps> = (props) => {
     });
   };
 
+  const handleUploadImage = (
+    list: { uid: number | string; dataUrl: string }[]
+  ) => {
+    onUploadImage?.(list);
+  };
+
+  const { ImageURLInput, UploadImageButton, isFromUrl, dropDownOpen } =
+    useAddImage({
+      size: 'small',
+      inputProps: {
+        variant: 'filled'
+      },
+      handleUpdateImgList: handleUploadImage,
+      updateUidCount: () => `img-${Date.now()}`
+    });
+
+  const handleClear = () => {
+    onChange?.({ target: { value: '' } });
+    onDeleteImage?.([]);
+  };
+
+  const handleDeleteImage = (uid: number) => {
+    const updatedImgs = (data.imgs || []).filter((img) => img.uid !== uid);
+    onDeleteImage?.(updatedImgs);
+  };
+
+  const renderTextContent = () => {
+    if (data.imgs?.length || isFromUrl) {
+      return null;
+    }
+
+    return (
+      <>
+        {label && <span className="title">{label}</span>}
+        {data.content || (
+          <span style={{ color: 'var(--ant-color-text-tertiary)' }}>
+            {placeholder}
+          </span>
+        )}
+      </>
+    );
+  };
+
+  const expanded = autoSize.focus && !isFromUrl && !data.imgs?.length;
+
   return (
     <div
-      className={classNames('row-textarea', {
-        focus: autoSize.focus
+      className={classNames('row-textarea-wrapper', {
+        dropDownOpen: dropDownOpen,
+        expanded: expanded,
+        'from-url': isFromUrl
       })}
-      style={{ ...style }}
     >
-      {
-        <div
-          style={{ display: autoSize.focus ? 'block' : 'none' }}
-          className="textarea-wrapper"
-        >
-          {label && <span className="textarea-label">{label}</span>}
-          <Input.TextArea
-            className="custome-scrollbar"
-            ref={rowTextAreaRef}
-            placeholder={placeholder}
+      <div
+        className={classNames('row-textarea', {
+          expanded: expanded
+        })}
+        style={{ ...style }}
+      >
+        {!data.imgs?.length && (
+          <div
             style={{
-              borderRadius: '0',
-              border: 'none'
+              display: expanded ? 'block' : 'none'
             }}
-            value={value}
-            autoSize={{
-              minRows: autoSize.minRows,
-              maxRows: autoSize.maxRows
-            }}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            allowClear={false}
-            onChange={handleOnChange}
-            onSelect={handleOnSelect}
-            onPaste={handleOnPaste}
-          ></Input.TextArea>
-        </div>
-      }
-      {!autoSize.focus && (
-        <div className="content-wrap" onClick={handleFocus}>
-          <div className="content" style={{ height: height }}>
-            {label && <span className="title">{label}</span>}
-            {value || (
-              <span style={{ color: 'var(--ant-color-text-tertiary)' }}>
-                {placeholder}
-              </span>
-            )}
+            className="textarea-wrapper"
+          >
+            {label && <span className="textarea-label">{label}</span>}
+            {
+              <Input.TextArea
+                className="custome-scrollbar"
+                allowClear
+                ref={rowTextAreaRef}
+                placeholder={placeholder}
+                style={{
+                  borderRadius: '0',
+                  border: 'none',
+                  width: '100%',
+                  boxShadow: 'none'
+                }}
+                value={data.content}
+                autoSize={
+                  expanded
+                    ? {
+                        minRows: 5,
+                        maxRows: 5
+                      }
+                    : { minRows: autoSize.minRows, maxRows: autoSize.maxRows }
+                }
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onChange={handleOnChange}
+                onSelect={handleOnSelect}
+                onPaste={handleOnPaste}
+                onClear={handleClear}
+              ></Input.TextArea>
+            }
           </div>
-          {value && (
-            <Tooltip title={intl.formatMessage({ id: 'common.button.clear' })}>
+        )}
+
+        {!expanded && (
+          <div
+            className={classNames('content-wrap', {
+              dropDownOpen: dropDownOpen
+            })}
+            onClick={handleFocus}
+          >
+            <div className="content" style={{ height: height }}>
+              {renderTextContent()}
+              {!!data.imgs?.length && (
+                <div className="flex-center">
+                  {label && <span className="title">{label}</span>}
+                  <ThumbImg
+                    editable
+                    dataList={data.imgs}
+                    onDelete={handleDeleteImage}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        <div
+          className={classNames('actions-wrapper', {
+            show: expanded
+          })}
+        >
+          {ImageURLInput}
+          <div className={'actions'}>
+            {!expanded && (data.content || !!data.imgs?.length) && (
+              <SmallCloseButton onClick={handleClear}></SmallCloseButton>
+            )}
+            {UploadImageButton}
+            <Tooltip title={intl.formatMessage({ id: 'common.button.delete' })}>
               <Button
-                className="clear-btn"
-                type="text"
-                icon={<CloseOutlined />}
+                danger
                 size="small"
-                onClick={handleClear}
+                type="text"
+                icon={<DeleteOutlined></DeleteOutlined>}
+                onClick={onDelete}
               ></Button>
             </Tooltip>
-          )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

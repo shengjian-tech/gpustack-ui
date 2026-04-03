@@ -1,7 +1,5 @@
 import RowTextarea from '@/components/seal-form/row-textarea';
-import { DeleteOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import { Button, Tooltip } from 'antd';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import '../style/input-list.less';
 
@@ -11,14 +9,30 @@ interface InputListProps {
   extra?: (data: any) => React.ReactNode;
   showLabel?: boolean;
   textList: {
-    text: string;
+    content: string;
+    imgs?: { uid: number | string; dataUrl: string }[];
     uid: number | string;
     name: string;
+    role: string;
   }[];
   onChange?: (
-    textList: { text: string; uid: number | string; name: string }[]
+    textList: {
+      content: string;
+      imgs?: { uid: number | string; dataUrl: string }[];
+      uid: number | string;
+      name: string;
+      role: string;
+    }[]
   ) => void;
   onPaste?: (e: any, index: number) => void;
+  onDeleteImage?: (
+    itemUid: number | string,
+    updatedImgs: { uid: number | string; dataUrl: string }[]
+  ) => void;
+  onUploadImage?: (
+    list: { uid: number | string; dataUrl: string }[],
+    index: number
+  ) => void;
   onSelect?: (data: {
     start: number;
     end: number;
@@ -30,7 +44,17 @@ interface InputListProps {
 
 const InputList: React.FC<InputListProps> = forwardRef(
   (
-    { textList, showLabel = true, height, onChange, extra, onPaste, onSelect },
+    {
+      textList,
+      showLabel = true,
+      height,
+      onUploadImage,
+      onDeleteImage,
+      onChange,
+      extra,
+      onPaste,
+      onSelect
+    },
     ref
   ) => {
     const intl = useIntl();
@@ -46,27 +70,28 @@ const InputList: React.FC<InputListProps> = forwardRef(
       setMessageId();
       const dataList = [...textList];
       dataList.push({
-        text: '',
+        content: '',
         uid: messageId.current,
-        name: `Text ${dataList.length + 1}`
+        name: `Text ${dataList.length + 1}`,
+        role: 'user'
       });
       onChange?.(dataList);
     };
 
-    const handleDelete = (text: { text: string; uid: number | string }) => {
+    const handleDelete = (dataItem: { uid: number | string }) => {
       const dataList = [...textList];
-      const index = dataList.findIndex((item) => item.uid === text.uid);
+      const index = dataList.findIndex((item) => item.uid === dataItem.uid);
       dataList.splice(index, 1);
       onChange?.(dataList);
     };
 
     const handleTextChange = (
       value: string,
-      text: { text: string; uid: number | string }
+      dataItem: { uid: number | string }
     ) => {
       const dataList = [...textList];
-      const index = dataList.findIndex((item) => item.uid === text.uid);
-      dataList[index].text = value;
+      const index = dataList.findIndex((item) => item.uid === dataItem.uid);
+      dataList[index].content = value;
       onChange?.(dataList);
     };
 
@@ -79,36 +104,28 @@ const InputList: React.FC<InputListProps> = forwardRef(
 
     return (
       <div className="input-list" ref={containerRef}>
-        {textList.map((text, index) => {
+        {textList.map((item, index) => {
           return (
-            <div key={text.uid} className="input-item" data-uid={text.uid}>
+            <div key={item.uid} className="input-item" data-uid={item.uid}>
               <div className="input-wrap">
                 <RowTextarea
                   height={height}
                   label={showLabel ? `${index + 1}` : null}
-                  value={text.text}
+                  data={item}
                   placeholder={intl.formatMessage({
                     id: 'playground.embedding.inputyourtext'
                   })}
-                  onChange={(e) => handleTextChange(e.target.value, text)}
+                  onChange={(e) => handleTextChange(e.target.value, item)}
                   onPaste={(e) => onPaste?.(e, index)}
                   onSelect={(data) => onSelect?.({ ...data, index })}
+                  onUploadImage={(list) => onUploadImage?.(list, index)}
+                  onDeleteImage={(updatedImgs) =>
+                    onDeleteImage?.(item.uid, updatedImgs)
+                  }
+                  onDelete={() => handleDelete(item)}
                 ></RowTextarea>
               </div>
-              <span className="btn-group">
-                <Tooltip
-                  title={intl.formatMessage({ id: 'common.button.delete' })}
-                >
-                  <Button
-                    danger
-                    size="small"
-                    type="text"
-                    icon={<DeleteOutlined></DeleteOutlined>}
-                    onClick={() => handleDelete(text)}
-                  ></Button>
-                </Tooltip>
-              </span>
-              {extra?.(text)}
+              {extra?.(item)}
             </div>
           );
         })}

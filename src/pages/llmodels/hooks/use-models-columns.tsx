@@ -130,7 +130,7 @@ const useModelsColumns = ({
         render: (text: string, record: ListItem) => (
           <span className="flex-center" style={{ maxWidth: '100%' }}>
             <AutoTooltip ghost>
-              <span className="m-r-5">{text}</span>
+              <span>{text}</span>
             </AutoTooltip>
             <ModelTag categoryKey={record.categories?.[0] || ''} />
           </span>
@@ -217,7 +217,7 @@ const useModelsColumns = ({
         )
       }
     ];
-  }, [sortOrder, clusterList, intl, handleSelect]);
+  }, [sortOrder, clusterList, intl, handleSelect, setModelActionList]);
 };
 
 export default useModelsColumns;

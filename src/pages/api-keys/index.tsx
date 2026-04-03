@@ -2,6 +2,7 @@ import DeleteModal from '@/components/delete-modal';
 import IconFont from '@/components/icon-font';
 import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
+import { PaginationKey } from '@/config/settings';
 import type { PageActionType } from '@/config/types';
 import useTableFetch from '@/hooks/use-table-fetch';
 import { useIntl } from '@umijs/max';
@@ -48,6 +49,7 @@ const APIKeys: React.FC = () => {
     handleSearch,
     handleNameChange
   } = useTableFetch<ListItem>({
+    key: PaginationKey.APIKeys,
     fetchAPI: queryApisKeysList,
     deleteAPI: deleteApisKey,
     contentForDelete: 'apikeys.table.apikeys'
@@ -78,7 +80,7 @@ const APIKeys: React.FC = () => {
   const handleEditKey = (record: ListItem) => {
     setOpenAddModal({
       open: true,
-      title: 'Edit API Key',
+      title: intl.formatMessage({ id: 'apikeys.button.edit' }),
       action: PageAction.EDIT,
       currentData: record
     });
@@ -156,7 +158,10 @@ const APIKeys: React.FC = () => {
             columns={columns}
             dataSource={dataSource.dataList}
             rowSelection={rowSelection}
-            loading={dataSource.loading}
+            loading={{
+              spinning: dataSource.loading,
+              size: 'middle'
+            }}
             sortDirections={TABLE_SORT_DIRECTIONS}
             showSorterTooltip={false}
             rowKey="id"

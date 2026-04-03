@@ -28,7 +28,7 @@ export default [
         icon: 'icon-chat',
         selectedIcon: 'icon-chat-filled',
         defaultIcon: 'icon-chat',
-        component: './playground/index'
+        component: './playground/chat/index'
       },
       {
         name: 'embedding',
@@ -38,7 +38,7 @@ export default [
         icon: 'icon-embedding',
         selectedIcon: 'icon-embedding-filled',
         defaultIcon: 'icon-embedding',
-        component: './playground/embedding'
+        component: './playground/embedding/index'
       },
       {
         name: 'rerank',
@@ -48,7 +48,7 @@ export default [
         icon: 'icon-reranker',
         selectedIcon: 'icon-reranker-filled',
         defaultIcon: 'icon-reranker',
-        component: './playground/rerank'
+        component: './playground/rerank/index'
       },
       {
         name: 'text2images',
@@ -58,7 +58,7 @@ export default [
         icon: 'icon-image1',
         selectedIcon: 'icon-image-filled',
         defaultIcon: 'icon-image1',
-        component: './playground/images'
+        component: './playground/images/index'
       },
       {
         name: 'speech',
@@ -68,8 +68,19 @@ export default [
         icon: 'icon-audio1',
         selectedIcon: 'icon-audio-filled',
         defaultIcon: 'icon-audio1',
-        component: './playground/speech'
+        component: './playground/speech/index'
       }
+      // {
+      //   name: 'video',
+      //   title: 'Video',
+      //   path: '/playground/video',
+      //   key: 'video',
+      //   icon: 'icon-video-outline',
+      //   hideInMenu: false,
+      //   selectedIcon: 'icon-video-filled02',
+      //   defaultIcon: 'icon-video-outline',
+      //   component: './playground/video'
+      // }
     ]
   },
   {
@@ -227,16 +238,16 @@ export default [
           '/cluster-management/clusters/create'
         ]
       },
-      {
-        name: 'clusterDetail',
-        path: '/cluster-management/clusters/detail',
-        key: 'clusterDetail',
-        icon: 'icon-cluster2-outline',
-        selectedIcon: 'icon-cluster2-filled',
-        defaultIcon: 'icon-cluster2-outline',
-        hideInMenu: true,
-        component: './cluster-management/cluster-detail'
-      },
+      // {
+      //   name: 'clusterDetail',
+      //   path: '/cluster-management/clusters/detail',
+      //   key: 'clusterDetail',
+      //   icon: 'icon-cluster2-outline',
+      //   selectedIcon: 'icon-cluster2-filled',
+      //   defaultIcon: 'icon-cluster2-outline',
+      //   hideInMenu: true,
+      //   component: './cluster-management/cluster-detail'
+      // },
       {
         name: 'credentials',
         path: '/cluster-management/credentials',

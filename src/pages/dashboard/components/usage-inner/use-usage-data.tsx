@@ -1,5 +1,4 @@
-import { queryModelsList } from '@/pages/llmodels/apis';
-import { ListItem as ModelListItem } from '@/pages/llmodels/config/types';
+import useTargetSourceModels from '@/pages/model-routes/hooks/use-target-source-models';
 import { queryUsersList } from '@/pages/users/apis';
 import dayjs from 'dayjs';
 import _ from 'lodash';
@@ -93,6 +92,7 @@ export default function useUseageData<T>(config: {
     start_date: string;
     end_date: string;
     model_ids: number[];
+    provider_model_names: string[];
     user_ids: number[];
   }>({
     start_date: dayjs()
@@ -100,12 +100,14 @@ export default function useUseageData<T>(config: {
       .format('YYYY-MM-DD'),
     end_date: dayjs().format('YYYY-MM-DD'),
     model_ids: [],
-    user_ids: []
+    user_ids: [],
+    provider_model_names: []
   });
-
-  const [modelList, setModelList] = useState<Global.BaseOption<string>[]>([]);
+  const { sourceModels: modelList, fetchSourceModels } =
+    useTargetSourceModels();
   const [userList, setUserList] = useState<Global.BaseOption<string>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<string[][]>([]);
 
   const usageData = useMemo<{
     requestTokenData: RequestTokenData;
@@ -209,26 +211,6 @@ export default function useUseageData<T>(config: {
     };
   }, [result, url]);
 
-  const fetchModelsList = async () => {
-    try {
-      const params = {
-        page: 1,
-        page_size: 100
-      };
-
-      const response = await queryModelsList(params);
-      const list = _.map(response.items || [], (item: ModelListItem) => {
-        return {
-          label: item.name,
-          value: item.id
-        };
-      });
-      setModelList(list);
-    } catch (error) {
-      setModelList([]);
-    }
-  };
-
   const fetchUsersList = async () => {
     try {
       const params = {
@@ -303,19 +285,49 @@ export default function useUseageData<T>(config: {
     });
     fetchUsageData({ ...query, user_ids: value });
   };
-  const handleModelsChange = (value: number[]) => {
+
+  const generateModelsValue = (value: string[][]) => {
+    const modelIds = [] as number[];
+    const providerModelNames = [] as string[];
+    value.forEach((item: Array<string | number>) => {
+      if (item[0] === 'deployments') {
+        modelIds.push(item[1] as number);
+      } else {
+        providerModelNames.push(`${item[0]}:${item[1]}`);
+      }
+    });
+    return {
+      model_ids: modelIds,
+      provider_model_names: providerModelNames
+    };
+  };
+  const handleModelsChange = (value: string[][]) => {
+    setSelectedModels(value);
     setQuery((pre) => {
       return {
         ...pre,
-        model_ids: value
+        ...generateModelsValue(value)
       };
     });
-    fetchUsageData({ ...query, model_ids: value });
+    fetchUsageData({ ...query, ...generateModelsValue(value) });
+  };
+
+  const resetQuery = () => {
+    setQuery({
+      start_date: dayjs()
+        .subtract(DefaultDateConfig.defaultRange, 'days')
+        .format('YYYY-MM-DD'),
+      end_date: dayjs().format('YYYY-MM-DD'),
+      model_ids: [],
+      user_ids: [],
+      provider_model_names: []
+    });
+    setSelectedModels([]);
   };
 
   const init = () => {
     fetchUsageData(query);
-    fetchModelsList();
+    fetchSourceModels();
     fetchUsersList();
   };
 
@@ -327,6 +339,7 @@ export default function useUseageData<T>(config: {
     userList,
     modelList,
     query,
+    selectedModels,
     setQuery,
     init,
     setResult,
@@ -334,6 +347,7 @@ export default function useUseageData<T>(config: {
     handleExport,
     handleDateChange,
     handleUsersChange,
-    handleModelsChange
+    handleModelsChange,
+    resetQuery
   };
 }

@@ -1,138 +1,104 @@
+import breakpoints from '@/config/breakpoints';
 import { useIntl } from '@umijs/max';
-import dayjs from 'dayjs';
-import { FC, useContext, useMemo } from 'react';
+import { Col, Row } from 'antd';
+import { FC, useContext, useEffect, useMemo } from 'react';
+import { DASHBOARD_STATS_API } from '../../apis';
 import { baseColorMap } from '../../config';
 import { DashboardContext } from '../../config/dashboard-context';
-import styles from './index.less';
+import { DashboardUsageData } from '../../config/types';
+import FilterBarCss from '../../styles/filter-bar.less';
+import ExportData from './export-data';
+import FilterBar from './filter-bar';
 import RequestTokenInner from './request-token-inner';
-
-const generateValueMap = (list: { timestamp: number; value: number }[]) =>
-  new Map(
-    list.map((item) => [
-      dayjs(item.timestamp * 1000).format('YYYY-MM-DD'),
-      item.value
-    ])
-  );
-
-const generateData = (dates: string[], valueMap: Map<string, number>) =>
-  dates.map((date) => ({ time: date, value: valueMap.get(date) || 0 }));
-
-const getLast30Days = () => {
-  const dates: string[] = [];
-  for (let i = 29; i >= 0; i--) {
-    dates.push(dayjs().subtract(i, 'day').format('YYYY-MM-DD'));
-  }
-  return dates;
-};
+import TopUser from './top-user';
+import useUsageData from './use-usage-data';
 
 const UsageInner: FC<{ maxWidth: number }> = ({ maxWidth }) => {
   const intl = useIntl();
   const { model_usage } = useContext(DashboardContext);
 
-  const requestTokenData = useMemo(() => {
-    const data = model_usage || {};
-    const completionTokenHistory = data.completion_token_history || [];
-    const promptTokenHistory = data.prompt_token_history || [];
-    const apiRequestHistory = data.api_request_history || [];
-    const dateRange = getLast30Days();
-
-    if (!completionTokenHistory.length) {
-      return { requestData: [], tokenData: [], xAxisData: [] };
+  const {
+    usageData,
+    query,
+    userList,
+    modelList,
+    selectedModels,
+    handleOnCancel,
+    init,
+    handleExport,
+    handleDateChange,
+    handleUsersChange,
+    handleModelsChange,
+    open
+  } = useUsageData<DashboardUsageData>({
+    url: DASHBOARD_STATS_API,
+    disabledDate: true,
+    defaultData: {
+      api_request_history: [],
+      completion_token_history: [],
+      prompt_token_history: []
     }
+  });
 
-    const requestList = {
-      name: 'API requests',
-      areaStyle: { color: 'rgba(13,171,219,0.15)' },
-      color: baseColorMap.baseR1,
-      data: generateData(dateRange, generateValueMap(apiRequestHistory))
-    };
+  const topUserData = useMemo(() => {
+    // top 10 users
+    const topUsers = model_usage?.top_users?.slice(0, 10) || [];
 
-    const completionDataList = generateData(
-      dateRange,
-      generateValueMap(completionTokenHistory)
-    );
-    const promptDataList = generateData(
-      dateRange,
-      generateValueMap(promptTokenHistory)
-    );
-
-    const completionData = {
-      name: 'Completion tokens',
-      color: baseColorMap.base,
-      data: completionDataList.map((item, index) => ({
-        ...item,
-        itemStyle: {
-          borderRadius: !promptDataList[index].value
-            ? [2, 2, 0, 0]
-            : [0, 0, 0, 0]
-        }
-      }))
-    };
-    const promptData = {
+    const topUserPrompt: any = {
       name: 'Prompt tokens',
       color: baseColorMap.baseR3,
-      data: promptDataList.map((item) => ({
-        ...item,
-        itemStyle: { borderRadius: [2, 2, 0, 0] }
-      }))
+      data: [] as { name: string; value: number }[]
     };
+    const topUserCompletion: any = {
+      name: 'Completion tokens',
+      color: baseColorMap.base,
+      data: [] as { name: string; value: number }[]
+    };
+
+    const topUserNames = topUsers.map((item: any) => {
+      topUserPrompt.data.push({
+        name: item.username,
+        value: item.prompt_token_count,
+        itemStyle: {
+          borderRadius: !item.completion_token_count
+            ? [2, 2, 2, 2]
+            : [0, 2, 2, 0]
+        }
+      });
+      topUserCompletion.data.push({
+        name: item.username,
+        value: item.completion_token_count,
+        itemStyle: {
+          borderRadius: !item.prompt_token_count ? [2, 2, 2, 2] : [2, 0, 0, 2]
+        }
+      });
+      return item.username;
+    });
 
     return {
-      requestData: [requestList],
-      tokenData: [completionData, promptData],
-      xAxisData: dateRange
+      userData: [topUserCompletion, topUserPrompt],
+      topUserList: [...new Set(topUserNames)] as string[]
     };
-  }, [model_usage]);
+  }, [model_usage?.top_users]);
+
+  useEffect(() => {
+    init();
+  }, []);
 
   return (
-    <>
-      <div className={styles['line-box']}>
-        <p className={styles['title']}>
-          {intl.formatMessage({ id: 'dashboard.usage' })}
-        </p>
-        <div style={{ width: '100%', padding: ' 0 10px 10px 10px' }}>
-          <RequestTokenInner
-            requestData={requestTokenData?.requestData}
-            xAxisData={requestTokenData?.xAxisData}
-            tokenData={requestTokenData?.tokenData}
-          ></RequestTokenInner>
-        </div>
-      </div>
-      {/* <PageTools
-        style={{ margin: '26px 0px' }}
-        left={
-          <span className="font-700">
-            {intl.formatMessage({ id: 'dashboard.usage' })}
-          </span>
-        }
-      />
-      <Row style={{ width: '100%' }} gutter={[0, 20]}>
-        <Col
-          xs={24}
-          sm={24}
-          md={24}
-          lg={24}
-          xl={16}
-          style={{
-            paddingRight: maxWidth < breakpoints.xl ? 0 : 20
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              margin: '20px 0 '
-            }}
-          >
-            <TitleWrapper>
+    <div>
+      <Row gutter={maxWidth < breakpoints.xl ? [0, 0] : [20, 20]}>
+        <Col xs={24} sm={24} md={24} lg={24} xl={16}>
+          <div className={FilterBarCss.usageTitle}>
+            <div className={FilterBarCss.usageTitleText}>
               {intl.formatMessage({ id: 'dashboard.usage' })}
-            </TitleWrapper>
+            </div>
             <FilterBar
               url={DASHBOARD_STATS_API}
               query={query}
               userList={userList}
               modelList={modelList}
+              selectedModels={selectedModels}
               disabledDate={true}
               handleDateChange={handleDateChange}
               handleUsersChange={handleUsersChange}
@@ -150,17 +116,18 @@ const UsageInner: FC<{ maxWidth: number }> = ({ maxWidth }) => {
           <div
             style={{ margin: maxWidth < breakpoints.xl ? '26px 0' : '32px 0' }}
           >
-            <TitleWrapper>
+            <div className={FilterBarCss.usageTitleText}>
               {intl.formatMessage({ id: 'dashboard.topusers' })}
-            </TitleWrapper>
+            </div>
           </div>
           <TopUser
             userData={topUserData.userData}
             topUserList={topUserData.topUserList}
           ></TopUser>
         </Col>
-      </Row> */}
-    </>
+      </Row>
+      <ExportData open={open} onCancel={handleOnCancel}></ExportData>
+    </div>
   );
 };
 

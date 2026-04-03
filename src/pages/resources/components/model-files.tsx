@@ -3,22 +3,22 @@ import DeleteModal from '@/components/delete-modal';
 import IconFont from '@/components/icon-font';
 import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
-import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
+import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useAppUtils from '@/hooks/use-app-utils';
 import useBodyScroll from '@/hooks/use-body-scroll';
 import useTableFetch from '@/hooks/use-table-fetch';
 import NoResult from '@/pages/_components/no-result';
 import PageBox from '@/pages/_components/page-box';
 import { createModel } from '@/pages/llmodels/apis';
-import DeployModal from '@/pages/llmodels/components/deploy-modal';
+import DeployModal from '@/pages/llmodels/components/deployment/deploy-modal';
+import DownloadModal from '@/pages/llmodels/components/download';
 import { modelSourceMap } from '@/pages/llmodels/config';
-import { backendOptionsMap } from '@/pages/llmodels/config/backend-parameters';
 import {
   modalConfig,
   onLineSourceOptions
 } from '@/pages/llmodels/config/button-actions';
 import { SourceType } from '@/pages/llmodels/config/types';
-import DownloadModal from '@/pages/llmodels/download';
+import { backendOptionsMap } from '@/pages/llmodels/constants/backend-parameters';
 import useCheckBackend from '@/pages/llmodels/hooks/use-check-backend';
 import { useGenerateWorkerOptions } from '@/pages/llmodels/hooks/use-form-initial-values';
 import useRecognizeAudio from '@/pages/llmodels/hooks/use-recognize-audio';
@@ -64,6 +64,7 @@ const ModelFiles = () => {
     handleNameChange,
     handleQueryChange
   } = useTableFetch<ListItem>({
+    key: PaginationKey.ModelFiles,
     fetchAPI: queryModelFilesList,
     deleteAPI: deleteModelFile,
     API: MODEL_FILES_API,
@@ -324,7 +325,10 @@ const ModelFiles = () => {
             }}
             onChange={handleTableChange}
             dataSource={dataSource.dataList}
-            loading={dataSource.loading}
+            loading={{
+              spinning: dataSource.loading,
+              size: 'middle'
+            }}
             rowSelection={rowSelection}
             columns={columns}
             pagination={{

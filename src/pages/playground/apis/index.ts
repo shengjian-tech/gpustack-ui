@@ -41,7 +41,7 @@ export const rerankerQuery = async (
     model: string;
     query: string;
     top_n: number;
-    documents: string[];
+    documents: any[];
   },
   options?: any
 ) => {
@@ -57,7 +57,17 @@ export const handleEmbedding = async (
     model: string;
     encoding_format?: string;
     dimensions?: number;
-    input: string[];
+    input?: any[];
+    messages?: {
+      role: string;
+      content: Array<{
+        type: string;
+        text?: string;
+        image_url?: {
+          url: string;
+        };
+      }>;
+    }[];
   },
   options?: any
 ) => {
@@ -155,16 +165,8 @@ export const textToSpeech = async (params: any, options?: any) => {
   }
 
   const audioBlob = await res.blob();
-  if (audioBlob?.type?.indexOf('audio') === -1) {
-    return {
-      url: '',
-      type: ''
-    };
-  }
-  const audioUrl = audioBlob.size > 0 ? URL.createObjectURL(audioBlob) : '';
   return {
-    url: audioUrl,
-    type: audioBlob.type
+    audioBlob
   };
 };
 

@@ -1,7 +1,9 @@
 export default {
   'apikeys.title': 'API-ключи',
   'apikeys.table.apikeys': 'Ключи',
+  'apikeys.table.key': 'Ключ',
   'apikeys.button.create': 'Создать API-ключ',
+  'apikeys.button.edit': 'Редактировать API-ключ',
   'apikeys.title.save': 'Сохранить API-ключ',
   'apikeys.form.expiretime': 'Срок действия',
   'apikeys.form.apikey': 'API-ключ',

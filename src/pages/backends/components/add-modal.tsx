@@ -1,3 +1,4 @@
+import AlertBlockInfo from '@/components/alert-info/block';
 import IconFont from '@/components/icon-font';
 import ModalFooter from '@/components/modal-footer';
 import GSDrawer from '@/components/scroller-modal/gs-drawer';
@@ -59,6 +60,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   const [activeKey, setActiveKey] = useState<string>('form');
   const [yamlContent, setYamlContent] = useState<string>('');
   const [formContent, setFormContent] = useState<FormData>({} as FormData);
+  const alertRef = useRef<HTMLDivElement>(null);
 
   const showVersionCustomSuffix =
     currentData?.backend_source === BackendSourceValueMap.BUILTIN ||
@@ -192,6 +194,15 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     }
   }, [action, currentData, open]);
 
+  const yamlHeight = useMemo(() => {
+    if (action !== PageAction.CREATE) {
+      return undefined;
+    }
+    const baseHeight = 260;
+    const alertHeight = alertRef.current?.offsetHeight || 0;
+    return `calc(100vh - ${baseHeight + alertHeight}px)`;
+  }, [action, activeKey]);
+
   return (
     <GSDrawer
       title={title}
@@ -200,7 +211,9 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       onClose={onClose}
       destroyOnHidden={true}
       closeIcon={false}
-      maskClosable={false}
+      mask={{
+        closable: false
+      }}
       keyboard={false}
       styles={{
         body: {
@@ -244,11 +257,24 @@ const AddModal: React.FC<AddModalProps> = (props) => {
           }
         }}
         footer={
-          <ModalFooter
-            onCancel={onClose}
-            onOk={onOk}
-            style={ModalFooterStyle}
-          ></ModalFooter>
+          <>
+            {action === PageAction.CREATE && open && (
+              <div style={{ marginInline: 24, paddingTop: 8 }} ref={alertRef}>
+                <AlertBlockInfo
+                  type="warning"
+                  contentStyle={{ paddingInline: 0 }}
+                  message={intl.formatMessage({
+                    id: 'backend.form.add.hint'
+                  })}
+                ></AlertBlockInfo>
+              </div>
+            )}
+            <ModalFooter
+              onCancel={onClose}
+              onOk={onOk}
+              style={ModalFooterStyle}
+            ></ModalFooter>
+          </>
         }
       >
         <Tabs
@@ -273,6 +299,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
               label: intl.formatMessage({ id: 'backend.mode.yaml' }),
               children: (
                 <ImportYAML
+                  height={yamlHeight}
                   actionStatus={{
                     action: action,
                     backendSource: backendSource

@@ -7,8 +7,8 @@ import { Form, Select } from 'antd';
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { backendTipsList } from '../config';
-import { backendOptionsMap } from '../config/backend-parameters';
 import { useFormContext } from '../config/form-context';
+import { backendOptionsMap } from '../constants/backend-parameters';
 import useCompareEnvs from '../hooks/use-compare-envs';
 import EnvsOverridePopover from './envs-override-popover';
 
@@ -43,6 +43,11 @@ const BackendFields: React.FC = () => {
     useCompareEnvs();
 
   const handleBackendVersionOnChange = (value: any, option: any) => {
+    // const oldEnvs = _.get(initialValues, 'env') || {};
+    // const newEnvs = option.data?.env || {};
+
+    // handleCompareEnvs(oldEnvs, newEnvs);
+
     if (Object.keys(option.data?.env || {}).length > 0) {
       form.setFieldValue('env', { ...(option?.data?.env || {}) });
     }
@@ -92,7 +97,6 @@ const BackendFields: React.FC = () => {
 
     // ============ Deprecated Versions ============
     const deprecatedVersions = versions.filter((item) => item.is_deprecated);
-
     return {
       builtIn: builtInVersions,
       custom: customVersions,
@@ -108,6 +112,7 @@ const BackendFields: React.FC = () => {
     if (!values || values.length === 0) {
       return null;
     }
+
     return (
       <Select.OptGroup label={label}>
         {values.map((item) => (

@@ -71,7 +71,6 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
   };
 
   const setCurrentData = (lines: string[]) => {
-    console.log('setCurrentData', lines);
     const dataList = lines.map((line, index) => {
       return {
         content: line,
@@ -140,7 +139,6 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
   const handleonToFirst = useCallback(() => {
     pageRef.current = 1;
     getCurrent();
-    console.log('pageRef.current', pageRef.current);
     setScrollPos(['top', pageRef.current]);
     scrollPosRef.current = {
       pos: 'top',
@@ -182,13 +180,6 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
     async (data: { isTop: boolean; isBottom: boolean }) => {
       const { isTop, isBottom } = data;
       setIsAtTop(isTop);
-      console.log('scroll========', {
-        isTop,
-        isBottom,
-        loadMoreDone: loadMoreDone.current,
-        loading: loading,
-        lineCount: lineCountRef.current
-      });
       if (isBottom) {
         scrollPosRef.current = {
           pos: 'bottom',
@@ -318,12 +309,15 @@ const LogsViewer: React.FC<LogsViewerProps> = forwardRef((props, ref) => {
             onScroll={handleOnScroll}
           ></LogsList>
         </div>
-        <Spin
-          spinning={loading}
-          className={classNames({
-            loading: loading
-          })}
-        ></Spin>
+        {loading && (
+          <Spin
+            size="middle"
+            spinning={loading}
+            className={classNames({
+              loading: loading
+            })}
+          ></Spin>
+        )}
         {totalPage > 1 && (
           <div className="pg">
             <div
