@@ -350,21 +350,24 @@ const SummaryTab: React.FC = () => {
         filters: creatorFilter
       }),
 
-      // Date-bucketed trends: fetch the whole series via the no-pagination
-      // sentinel (page: -1). A metric-desc page would drop low-traffic (often
-      // most recent) buckets and leave gaps in the chart.
+      // Date-bucketed trends need the whole series. The token endpoint no
+      // longer accepts a negative no-pagination sentinel, so its API client
+      // expands allPages into positive page/perPage requests.
       fetchTokenSeries({
         ...commonParams,
         metric: 'total_tokens',
         group_by: ['date'],
         granularity,
-        page: -1,
+        page: 1,
+        perPage: 100,
+        allPages: true,
         filters: tokenUserFilter
       }),
 
       fetchComputeBreakdown({
         ...paginationParams,
-        page: -1,
+        page: 1,
+        allPages: true,
         group_by: ['date'],
         granularity,
         filters: creatorFilter
@@ -372,7 +375,8 @@ const SummaryTab: React.FC = () => {
 
       fetchStorageByDate({
         ...paginationParams,
-        page: -1,
+        page: 1,
+        allPages: true,
         group_by: ['date'],
         granularity,
         filters: creatorFilter

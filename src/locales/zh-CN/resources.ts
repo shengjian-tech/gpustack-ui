@@ -52,7 +52,7 @@ export default {
   'resources.worker.current.version': '当前版本为 {version}',
   'resources.worker.select.command': '选择一个标签生成命令并使用复制按钮复制',
   'resources.worker.driver.install':
-    '在安装 AI算力云平台 之前，请安装<a href="https://www.shengjian.net/" target="_blank">所需的驱动程序和库</a>。',
+    '在安装 AI算力云平台 之前，请安装<a href="https://fedimoss.com/" target="_blank">所需的驱动程序和库</a>。',
   'resources.worker.script.install': '脚本安装',
   'resources.worker.container.install': '容器安装(仅支持 Linux)',
   'resources.worker.cann.tips':

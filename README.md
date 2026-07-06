@@ -1,6 +1,6 @@
 # AI Computing Power Cloud Platform UI
 
-UI for [AI Computing Power Cloud Platform](https://www.shengjian.net/).
+UI for [AI Computing Power Cloud Platform](https://fedimoss.com/).
 
 ## Installation
 
@@ -21,7 +21,7 @@ npm install -g pnpm
 3. Setup
 
 ```
-git clone https://www.shengjian.net/
+git clone https://fedimoss.com/
 ```
 
 4. Install dependencies
@@ -47,9 +47,9 @@ npm run build
 
 ## Bugs & Issues
 
-- Please submit [bugs and issues](https://www.shengjian.net/) with a label `ui`
+- Please submit [bugs and issues](https://fedimoss.com/) with a label `ui`
 
 ## Links
 
-- Official website: https://www.shengjian.net/
-- Documents: https://www.shengjian.net/
+- Official website: https://fedimoss.com/
+- Documents: https://fedimoss.com/

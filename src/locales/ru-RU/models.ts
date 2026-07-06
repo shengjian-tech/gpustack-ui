@@ -171,7 +171,7 @@ export default {
   'models.ollama.deprecated.following':
     '<span class="bold-text">После обновления до версии (v0.7.0),</span> все ранее развёрнутые модели продолжат работать в обычном режиме.',
   'models.ollama.deprecated.issue':
-    'См. связанную проблему: <a href="https://www.shengjian.net/" target="_blank">#1979 on GitHub</a>.',
+    'См. связанную проблему: <a href="https://fedimoss.com/" target="_blank">#1979 on GitHub</a>.',
   'models.ollama.deprecated.notice':
     'Источник моделей Ollama объявлен устаревшим начиная с версии v0.6.1. Подробности см. в  <a href="https://github.com/gpustack/gpustack/issues/1979" target="_blank">соответствующем issue на GitHub</a>.',
   'models.backend.mindie.310p':

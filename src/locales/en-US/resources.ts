@@ -52,7 +52,7 @@ export default {
   'resources.worker.container.supported': 'Do not support macOS or Windows.',
   'resources.worker.current.version': 'Current version is {version}.',
   'resources.worker.driver.install':
-    'Install <a href="https://www.shengjian.net/" target="_blank">required drivers and libraries</a> prior to AI Computing Power Cloud Platform installation.',
+    'Install <a href="https://fedimoss.com/" target="_blank">required drivers and libraries</a> prior to AI Computing Power Cloud Platform installation.',
   'resources.worker.select.command':
     'Select a label to generate the command and copy it using the copy button.',
   'resources.worker.script.install': 'Script Installation',

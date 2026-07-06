@@ -36,6 +36,7 @@ export interface ResourceBreakdownRequest {
   descending?: boolean;
   page?: number;
   perPage?: number;
+  allPages?: boolean;
 }
 
 export interface ResourceBreakdownSummary {
@@ -359,6 +360,12 @@ function toServerRequest(data: ResourceBreakdownRequest) {
   const { creator_ids, instance_ids, volume_ids } = data.filters ?? {};
   // The non-date dimension drives response flattening into the right field.
   const dim = groupByList.find((g) => g !== 'date');
+  const pageSize =
+    data.perPage && data.perPage > 0
+      ? data.perPage
+      : data.page === -1
+        ? 100
+        : 20;
   return {
     body: {
       start_date: data.start_date,
@@ -373,8 +380,8 @@ function toServerRequest(data: ResourceBreakdownRequest) {
       ...(volume_ids?.length ? { volume_ids } : {}),
       ...(data.order_by ? { order_by: data.order_by } : {}),
       ...(data.descending !== undefined ? { descending: data.descending } : {}),
-      page: data.page ?? 1,
-      perPage: data.perPage ?? 20
+      page: data.page && data.page > 0 ? data.page : 1,
+      perPage: pageSize
     },
     groupBy: dim
   };
@@ -395,7 +402,52 @@ async function _breakdown(
     method: 'POST',
     cancelToken: options?.token
   });
-  return flattenResponse(groupBy, res);
+  const firstPage = flattenResponse(groupBy, res);
+
+  if (!data.allPages && data.page !== -1) {
+    return firstPage;
+  }
+
+  const totalPage =
+    firstPage.pagination?.totalPage ??
+    Math.ceil(
+      (firstPage.pagination?.total ?? firstPage.items?.length ?? 0) /
+        body.perPage
+    );
+
+  if (totalPage <= 1) {
+    return firstPage;
+  }
+
+  const restPages = await Promise.all(
+    Array.from({ length: totalPage - 1 }, (_, index) =>
+      request<ServerBreakdownResponse>(url, {
+        data: {
+          ...body,
+          page: index + 2
+        },
+        method: 'POST',
+        cancelToken: options?.token
+      }).then((page) => flattenResponse(groupBy, page))
+    )
+  );
+
+  const items = [
+    ...(firstPage.items || []),
+    ...restPages.flatMap((page) => page.items || [])
+  ];
+
+  return {
+    ...firstPage,
+    items,
+    pagination: {
+      ...firstPage.pagination,
+      page: 1,
+      perPage: body.perPage,
+      totalPage,
+      total: firstPage.pagination?.total ?? items.length
+    }
+  };
 }
 
 export async function queryResourceBreakdown(

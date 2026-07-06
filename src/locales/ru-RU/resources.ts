@@ -51,7 +51,7 @@ export default {
   'resources.worker.container.supported': 'Только для Linux.',
   'resources.worker.current.version': 'Текущая версия: {version}',
   'resources.worker.driver.install':
-    'Установите <a href="https://www.shengjian.net/" target="_blank">необходимые драйверы и библиотеки</a> перед установкой AI Computing Power Cloud Platform.', // Translated
+    'Установите <a href="https://fedimoss.com/" target="_blank">необходимые драйверы и библиотеки</a> перед установкой AI Computing Power Cloud Platform.', // Translated
   'resources.worker.select.command':
     'Выберите метку для генерации команды и скопируйте её.',
   'resources.worker.script.install': 'Установка скриптом',

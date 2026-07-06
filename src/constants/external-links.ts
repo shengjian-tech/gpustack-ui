@@ -1,13 +1,13 @@
 const externalLinks = {
-  documentation: 'https://www.shengjian.net/',
+  documentation: 'https://fedimoss.com/',
   github: 'https://github.com/shengjian-tech/gpustack-ui',
-  discord: 'https://www.shengjian.net/',
-  site: 'https://www.shengjian.net/',
-  release: 'https://www.shengjian.net/',
-  reportIssue: 'https://www.shengjian.net/',
-  faq: 'https://www.shengjian.net/',
+  discord: 'https://fedimoss.com/',
+  site: 'https://fedimoss.com/',
+  release: 'https://fedimoss.com/',
+  reportIssue: 'https://fedimoss.com/',
+  faq: 'https://fedimoss.com/',
   resetPassword:
-    'https://www.shengjian.net/'
+    'https://fedimoss.com/'
 };
 
 export default externalLinks;

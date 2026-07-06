@@ -52,7 +52,7 @@ export default {
     'MacOSまたはWindowsはサポートされていません。',
   'resources.worker.current.version': '現在のバージョンは {version} です。',
   'resources.worker.driver.install':
-    '<a href="https://www.shengjian.net/" target="_blank">必要なドライバとライブラリ</a> をAI Computing Power Cloud Platformのインストール前にインストールしてください。',
+    '<a href="https://fedimoss.com/" target="_blank">必要なドライバとライブラリ</a> をAI Computing Power Cloud Platformのインストール前にインストールしてください。',
   'resources.worker.select.command':
     'ラベルを選択してコマンドを生成し、コピーを使用してコマンドをコピーします。',
   'resources.worker.script.install': 'スクリプトインストール',
