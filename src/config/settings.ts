@@ -1,4 +1,4 @@
-export const HEADER_HEIGHT = 56;
+export const HEADER_HEIGHT = 0;
 
 export const DEFAULT_ENTER_PAGE = {
   adminForNormal: '/dashboard',
@@ -40,6 +40,7 @@ export const PaginationKey = {
   Benchmarks: 'Benchmarks',
   GPUs: 'GPUs',
   ModelFiles: 'ModelFiles',
+  Storage: 'Storage',
   Users: 'Users',
   APIKeys: 'APIKeys',
   Credentials: 'Credentials',

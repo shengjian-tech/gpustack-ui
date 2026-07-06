@@ -1,14 +1,12 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import ProgressBar from '@/components/progress-bar';
-import InfoColumn from '@/components/simple-table/info-column';
 import { tableSorter } from '@/config/settings';
+import { usePluginListColumns } from '@/plugins/list-extra-columns';
 import { convertFileSize } from '@/utils';
+import { AutoTooltip, InfoColumn, ProgressBar } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { ColumnsType } from 'antd/lib/table';
 import _ from 'lodash';
 import { useMemo } from 'react';
 import { GPUDeviceItem } from '../config/types';
-
 const fieldList = [
   {
     label: 'resources.table.total',
@@ -44,8 +42,15 @@ const useGPUColumns = (props: {
 }): ColumnsType<GPUDeviceItem> => {
   const { clusterList, loadend, firstLoad, sortOrder } = props;
   const intl = useIntl();
+  const pluginCols = usePluginListColumns('gpus');
 
   return useMemo(() => {
+    const pluginRendered = pluginCols.map((c) => ({
+      title: intl.formatMessage({ id: c.titleId }),
+      key: c.key,
+      ellipsis: { showTitle: false },
+      render: (_text: any, record: GPUDeviceItem) => c.render(record)
+    }));
     return [
       {
         title: intl.formatMessage({ id: 'common.table.name' }),
@@ -54,8 +59,8 @@ const useGPUColumns = (props: {
         minWidth: 32,
         sorter: tableSorter(1),
         render: (text: string, record: GPUDeviceItem) => (
-          <AutoTooltip ghost maxWidth={240}>
-            {text}
+          <AutoTooltip ghost maxWidth={240} title={text}>
+            <span className="text-primary">{text}</span>
           </AutoTooltip>
         )
       },
@@ -65,6 +70,7 @@ const useGPUColumns = (props: {
         sorter: tableSorter(2),
         render: (text: string, record: GPUDeviceItem) => <span>{text}</span>
       },
+      ...pluginRendered,
       {
         title: intl.formatMessage({ id: 'clusters.title' }),
         dataIndex: 'cluster_id',
@@ -144,7 +150,7 @@ const useGPUColumns = (props: {
         }
       }
     ];
-  }, [intl, clusterList, loadend, firstLoad]);
+  }, [intl, clusterList, loadend, firstLoad, pluginCols]);
 };
 
 export default useGPUColumns;

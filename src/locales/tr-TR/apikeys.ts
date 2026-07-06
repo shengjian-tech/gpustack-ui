@@ -17,5 +17,13 @@ export default {
   'apikeys.table.bindModels': 'Model Erişimi',
   'apikeys.models.all': 'Tüm modeller',
   'apikeys.models.selected': 'İzin verilen modeller',
-  'apikeys.models.noModelsFound': 'Model bulunamadı'
+  'apikeys.models.noModelsFound': 'Model bulunamadı',
+  'apikeys.accessScope.all': 'All',
+  'apikeys.accessScope.management': 'Platform Management',
+  'apikeys.accessScope.inference': 'Inference APIs',
+  'apikeys.access.permissions': 'Access Permissions',
+  'apikeys.type.auto': 'Auto-generated',
+  'apikeys.type.custom': 'Custom',
+  'apikeys.button.ipConfig': 'IP Access Control',
+  'quotaLimits.button.title': 'Quota Limit'
 };

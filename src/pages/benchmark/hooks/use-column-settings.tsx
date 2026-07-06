@@ -1,8 +1,10 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import InfoColumn from '@/components/simple-table/info-column';
-import StatusTag from '@/components/status-tag';
 import { tableSorter } from '@/config/settings';
-import ColumnSettings from '@/pages/_components/column-settings';
+import {
+  AutoTooltip,
+  ColumnSettings,
+  InfoColumn,
+  StatusTag
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -14,7 +16,6 @@ import {
   BenchmarkStatusValueMap
 } from '../config';
 import { BenchmarkListItem as ListItem } from '../config/types';
-
 // sort by this order
 const allFields = [
   'cluster_id',
@@ -358,7 +359,10 @@ const useColumnSettings = (options: {
   const metadataColumns = [
     {
       title: (
-        <Typography.Text ellipsis={{ tooltip: true }}>
+        <Typography.Text
+          ellipsis={{ tooltip: true }}
+          style={{ color: 'var(--color-text-table-header)' }}
+        >
           {intl.formatMessage({ id: 'clusters.title' })}
         </Typography.Text>
       ),
@@ -371,7 +375,10 @@ const useColumnSettings = (options: {
     },
     {
       title: (
-        <Typography.Text ellipsis={{ tooltip: true }}>
+        <Typography.Text
+          ellipsis={{ tooltip: true }}
+          style={{ color: 'var(--color-text-table-header)' }}
+        >
           {intl.formatMessage({ id: 'benchmark.detail.modelName' })}
         </Typography.Text>
       ),
@@ -385,7 +392,10 @@ const useColumnSettings = (options: {
     },
     {
       title: (
-        <Typography.Text ellipsis={{ tooltip: true }}>
+        <Typography.Text
+          ellipsis={{ tooltip: true }}
+          style={{ color: 'var(--color-text-table-header)' }}
+        >
           {intl.formatMessage({ id: 'benchmark.form.profile' })}
         </Typography.Text>
       ),

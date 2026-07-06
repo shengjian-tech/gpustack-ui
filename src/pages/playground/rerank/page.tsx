@@ -1,5 +1,3 @@
-import AlertInfo from '@/components/alert-info';
-import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import useRequestToken from '@/hooks/use-request-token';
 import {
   ClearOutlined,
@@ -7,10 +5,10 @@ import {
   QuestionCircleOutlined,
   SendOutlined
 } from '@ant-design/icons';
+import { AlertInfo, useOverlayScroller } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Checkbox, Input, Spin, Tag, Tooltip, Typography } from 'antd';
 import _ from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useCallback,
@@ -41,7 +39,7 @@ import { fieldConfig } from './params-config';
 const { Text } = Typography;
 
 const SearchInputWrapper = styled.div`
-  margin: 16px 32px 10px;
+  margin: 16px var(--layout-content-inlinepadding) 10px;
   position: relative;
 `;
 
@@ -477,7 +475,10 @@ const GroundReranker: React.FC<MessageProps> = forwardRef((props, ref) => {
         <div className="ground-left-footer">
           <h3
             className="m-l-10 flex-between flex-center font-size-14 line-24 m-b-0"
-            style={{ padding: '0 32px', marginTop: 16 }}
+            style={{
+              padding: '0 var(--layout-content-inlinepadding)',
+              marginTop: 16
+            }}
           >
             <span>{intl.formatMessage({ id: 'playground.rerank.query' })}</span>
           </h3>

@@ -1,7 +1,3 @@
-import IconFont from '@/components/icon-font';
-import MarkdownViewer from '@/components/markdown-viewer';
-import SimpleOverlay from '@/components/simple-overlay';
-import ThemeTag from '@/components/tags-wrapper/theme-tag';
 import { GPUSTACK_API_BASE_URL } from '@/config/settings';
 import useRequestToken from '@/hooks/use-request-token';
 import {
@@ -9,10 +5,11 @@ import {
   FileMarkdownOutlined,
   RightOutlined
 } from '@ant-design/icons';
+import { IconFont, SimpleOverlay, ThemeTag } from '@gpustack/core-ui';
+import { MarkdownViewer } from '@gpustack/core-ui/markdown';
 import { useIntl } from '@umijs/max';
 import { Button, Empty, Spin, Tooltip } from 'antd';
 import { some } from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   useCallback,
   useEffect,
@@ -131,7 +128,7 @@ const ModelCard: React.FC<{
   };
 
   const removeMetadata = useCallback((str: string) => {
-    let indexes = [];
+    const indexes = [];
     let index = str.indexOf('---');
 
     while (index !== -1) {

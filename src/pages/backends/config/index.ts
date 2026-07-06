@@ -2,12 +2,12 @@ import MindIELogo from '@/assets/logo/ascend.png';
 import SGLangLogo from '@/assets/logo/sglang.png';
 import vLLMLogo from '@/assets/logo/vllm.png';
 import VoxBoxLogo from '@/assets/logo/voxbox.png';
-import icons from '@/components/icon-font/icons';
 import { backendOptionsMap } from '@/pages/llmodels/constants/backend-parameters';
 import {
   GPUDriverMap,
   ManufacturerMap
 } from '@/pages/resources/config/gpu-driver';
+import { icons } from '@gpustack/core-ui';
 import jsYaml from 'js-yaml';
 import { trim } from 'lodash';
 
@@ -109,7 +109,12 @@ export const backendActions = [
     icon: icons.DeleteOutlined,
     locale: true,
     danger: true,
-    show: (record: any) => !record.is_built_in
+    // Platform built-ins are admin-curated and not user-deletable.
+    // An org-scoped override of a built-in IS deletable — deleting
+    // the override is how the user reverts to the Platform row.
+    // Plain custom backends are always deletable.
+    show: (record: any) =>
+      !record.is_built_in || record.owner_principal_id != null
   }
 ];
 
@@ -193,6 +198,8 @@ export const customBackendFields = [
   'default_run_command',
   'version_configs',
   'default_backend_param',
+  'parameter_format',
+  'common_parameters',
   'default_env'
 ];
 
@@ -203,6 +210,8 @@ export const builtInBackendFields = [
   'description',
   'version_configs',
   'default_backend_param',
+  'parameter_format',
+  'common_parameters',
   'default_env'
 ];
 
@@ -288,6 +297,10 @@ default_version: v0.11.0
 health_check_path: /v1/models
 default_backend_param:
   - --host
+parameter_format: space
+common_parameters:
+  - --max-model-len
+  - --gpu-memory-utilization
 default_run_command: "{{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}"
 default_env:
 version_configs:

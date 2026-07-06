@@ -1,17 +1,18 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import IconFont from '@/components/icon-font';
-import OverlayScroller from '@/components/overlay-scroller';
-import BaseSelect from '@/components/seal-form/base/select';
 import {
   ClearOutlined,
   DeleteOutlined,
   MoreOutlined,
   SettingOutlined
 } from '@ant-design/icons';
+import {
+  AutoTooltip,
+  BaseSelect,
+  IconFont,
+  OverlayScroller
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Checkbox, Dropdown, Popover, Spin } from 'antd';
 import _ from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useCallback,
@@ -38,7 +39,6 @@ import ReferenceParams from '../reference-params';
 import ViewCommonCode from '../view-common-code';
 import MessageContent from './message-content';
 import SystemMessage from './system-message';
-
 interface ModelItemProps {
   model: string;
   modelList: ModelSelectionItem[];

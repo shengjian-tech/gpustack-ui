@@ -1,7 +1,7 @@
 // columns.ts
-import AutoTooltip from '@/components/auto-tooltip';
-import DropdownButtons from '@/components/drop-down-buttons';
 import { tableSorter } from '@/config/settings';
+import { usePluginListColumns } from '@/plugins/list-extra-columns';
+import { AutoTooltip, DropdownButtons } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Tag } from 'antd';
 import { ColumnsType } from 'antd/lib/table';
@@ -12,12 +12,12 @@ import ProviderModels from '../components/provider-models';
 import { rowActionList } from '../config';
 import { maasProviderLabelMap } from '../config/providers';
 import { MaasProviderItem, ProviderModel } from '../config/types';
-
 const useProviderColumns = (
   handleSelect: (val: string, record: MaasProviderItem) => void,
   onCellClick?: (record: MaasProviderItem, dataIndex: string) => void
 ): ColumnsType<MaasProviderItem> => {
   const intl = useIntl();
+  const pluginCols = usePluginListColumns('maasProviders');
 
   return useMemo(() => {
     const setActionList = (record: MaasProviderItem) => {
@@ -28,6 +28,12 @@ const useProviderColumns = (
         return true;
       });
     };
+    const pluginRendered = pluginCols.map((c) => ({
+      title: intl.formatMessage({ id: c.titleId }),
+      dataIndex: c.key,
+      span: c.span ?? 4,
+      render: (_value: any, record: MaasProviderItem) => c.render(record)
+    }));
     return [
       {
         title: intl.formatMessage({ id: 'common.table.name' }),
@@ -38,7 +44,7 @@ const useProviderColumns = (
         render: (text: string, record: MaasProviderItem) => (
           <>
             <AutoTooltip ghost title={text}>
-              {text}
+              <span className="text-primary">{text}</span>
             </AutoTooltip>
             {record.builtin && (
               <Tag color="blue" style={{ marginLeft: 8 }}>
@@ -48,10 +54,11 @@ const useProviderColumns = (
           </>
         )
       },
+      ...pluginRendered,
       {
         title: intl.formatMessage({ id: 'providers.table.providerName' }),
         dataIndex: ['config', 'type'],
-        sorter: tableSorter(2),
+        sorter: false,
         span: 4,
         minWidth: 160,
         render: (value: string) => (
@@ -98,7 +105,7 @@ const useProviderColumns = (
         )
       }
     ];
-  }, [handleSelect, onCellClick]);
+  }, [handleSelect, onCellClick, intl, pluginCols]);
 };
 
 export default useProviderColumns;

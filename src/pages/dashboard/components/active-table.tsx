@@ -1,12 +1,12 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import PageTools from '@/components/page-tools';
+import { activeModelsAtom } from '@/atoms/dashboard';
 import { modelCategoriesMap } from '@/pages/llmodels/config';
 import { convertFileSize } from '@/utils';
+import { AutoTooltip, PageTools } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Col, Row, Table } from 'antd';
-import { memo, useContext } from 'react';
+import { memo, useContext, useEffect } from 'react';
+import { useSetAtom } from 'jotai';
 import { DashboardContext } from '../config/dashboard-context';
-
 const NACategories = [
   modelCategoriesMap.llm,
   modelCategoriesMap.embedding,
@@ -16,6 +16,12 @@ const NACategories = [
 const ActiveTable = () => {
   const intl = useIntl();
   const data = useContext(DashboardContext).active_models || [];
+  const setActiveModels = useSetAtom(activeModelsAtom);
+
+  useEffect(() => {
+    setActiveModels(data);
+  }, [data, setActiveModels]);
+
   const modelColumns = [
     {
       title: intl.formatMessage({ id: 'common.table.name' }),
@@ -24,8 +30,17 @@ const ActiveTable = () => {
       ellipsis: true,
       render: (text: any, record: any) => {
         return (
-          <AutoTooltip ghost>
-            <span>
+          <AutoTooltip
+            ghost
+            title={
+              <span>
+                {record.provider_name
+                  ? `${record.provider_name}/${text}`
+                  : text}
+              </span>
+            }
+          >
+            <span className="text-primary">
               {record.provider_name ? `${record.provider_name}/${text}` : text}
             </span>
           </AutoTooltip>
@@ -82,19 +97,36 @@ const ActiveTable = () => {
       }
     }
   ];
+
+  const generateRowKey = (record: any) => {
+    return record.provider_name
+      ? `${record.provider_name}/${record.name}`
+      : record.name;
+  };
+
   return (
     <Row gutter={[20, 0]}>
       <Col xs={24} sm={24} md={24} lg={24} xl={24}>
-        <div className='comm-dashboard-box' style={{marginBottom:'150px'}}>
-          <div className='comm-dashboard-box-title'>{intl.formatMessage({ id: 'dashboard.activeModels' })}</div>
-          <div className='comm-dashboard-box-content'>
-            <Table
-              columns={modelColumns}
-              dataSource={data}
-              pagination={false}
-              rowKey="id"
-            />
-          </div>
+        <PageTools
+          style={{ margin: '26px 0px' }}
+          left={
+            <span
+              style={{
+                fontWeight: 'var(--font-weight-bold)'
+              }}
+            >
+              {intl.formatMessage({ id: 'dashboard.activeDeployments' })}
+            </span>
+          }
+          right={false}
+        />
+        <div>
+          <Table
+            columns={modelColumns}
+            dataSource={data}
+            pagination={false}
+            rowKey={generateRowKey}
+          />
         </div>
       </Col>
     </Row>

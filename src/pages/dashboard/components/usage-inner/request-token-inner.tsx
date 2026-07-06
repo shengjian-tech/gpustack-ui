@@ -1,46 +1,21 @@
-import CardWrapper from '@/components/card-wrapper';
-import { SimpleCard } from '@/components/card-wrapper/simple-card';
-import MixLineBar from '@/components/echarts/mix-line-bar';
 import { formatLargeNumber } from '@/utils';
-import BarChart from '@/components/echarts/bar-chart';
-import LineChart from '@/components/echarts/line-chart';
-import { useIntl } from '@umijs/max';
-import { Col,Button,Row } from 'antd';
+import { CardWrapper, SimpleCard } from '@gpustack/core-ui';
+import { MixLineBarChart } from '@gpustack/core-ui/charts';
 import dayjs from 'dayjs';
 import React, { useMemo } from 'react';
-import styles from './index.less';
-import styled from 'styled-components';
 import { baseColorMap } from '../../config';
 
-const DownloadButton = styled(Button).attrs({
-  className: 'download-button'
-})`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  display: none;
-`;
-
-const CardWrapperBox = styled.div`
-  &:hover {
-    .download-button {
-      display: flex;
-    }
-  }
-`;
-
 interface RequestTokenInnerProps {
-  requestData: {
+  requestData?: {
     name: string;
     color: string;
     areaStyle: any;
     data: { time: string; value: number }[];
   }[];
-  tokenData: {
+  tokenData?: {
     data: { time: string; value: number }[];
   }[];
-  xAxisData: string[];
+  xAxisData?: string[];
   overViewData?: {
     requestCount: number;
     completionCount: number;
@@ -83,61 +58,40 @@ const legendData = [
 ];
 
 const RequestTokenInner: React.FC<RequestTokenInnerProps> = (props) => {
-  const { requestData, tokenData, xAxisData } = props;
-  console.log('---requestData---', requestData);
-  const intl = useIntl();
+  const { requestData = [], tokenData = [], xAxisData = [] } = props;
+
+  const totalData = useMemo(() => {
+    const data: Record<string, number> = {
+      requestCount:
+        requestData[0]?.data.reduce((sum, item) => sum + item.value, 0) || 0,
+      completionCount:
+        tokenData[0]?.data.reduce((sum, item) => sum + item.value, 0) || 0,
+      promptCount:
+        tokenData[1]?.data.reduce((sum, item) => sum + item.value, 0) || 0
+    };
+
+    return dataList.map((item) => ({
+      ...item,
+      label: formatLargeNumber(data[item.key] || 0) as string
+    }));
+  }, [requestData, tokenData]);
 
   return (
-    <>
-      <div className={styles['usage-box']}>
-        <div className={styles['tab-title']}>
-          <div className={styles['flex1']}>{intl.formatMessage({ id: 'dashboard.apirequest' })}</div>
-          <div className={styles['flex1']}>{intl.formatMessage({ id: 'dashboard.tokens' })}</div>
-        </div>
-        <Row>
-          <Col span={12}>
-            <LineChart
-              seriesData={requestData}
-              xAxisData={xAxisData}
-              height={360}
-              labelFormatter={labelFormatter}
-            ></LineChart>
-          </Col>
-          <Col span={12}>
-            <BarChart
-              seriesData={tokenData}
-              xAxisData={xAxisData}
-              height={360}
-              labelFormatter={labelFormatter}
-            ></BarChart>
-          </Col>
-        </Row>
-      </div>
-      
-      {/* <CardWrapper style={{ width: '100%' }}>
-        <Row style={{ width: '100%' }}>
-          <Col span={12}>
-            <LineChart
-              title={intl.formatMessage({ id: 'dashboard.apirequest' })}
-              seriesData={requestData}
-              xAxisData={xAxisData}
-              height={360}
-              labelFormatter={labelFormatter}
-            ></LineChart>
-          </Col>
-          <Col span={12}>
-            <BarChart
-              title={intl.formatMessage({ id: 'dashboard.tokens' })}
-              seriesData={tokenData}
-              xAxisData={xAxisData}
-              height={360}
-              labelFormatter={labelFormatter}
-            ></BarChart>
-          </Col>
-        </Row>
-      </CardWrapper> */}
-    </>
-    
+    <CardWrapper style={{ width: '100%', position: 'relative' }}>
+      <SimpleCard dataList={totalData} height={80} />
+      <MixLineBarChart
+        chartData={{
+          line: requestData,
+          bar: tokenData
+        }}
+        height={360}
+        labelFormatter={labelFormatter}
+        legendData={legendData}
+        seriesData={[]}
+        smooth={false}
+        xAxisData={xAxisData}
+      />
+    </CardWrapper>
   );
 };
 

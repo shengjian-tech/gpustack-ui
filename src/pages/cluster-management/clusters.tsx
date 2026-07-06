@@ -1,23 +1,25 @@
 import { clusterSessionAtom, expandKeysAtom } from '@/atoms/clusters';
-import DeleteModal from '@/components/delete-modal';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
-import SealTable from '@/components/seal-table';
-import TableContext from '@/components/seal-table/table-context';
-import { TableOrder } from '@/components/seal-table/types';
 import { PageAction } from '@/config';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import type { PageActionType } from '@/config/types';
 import useExpandedRowKeys from '@/hooks/use-expanded-row-keys';
 import useTableFetch from '@/hooks/use-table-fetch';
 import useWatchList from '@/hooks/use-watch-list';
+import {
+  DeleteModal,
+  FilterBar,
+  IconFont,
+  NoResult,
+  Table as SealTable,
+  TableOrder,
+  TableProvider
+} from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { message } from 'antd';
 import { useAtom } from 'jotai';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-import NoResult from '../_components/no-result';
 import PageBox from '../_components/page-box';
 import useGranfanaLink from '../resources/hooks/use-grafana-link';
 import {
@@ -71,7 +73,14 @@ const Clusters: React.FC = () => {
     deleteAPI: deleteCluster,
     watch: true,
     API: CLUSTERS_API,
-    contentForDelete: 'menu.clusterManagement.clusters'
+    contentForDelete: 'menu.clusterManagement.clusters',
+    defaultQueryParams: {
+      // Management view: drop cross-Org cluster_access grants. Org
+      // Owner only sees the clusters they own here. Pickers that
+      // need "everything I can use" (GPU-instance create, etc.)
+      // query without ``mine`` and still see granted clusters.
+      mine: true
+    }
   });
   const navigate = useNavigate();
   const { goToGrafana, ActionButton } = useGranfanaLink({
@@ -185,7 +194,11 @@ const Clusters: React.FC = () => {
     });
   };
 
-  const handleSelect = useMemoizedFn((val: any, row: ListItem) => {
+  const handleSelect = useMemoizedFn((val: any, row: ListItem, item?: any) => {
+    if (item?.onClick) {
+      item.onClick(row);
+      return;
+    }
     if (val === 'edit') {
       handleEditCluster(row);
     } else if (val === 'delete') {
@@ -262,7 +275,7 @@ const Clusters: React.FC = () => {
   const handleOnCell = useMemoizedFn((record: ClusterListItem, dataIndex) => {
     if (dataIndex === 'name') {
       navigate(
-        `/cluster-management/clusters/detail?id=${record.id}&name=${record.name}&page=clusters`
+        `/resources/clusters/detail?id=${record.id}&name=${record.name}&page=clusters`
       );
     }
   });
@@ -308,13 +321,37 @@ const Clusters: React.FC = () => {
     }
   }, [clusterSession, dataSource.loadend, dataSource.dataList]);
 
+  // Provider hint follows the auto-open from one render to the next:
+  // the session atom is cleared right after we open the modal, but
+  // ClusterCreate mounts a tick later and needs the value to skip the
+  // provider-catalog step. Cache it locally and clear on close.
+  const [pendingProviderHint, setPendingProviderHint] = useState<{
+    providerHint?: string;
+    presetClusterType?: 'model' | 'gpu';
+  }>({
+    providerHint: undefined,
+    presetClusterType: undefined
+  });
+
   useEffect(() => {
     if (clusterSession?.firstAddCluster && dataSource.loadend) {
+      setPendingProviderHint({
+        providerHint: clusterSession.providerHint,
+        presetClusterType: clusterSession.presetClusterType
+      });
       openClusterModal();
       // reset session
       setClusterSession(null);
     }
   }, [clusterSession, dataSource.loadend]);
+
+  const handleClusterModalClose = () => {
+    setPendingProviderHint({
+      providerHint: undefined,
+      presetClusterType: undefined
+    });
+    closeClusterModal();
+  };
 
   const renderChildren = (
     list: any,
@@ -354,7 +391,7 @@ const Clusters: React.FC = () => {
             ></RightActions>
           }
         ></FilterBar>
-        <TableContext.Provider
+        <TableProvider
           value={{
             allChildren: allWorkerPoolList,
             setDisableExpand: setDisableExpand
@@ -396,6 +433,7 @@ const Clusters: React.FC = () => {
               ></NoResult>
             }
             pagination={{
+              size: 'middle',
               showSizeChanger: true,
               pageSize: queryParams.perPage,
               current: queryParams.page,
@@ -404,7 +442,7 @@ const Clusters: React.FC = () => {
               onChange: handlePageChange
             }}
           ></SealTable>
-        </TableContext.Provider>
+        </TableProvider>
       </PageBox>
       <AddCluster
         provider={openAddModal.provider}
@@ -437,10 +475,11 @@ const Clusters: React.FC = () => {
       <DeleteModal ref={modalRef}></DeleteModal>
       <ClusterModal
         title={intl.formatMessage({
-          id: 'menu.clusterManagement.clusterCreate'
+          id: 'menu.resources.clusterCreate'
         })}
         open={clusterModalStatus.open}
-        onClose={closeClusterModal}
+        pendingProviderHint={pendingProviderHint}
+        onClose={handleClusterModalClose}
       ></ClusterModal>
       {AddWorkerModal}
     </>

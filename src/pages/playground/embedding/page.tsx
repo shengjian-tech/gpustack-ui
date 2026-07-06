@@ -1,22 +1,23 @@
-import AlertInfo from '@/components/alert-info';
-import ScatterChart from '@/components/echarts/scatter';
-import HighlightCode from '@/components/highlight-code';
-import IconFont from '@/components/icon-font';
-import SealInputNumber from '@/components/seal-form/input-number';
-import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import useRequestToken from '@/hooks/use-request-token';
-import ResizeContainer from '@/pages/_components/terminal-tabs/resize-container';
 import {
   ClearOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
   SendOutlined
 } from '@ant-design/icons';
+import {
+  AlertInfo,
+  InputNumber as CInputNumber,
+  HighlightCode,
+  IconFont,
+  ResizePanel,
+  useOverlayScroller
+} from '@gpustack/core-ui';
+import { ScatterChart } from '@gpustack/core-ui/charts';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { Button, Checkbox, Form, Segmented, Spin, Tabs, Tooltip } from 'antd';
 import _ from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useCallback,
@@ -406,11 +407,11 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
     if (modelMeta?.n_ctx && modelMeta?.n_slot) {
       return (
         <Form.Item>
-          <SealInputNumber
+          <CInputNumber
             disabled
             label="Max Tokens"
             value={_.floor(_.divide(modelMeta?.n_ctx, modelMeta?.n_slot))}
-          ></SealInputNumber>
+          ></CInputNumber>
         </Form.Item>
       );
     }
@@ -622,7 +623,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
           className="ground-left-footer"
           style={{
             width: '100%',
-            padding: '0 32px 16px'
+            padding: '0 var(--layout-content-inlinepadding) 16px'
           }}
         >
           <h3 className="m-l-10 flex-between flex-center font-size-14 line-24 m-b-16">
@@ -689,7 +690,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                 <Spin spinning={true} size="middle"></Spin>
               </div>
             )}
-            <ResizeContainer
+            <ResizePanel
               ref={resizeRef}
               maxHeight={resizeMaxHeight}
               minHeight={180}
@@ -713,7 +714,7 @@ const GroundEmbedding: React.FC<MessageProps> = forwardRef((props, ref) => {
                   items={outputItems}
                 ></Tabs>
               </div>
-            </ResizeContainer>
+            </ResizePanel>
           </div>
         </div>
       </div>

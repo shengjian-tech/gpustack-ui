@@ -1,14 +1,7 @@
 import { systemConfigAtom } from '@/atoms/system';
 import { GPUStackVersionAtom } from '@/atoms/user';
-import AutoTooltip from '@/components/auto-tooltip';
-import DropdownButtons from '@/components/drop-down-buttons';
-import IconFont from '@/components/icon-font';
-import LabelsCell from '@/components/label-cell';
-import ProgressBar from '@/components/progress-bar';
-import InfoColumn from '@/components/simple-table/info-column';
-import StatusTag from '@/components/status-tag';
 import { tableSorter } from '@/config/settings';
-import GrafanaIcon from '@/pages/_components/grafana-icon';
+import { usePluginListColumns } from '@/plugins/list-extra-columns';
 import { convertFileSize } from '@/utils';
 import {
   DeleteOutlined,
@@ -18,8 +11,18 @@ import {
   SafetyOutlined,
   ToolOutlined
 } from '@ant-design/icons';
+import {
+  AutoTooltip,
+  DropdownButtons,
+  GrafanaIcon,
+  IconFont,
+  InfoColumn,
+  LabelCell,
+  ProgressBar,
+  StatusTag
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
-import { Tag, Tooltip } from 'antd';
+import { Tooltip } from 'antd';
 import { ColumnsType } from 'antd/lib/table';
 import { useAtom, useAtomValue } from 'jotai';
 import _ from 'lodash';
@@ -29,7 +32,6 @@ import semverGt from 'semver/functions/gt';
 import { status, WorkerStatusMap, WorkerStatusMapValue } from '../config';
 import { Filesystem, GPUDeviceItem, ListItem } from '../config/types';
 import workerCss from '../styles/worker.less';
-
 const ActionList = [
   { label: 'common.button.edit', key: 'edit', icon: <EditOutlined /> },
   {
@@ -232,12 +234,14 @@ const useWorkerColumns = ({
   loadend,
   firstLoad,
   sortOrder,
+  source,
   handleSelect
 }: {
   clusterData: {
     list: Global.BaseOption<number>[];
     data: Record<number, string>;
   };
+  source?: string;
   loadend: boolean;
   firstLoad: boolean;
   sortOrder: string[];
@@ -246,12 +250,11 @@ const useWorkerColumns = ({
   const intl = useIntl();
   const systemConfig = useAtomValue(systemConfigAtom);
   const [version] = useAtom(GPUStackVersionAtom);
-
-  console.log('version in useWorkerColumns', version);
+  const pluginCols = usePluginListColumns('workers');
 
   const renderIP = (text: string, record: ListItem) => {
     if (record.advertise_address === record.ip) {
-      return record.ip;
+      return <span className="text-primary">{record.ip}</span>;
     }
 
     if (
@@ -261,16 +264,24 @@ const useWorkerColumns = ({
     ) {
       return (
         <span className={workerCss.ipWrapper}>
-          <span className="item">
-            <span>{record.ip}</span>
-            <span className="label">{`(${intl.formatMessage({ id: 'clusters.table.ip.internal' })})`}</span>
-            <span> {record.advertise_address}</span>
-            <span className="label">{`(${intl.formatMessage({ id: 'clusters.table.ip.external' })})`}</span>
+          <span className={workerCss.item}>
+            <span className="text-primary">{record.ip}</span>
+            <span
+              className={workerCss.label}
+            >{`(${intl.formatMessage({ id: 'clusters.table.ip.internal' })})`}</span>
+            <span className="text-primary">{record.advertise_address}</span>
+            <span
+              className={workerCss.label}
+            >{`(${intl.formatMessage({ id: 'clusters.table.ip.external' })})`}</span>
           </span>
         </span>
       );
     }
-    return record.ip || record.advertise_address || '';
+    return (
+      <span className="text-primary">
+        {record.ip || record.advertise_address || ''}
+      </span>
+    );
   };
 
   const setActions = (row: ListItem) => {
@@ -286,11 +297,104 @@ const useWorkerColumns = ({
       }
 
       if (action.key === 'metrics') {
-        return systemConfig.showMonitoring;
+        return systemConfig?.showMonitoring;
       }
       return true;
     });
   };
+
+  const renderVersionInfo = (record: ListItem) => {
+    const shouldUpgrade = showUpgrade(record.worker_version, version.version);
+
+    const defaultVersionInfo = (
+      <span className="flex-center gap-4">
+        <span>
+          {intl.formatMessage(
+            { id: 'resources.worker.version' },
+            { version: version.version }
+          )}
+        </span>
+      </span>
+    );
+
+    const upgradeVersionInfo = (
+      <span className="flex-center gap-8">
+        <span>
+          {intl.formatMessage(
+            { id: 'resources.worker.version' },
+            { version: record.worker_version }
+          )}
+        </span>
+        <span>
+          {intl.formatMessage(
+            { id: 'resources.server.version' },
+            { version: version.version }
+          )}
+        </span>
+      </span>
+    );
+
+    return (
+      <Tooltip
+        title={
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              fontSize: 13
+            }}
+          >
+            {shouldUpgrade && (
+              <span
+                style={{
+                  color: 'var(--ant-color-warning)'
+                }}
+              >
+                {intl.formatMessage({
+                  id: 'resoureces.worker.upgrade.tips'
+                })}
+              </span>
+            )}
+            {shouldUpgrade ? upgradeVersionInfo : defaultVersionInfo}
+            <span className="flex-center gap-4">
+              <span>
+                {intl.formatMessage(
+                  {
+                    id: 'resources.driver.version'
+                  },
+                  {
+                    version: _.get(
+                      record,
+                      'status.gpu_devices[0].driver_version'
+                    )
+                  }
+                )}
+              </span>
+            </span>
+          </div>
+        }
+      >
+        <span>
+          {shouldUpgrade ? (
+            <IconFont
+              type="icon-upgrade"
+              style={{ color: 'var(--ant-color-warning)' }}
+            ></IconFont>
+          ) : (
+            <InfoCircleOutlined style={{ color: 'var(--ant-blue-5)' }} />
+          )}
+        </span>
+      </Tooltip>
+    );
+  };
+
+  const pluginRendered = pluginCols.map((c) => ({
+    title: intl.formatMessage({ id: c.titleId }),
+    key: c.key,
+    ellipsis: { showTitle: false },
+    render: (_text: any, record: ListItem) => c.render(record)
+  }));
 
   return useMemo<ColumnsType<ListItem>>(
     () => [
@@ -301,25 +405,10 @@ const useWorkerColumns = ({
         sorter: tableSorter(1),
         render: (text: string, record: ListItem) => (
           <div className={workerCss.name}>
-            <AutoTooltip ghost maxWidth={200}>
+            <AutoTooltip ghost maxWidth={200} title={text}>
               <span className="name-text">{text}</span>
             </AutoTooltip>
-            <div className={workerCss['worker-version']}>
-              <AutoTooltip
-                ghost
-                showTitle={showUpgrade(record.worker_version, version.version)}
-                title={intl.formatMessage({
-                  id: 'resoureces.worker.upgrade.tips'
-                })}
-              >
-                <Tag className="version-tag" variant="outlined">
-                  {version.version}
-                  {showUpgrade(record.worker_version, version.version) && (
-                    <IconFont type="icon-upgrade"></IconFont>
-                  )}
-                </Tag>
-              </AutoTooltip>
-            </div>
+            {renderVersionInfo(record)}
           </div>
         )
       },
@@ -327,8 +416,9 @@ const useWorkerColumns = ({
         title: intl.formatMessage({ id: 'resources.table.labels' }),
         dataIndex: 'labels',
         width: 200,
-        render: (_, record) => <LabelsCell labels={record.labels} />
+        render: (_, record) => <LabelCell labels={record.labels} />
       },
+      ...pluginRendered,
       {
         title: intl.formatMessage({ id: 'clusters.title' }),
         dataIndex: 'cluster_id',
@@ -447,6 +537,7 @@ const useWorkerColumns = ({
       {
         title: intl.formatMessage({ id: 'common.table.operation' }),
         key: 'operation',
+        hidden: source === 'clusterDetail',
         render: (_, record) => (
           <DropdownButtons
             items={setActions(record)}
@@ -455,7 +546,16 @@ const useWorkerColumns = ({
         )
       }
     ],
-    [intl, sortOrder, clusterData, loadend, firstLoad, handleSelect]
+    [
+      intl,
+      sortOrder,
+      clusterData,
+      loadend,
+      source,
+      firstLoad,
+      handleSelect,
+      pluginRendered
+    ]
   );
 };
 

@@ -1,18 +1,20 @@
-import IconFont from '@/components/icon-font';
 import breakpoints from '@/config/breakpoints';
 import HotKeys from '@/config/hotkeys';
 import useWindowResize from '@/hooks/use-window-resize';
-import { ExtraContent } from '@/layouts/extraRender';
 import { modelCategoriesMap } from '@/pages/llmodels/config';
 import { AudioOutlined } from '@ant-design/icons';
+import { IconFont } from '@gpustack/core-ui';
 import { useIntl, useSearchParams } from '@umijs/max';
 import useMemoizedFn from 'ahooks/lib/useMemoizedFn';
-import { Divider, Segmented, Tabs, TabsProps } from 'antd';
-import classNames from 'classnames';
+import { Segmented, Tabs, TabsProps } from 'antd';
 import _ from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { PageContainerInner } from '../../_components/page-box';
+import {
+  HeaderLeft,
+  HeaderRight,
+  usePageContentStyle
+} from '../../_components/page-box';
 import { queryModelsList } from '../apis';
 import ViewCodeButtons from '../components/view-code-buttons';
 import '../style/play-ground.less';
@@ -177,6 +179,7 @@ const Playground: React.FC = () => {
               className="m-l-24 font-600"
               value={activeKey}
               onChange={(key) => setActiveKey(key)}
+              style={{ fontSize: 13 }}
             ></Segmented>
           }
         </div>
@@ -194,34 +197,42 @@ const Playground: React.FC = () => {
     }
   );
 
+  usePageContentStyle({ padding: 0 });
+
   return (
-    <PageContainerInner
-      header={header}
-      extra={[
+    <>
+      <HeaderLeft>
+        <div className="flex items-center">
+          <span className="font-600 flex-center">
+            {intl.formatMessage({ id: 'menu.playground.speech' })}
+          </span>
+          <Segmented
+            shape="round"
+            style={{
+              backgroundColor: 'var(--ant-color-fill-secondary)'
+            }}
+            size="middle"
+            className="m-l-24 font-400"
+            options={optionsList}
+            value={activeKey}
+            onChange={(key) => setActiveKey(key)}
+          ></Segmented>
+        </div>
+      </HeaderLeft>
+      <HeaderRight>
         <ViewCodeButtons
           activeKey=""
           handleViewCode={handleViewCode}
           handleToggleCollapse={handleToggleCollapse}
           key="view-code-buttons"
-        ></ViewCodeButtons>,
-        <Divider
-          key="divider"
-          orientation="vertical"
-          style={{ height: 16, marginInline: 16 }}
-        />,
-        <ExtraContent key="extra-content" />
-      ]}
-      className={classNames('playground-container', {
-        compare: activeKey === 'compare',
-        chat: activeKey !== 'compare'
-      })}
-    >
+        ></ViewCodeButtons>
+      </HeaderRight>
       <div className="play-ground">
         <div className="chat">
           <Tabs items={items} activeKey={activeKey}></Tabs>
         </div>
       </div>
-    </PageContainerInner>
+    </>
   );
 };
 

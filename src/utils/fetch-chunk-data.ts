@@ -71,7 +71,7 @@ export const fetchChunkedData = async (params: {
     signal: params.signal,
     headers: {
       'Content-Type': 'application/json',
-      ...params.headers
+      ...(params.headers || {})
     }
   });
 
@@ -122,7 +122,10 @@ export const fetchChunkedDataPostFormData = async (params: {
   const response = await fetch(url, {
     method: 'POST',
     body: createFormData(params.data),
-    signal: params.signal
+    signal: params.signal,
+    headers: {
+      ...(params.headers || {})
+    }
   });
   if (!response.ok) {
     return await errorHandler(response);

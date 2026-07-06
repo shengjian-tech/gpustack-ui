@@ -1,9 +1,12 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import DropDownActions from '@/components/drop-down-actions';
-import IconFont from '@/components/icon-font';
-import TagWrapper from '@/components/tags-wrapper';
-import ThemeTag from '@/components/tags-wrapper/theme-tag';
-import Card from '@/components/templates/card';
+import PluginExtraFields from '@/components/plugin-extra-fields';
+import {
+  AutoTooltip,
+  DropdownActions,
+  IconFont,
+  TagsWrapper,
+  TemplateCard,
+  ThemeTag
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Tag } from 'antd';
 import _ from 'lodash';
@@ -22,12 +25,11 @@ import {
   TagColorMap
 } from '../config';
 import { ListItem } from '../config/types';
-
-const StyledCard = styled(Card)`
+const StyledCard = styled(TemplateCard)`
   &:hover {
     .operations {
       background-color: var(--ant-color-fill-tertiary);
-      border-radius: var(--ant-border-radius);
+      border-radius: var(--ant-border-radius-lg);
     }
   }
 `;
@@ -40,7 +42,7 @@ const TagInner = styled(Tag)<{ height?: number }>`
   font-size: 18px;
   height: ${({ height }) => (height ? `${height}px` : '28px')};
   width: ${({ height }) => (height ? `${height}px` : '28px')};
-  border-radius: 6px;
+  border-radius: var(--ant-border-radius-lg);
   font-weight: 400;
 `;
 
@@ -231,11 +233,11 @@ const BackendCard: React.FC<BackendCardProps> = ({
             {intl.formatMessage({ id: 'backend.availableFrameworks' })}:{' '}
           </span>
         </span>
-        <TagWrapper
+        <TagsWrapper
           gap={8}
           dataList={frameworks}
           renderTag={renderTag}
-        ></TagWrapper>
+        ></TagsWrapper>
       </InfoItem>
     );
   };
@@ -247,30 +249,39 @@ const BackendCard: React.FC<BackendCardProps> = ({
     const source = data.is_built_in
       ? BackendSourceLabelMap[BackendSourceValueMap.BUILTIN] || ''
       : BackendSourceLabelMap[data.backend_source] || '';
+    const ownerTag = (
+      <PluginExtraFields
+        name="BackendOwnerTag"
+        context={{ ownerPrincipalId: data.owner_principal_id }}
+      />
+    );
     if (!source) {
-      return null;
+      return ownerTag;
     }
     return (
-      <Tag
-        color={
-          TagColorMap[
-            data.is_built_in
-              ? BackendSourceValueMap.BUILTIN
-              : data.backend_source
-          ]
-        }
-        className="font-400"
-        variant="filled"
-        style={{
-          borderRadius: 'var(--ant-border-radius)',
-          margin: 0,
-          width: 'max-content'
-        }}
-      >
-        {intl.formatMessage({
-          id: source
-        })}
-      </Tag>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <Tag
+          color={
+            TagColorMap[
+              data.is_built_in
+                ? BackendSourceValueMap.BUILTIN
+                : data.backend_source
+            ]
+          }
+          className="font-400"
+          variant="filled"
+          style={{
+            borderRadius: 'var(--ant-border-radius)',
+            margin: 0,
+            width: 'max-content'
+          }}
+        >
+          {intl.formatMessage({
+            id: source
+          })}
+        </Tag>
+        {ownerTag}
+      </div>
     );
   };
 
@@ -279,7 +290,7 @@ const BackendCard: React.FC<BackendCardProps> = ({
       actionsRenderer(data)
     ) : (
       <span onClick={handleonClickAction} className="operations">
-        <DropDownActions
+        <DropdownActions
           menu={{
             items: actions,
             onClick: handleOnSelect
@@ -290,7 +301,7 @@ const BackendCard: React.FC<BackendCardProps> = ({
             size="small"
             type="text"
           ></Button>
-        </DropDownActions>
+        </DropdownActions>
       </span>
     );
   };

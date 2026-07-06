@@ -1,16 +1,19 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import DropdownButtons from '@/components/drop-down-buttons';
-import { TooltipOverlayScroller } from '@/components/overlay-scroller';
-import StatusTag from '@/components/status-tag';
 import { tableSorter } from '@/config/settings';
 import { modelSourceMap } from '@/pages/llmodels/config';
 import { modelFileActions } from '@/pages/llmodels/config/button-actions';
+import { usePluginListColumns } from '@/plugins/list-extra-columns';
 import { convertFileSize } from '@/utils';
 import {
   CheckCircleFilled,
   CopyOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
+import {
+  AutoTooltip,
+  DropdownButtons,
+  StatusTag,
+  TooltipOverlayScroller
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Tag, Typography } from 'antd';
 import { ColumnsType } from 'antd/lib/table';
@@ -96,7 +99,7 @@ const getResolvedPath = (pathList: string[]) => {
 const setActionList = (record: ListItem) => {
   return _.filter(modelFileActions, (item: { key: string }) => {
     if (item.key === 'deploy') {
-      return record.state === ModelfileStateMap.Ready;
+      return record.state === ModelfileStateMap.Ready && !record.is_lora;
     }
     return true;
   });
@@ -201,7 +204,7 @@ const RenderParts = (props: { record: ListItem }) => {
 
   return (
     <TooltipOverlayScroller title={renderItem()}>
-      <FilesTag color="purple" icon={<InfoCircleOutlined />}>
+      <FilesTag color="purple" icon={<InfoCircleOutlined />} variant="outlined">
         <span style={{ opacity: 1 }}>
           {record.resolved_paths?.length}{' '}
           {intl.formatMessage({ id: 'models.form.files' })}
@@ -237,9 +240,16 @@ const ResolvedPathColumn = (props: { record: ListItem }) => {
               <TooltipTitle path={record.resolved_paths?.[0]}></TooltipTitle>
             }
           >
-            <span>{getResolvedPath(record.resolved_paths)}</span>
+            <span className="text-primary">
+              {getResolvedPath(record.resolved_paths)}
+            </span>
           </AutoTooltip>
         </TextWrapper>
+        {record.is_lora && (
+          <FilesTag color="purple" variant="outlined">
+            <span style={{ opacity: 1 }}>LoRA</span>
+          </FilesTag>
+        )}
         <RenderParts record={record}></RenderParts>
       </PathWrapper>
     )
@@ -261,8 +271,15 @@ const useFilesColumns = (props: {
 }): ColumnsType<ListItem> => {
   const { workersList, sortOrder, handleSelect } = props;
   const intl = useIntl();
+  const pluginCols = usePluginListColumns('modelFiles');
 
   return useMemo(() => {
+    const pluginRendered = pluginCols.map((c) => ({
+      title: intl.formatMessage({ id: c.titleId }),
+      key: c.key,
+      ellipsis: { showTitle: false },
+      render: (_text: any, record: ListItem) => c.render(record)
+    }));
     return [
       {
         title: intl.formatMessage({ id: 'models.form.source' }),
@@ -273,7 +290,11 @@ const useFilesColumns = (props: {
           const modelInfo = getModelInfo(record);
           const { source } = modelInfo;
           return (
-            <TextWrapper style={{ paddingRight: 8 }}>
+            <TextWrapper
+              style={{
+                paddingRight: 8
+              }}
+            >
               <AutoTooltip ghost title={source}>
                 {source}
               </AutoTooltip>
@@ -281,6 +302,7 @@ const useFilesColumns = (props: {
           );
         }
       },
+      ...pluginRendered,
       {
         title: intl.formatMessage({ id: 'resources.worker' }),
         dataIndex: 'worker_id',
@@ -357,7 +379,7 @@ const useFilesColumns = (props: {
         )
       }
     ];
-  }, [intl, workersList, handleSelect]);
+  }, [intl, workersList, handleSelect, pluginCols]);
 };
 
 export default useFilesColumns;

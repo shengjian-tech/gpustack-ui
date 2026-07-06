@@ -1,16 +1,18 @@
-import ModalFooter from '@/components/modal-footer';
-import GSDrawer from '@/components/scroller-modal/gs-drawer';
 import { PageActionType } from '@/config/types';
 import { createAxiosToken } from '@/hooks/use-chunk-request';
-import ColumnWrapper from '@/pages/_components/column-wrapper';
 import { ClusterStatusValueMap } from '@/pages/cluster-management/config';
+import { ColumnWrapper, GSDrawer, ModalFooter } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, message } from 'antd';
 import _ from 'lodash';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { queryCatalogItemSpec } from '../../apis';
-import { DeployFormKeyMap, sourceOptions } from '../../config';
+import {
+  DeployFormKeyMap,
+  mergeBackendParameters,
+  sourceOptions
+} from '../../config';
 import { CatalogFormContext } from '../../config/form-context';
 import {
   CatalogSpec,
@@ -57,7 +59,7 @@ type AddModalProps = {
   source: SourceType;
   width?: string | number;
   current?: any;
-  onOk: (values: FormData) => void;
+  onOk: (values: FormData) => void | Promise<void>;
   onCancel: () => void;
 };
 
@@ -101,8 +103,15 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   const selectSpecRef = useRef<CatalogSpec>({} as CatalogSpec);
   const specListRef = useRef<any[]>([]);
   const noCompatibleGPUsRef = useRef<boolean>(false);
+  const backendOptionsCache = useRef<any>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const submitloadingRef = useRef<boolean>(false);
 
   const handleSumit = () => {
+    if (submitloadingRef.current) {
+      return;
+    }
+    submitloadingRef.current = true;
     form.current?.submit?.();
   };
 
@@ -112,7 +121,11 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       return;
     }
     submitAnyway.current = true;
-    form.current?.submit?.();
+    handleSumit();
+  };
+
+  const onFinishFailed = () => {
+    submitloadingRef.current = false;
   };
 
   const generateSubmitData = (formData: FormData) => {
@@ -192,19 +205,38 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   };
 
   const handleBackendChange = (backend: string) => {
+    const defaultBackendParameters =
+      backendOptionsCache.current?.find((item: any) => item.value === backend)
+        ?.default_backend_param || [];
+
+    form.current?.setFieldsValue({
+      backend_parameters: mergeBackendParameters(
+        defaultBackendParameters,
+        form.current?.getFieldValue('backend_parameters') || []
+      )
+    });
+
     handleCheckFormData();
   };
 
-  const initClusterId = (): number => {
-    const defaultCluster = clusterList?.find((item) => item.is_default);
+  const initClusterId = (): number | undefined => {
+    // When a platform admin has targeted an org via the create-scope picker,
+    // seed the cluster from that org's own clusters so the initial selection
+    // matches the (org-filtered) dropdown the form renders.
+    const scopeOrgId = form.current?.getFieldValue?.('organization_id');
+    const scopedList =
+      scopeOrgId == null
+        ? clusterList
+        : clusterList?.filter((item) => item.owner_principal_id === scopeOrgId);
+
+    const defaultCluster = scopedList?.find((item) => item.is_default);
     if (defaultCluster) {
       return defaultCluster.value;
     }
-    const cluster_id =
-      clusterList?.find((item) => item.state === ClusterStatusValueMap.Ready)
-        ?.value || clusterList?.[0]?.value;
-
-    return cluster_id as number;
+    return (
+      scopedList?.find((item) => item.state === ClusterStatusValueMap.Ready)
+        ?.value || scopedList?.[0]?.value
+    );
   };
 
   const fetchSpecData = async (clusterId: number) => {
@@ -253,10 +285,19 @@ const AddModal: React.FC<AddModalProps> = (props) => {
 
       selectSpecRef.current = defaultSpec;
 
+      const defaultBackendParams =
+        backendOptionsCache.current?.find(
+          (item: any) => item.value === defaultSpec.backend
+        )?.default_backend_param || [];
+
       setModeList(modeDataList);
       setSourceList(sources);
       initFormDataBySource({
         ...defaultSpec,
+        backend_parameters: mergeBackendParameters(
+          defaultBackendParams,
+          defaultSpec.backend_parameters || []
+        ),
         cluster_id: clusterId
       });
 
@@ -317,12 +358,36 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       ..._.omit(selectSpecRef.current, ['name']),
       ...values
     };
-    onOk(data);
+    setLoading(true);
+    try {
+      await onOk(data);
+    } finally {
+      setLoading(false);
+      submitloadingRef.current = false;
+    }
   };
 
   const handleCancel = () => {
     onCancel?.();
     axiosToken.current?.cancel?.();
+  };
+
+  const init = async () => {
+    const clusterId = initClusterId();
+    // No cluster available for the current scope (zero clusters, or none
+    // owned by the picked org). Leave the form's cluster field empty and
+    // skip downstream fetches — the user resolves it by picking an org
+    // that owns clusters, which triggers the scope-change re-pick in the
+    // basic form.
+    if (!clusterId) return;
+
+    backendOptionsCache.current = await form.current?.getBackendOptions?.({
+      cluster_id: clusterId
+    });
+    fetchSpecData(clusterId);
+    form.current?.getGPUOptionList?.({
+      clusterId: clusterId
+    });
   };
 
   const showExtraButton = useMemo(() => {
@@ -337,14 +402,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   useEffect(() => {
     if (open) {
       setTimeout(() => {
-        const clusterId = initClusterId();
-        fetchSpecData(clusterId);
-        form.current?.getGPUOptionList?.({
-          clusterId: clusterId
-        });
-        form.current?.getBackendOptions?.({
-          cluster_id: clusterId
-        });
+        init();
       }, 100);
     }
     return () => {
@@ -405,6 +463,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
                 <ModalFooter
                   onCancel={handleCancel}
                   onOk={handleSumit}
+                  loading={loading}
                   showOkBtn={!showExtraButton}
                   extra={
                     showExtraButton && (
@@ -430,6 +489,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
                 source={source}
                 action={action}
                 onOk={handleOk}
+                onFinishFailed={onFinishFailed}
                 ref={form}
                 isGGUF={isGGUF}
                 formKey={DeployFormKeyMap.CATALOG}

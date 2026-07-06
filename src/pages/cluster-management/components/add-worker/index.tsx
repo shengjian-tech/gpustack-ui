@@ -1,7 +1,6 @@
-import GSDrawer from '@/components/scroller-modal/gs-drawer';
 import { createAxiosToken } from '@/hooks/use-chunk-request';
-import ColumnWrapper from '@/pages/_components/column-wrapper';
 import useAddWorkerMessage from '@/pages/cluster-management/hooks/use-add-worker-message';
+import { ColumnWrapper, GSDrawer } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Alert } from 'antd';
 import React, { useEffect } from 'react';
@@ -76,6 +75,7 @@ const AddWorker: React.FC<AddWorkerProps> = (props) => {
   });
 
   const handleOnClusterChange = async (value: number, row?: any) => {
+    console.log('handleOnClusterChange value, row=========', value, row);
     try {
       createModelsChunkRequest({ cluster_id: value });
       axiosTokenRef.current?.cancel?.();
@@ -121,6 +121,8 @@ const AddWorker: React.FC<AddWorkerProps> = (props) => {
       { count: addedCount }
     );
   };
+
+  console.log('addedCount 1========', addedCount);
 
   return (
     <GSDrawer

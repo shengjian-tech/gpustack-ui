@@ -1,13 +1,11 @@
 import VideoPoster from '@/assets/images/video-poster.png';
 import { setRouteCache } from '@/atoms/route-cache';
-import AlertInfo from '@/components/alert-info';
-import IconFont from '@/components/icon-font';
 import routeCachekey from '@/config/route-cachekey';
 import { VideoCameraOutlined } from '@ant-design/icons';
+import { AlertInfo, IconFont } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Spin, Tooltip } from 'antd';
 import _ from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useCallback,

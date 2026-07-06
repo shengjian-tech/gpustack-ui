@@ -1,16 +1,14 @@
-import DeleteModal from '@/components/delete-modal';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import { PageAction } from '@/config';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import type { PageActionType } from '@/config/types';
 import useTableFetch from '@/hooks/use-table-fetch';
+import { DeleteModal, FilterBar, IconFont, NoResult } from '@gpustack/core-ui';
 import { useIntl, useModel } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, message, Table } from 'antd';
 import _ from 'lodash';
 import { useMemo, useState } from 'react';
-import NoResult from '../_components/no-result';
 import PageBox from '../_components/page-box';
 import {
   createUser,
@@ -199,6 +197,7 @@ const Users: React.FC = () => {
             rowKey="id"
             onChange={handleTableChange}
             pagination={{
+              size: 'middle',
               showSizeChanger: true,
               pageSize: queryParams.perPage,
               current: queryParams.page,
@@ -218,6 +217,11 @@ const Users: React.FC = () => {
         onOk={handleModalOk}
       ></AddModal>
       <DeleteModal ref={modalRef}></DeleteModal>
+      {/* Plugin mount point for global Users-page UI (e.g. a
+          memberships drawer driven from a `users.rowActions`
+          entry's onClick). Renders nothing when no plugin is
+          registered. */}
+      <PluginExtraFields name="UsersPageGlobal" />
     </>
   );
 };

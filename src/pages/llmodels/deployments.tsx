@@ -1,10 +1,9 @@
-import TableContext from '@/components/seal-table/table-context';
-import { TableOrder } from '@/components/seal-table/types';
 import { PaginationKey } from '@/config/settings';
 import useSetChunkRequest from '@/hooks/use-chunk-request';
 import { usePaginationStatus } from '@/hooks/use-pagination-status';
 import { useTableMultiSort } from '@/hooks/use-table-sort';
 import useUpdateChunkedList from '@/hooks/use-update-chunk-list';
+import { TableOrder, TableProvider } from '@gpustack/core-ui';
 import { useMemoizedFn } from 'ahooks';
 import _ from 'lodash';
 import qs from 'query-string';
@@ -86,6 +85,8 @@ const Models = forwardRef((props, ref) => {
     limit: 100,
     setDataList: setModelInstances
   });
+
+  const [filterValues, setFilterValues] = useState<any>({});
 
   const getAllModelInstances = useMemoizedFn(async () => {
     try {
@@ -277,6 +278,21 @@ const Models = forwardRef((props, ref) => {
     fetchData({
       loadingVal: false
     });
+    // re-align the instance cache with the backend as a backstop, in case a
+    // DELETE watch event for terminated instances was missed
+    getAllModelInstances();
+  });
+
+  // proactively drop a model's instances from the cache when it is stopped, so
+  // a stale (terminating) instance can't linger and show up alongside the new
+  // one after an immediate restart
+  const handleStop = useMemoizedFn(async (modelIds: number[]) => {
+    const idSet = new Set(modelIds);
+    cacheInsDataListRef.current = cacheInsDataListRef.current.filter(
+      (item) => !idSet.has(item.model_id)
+    );
+    setModelInstances(cacheInsDataListRef.current);
+    handleSearchBySilent();
   });
 
   const handleSearch = useMemoizedFn(async (params?: any) => {
@@ -335,7 +351,7 @@ const Models = forwardRef((props, ref) => {
   };
 
   const handleOnSortChange = (order: TableOrder | Array<TableOrder>) => {
-    let orderList = Array.isArray(order) ? order : [order];
+    const orderList = Array.isArray(order) ? order : [order];
     if (orderList[0].columnKey === 'replicas') {
       orderList.push({
         columnKey: 'ready_replicas',
@@ -368,6 +384,8 @@ const Models = forwardRef((props, ref) => {
       search: queryParams.search,
       ...filters
     });
+
+    setFilterValues(filters);
   };
 
   const handleDeleteInstanceFromCache = (id: number) => {
@@ -435,7 +453,7 @@ const Models = forwardRef((props, ref) => {
   }));
 
   return (
-    <TableContext.Provider
+    <TableProvider
       value={{
         allChildren: modelInstances,
         setDisableExpand: setDisableExpand
@@ -453,7 +471,7 @@ const Models = forwardRef((props, ref) => {
         handleOnToggleExpandAll={createModelsInstanceChunkRequest}
         onViewLogs={cancelRequestsOnPageInactive}
         onCancelViewLogs={handleOnCancelViewLogs}
-        onStop={handleSearchBySilent}
+        onStop={handleStop}
         onStart={handleSearchBySilent}
         onTableSort={handleOnSortChange}
         onFilterChange={handleOnFilterChange}
@@ -464,8 +482,9 @@ const Models = forwardRef((props, ref) => {
         loadend={dataSource.loadend}
         total={dataSource.total}
         deleteIds={dataSource.deletedIds}
+        filterValues={filterValues}
       ></TableList>
-    </TableContext.Provider>
+    </TableProvider>
   );
 });
 

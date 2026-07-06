@@ -9,6 +9,11 @@ export const TTSAdvancedParamsConfig: ParamsSchema[] = [
     attrs: {
       allowClear: true
     },
+    initAttrs: (meta: any) => ({
+      // Single-task TTS checkpoints (e.g. Qwen3-TTS) expose a fixed task_type;
+      // lock the field so a mismatched value can't crash the vllm engine.
+      disabled: !!meta?.task_type
+    }),
     label: {
       text: 'playground.params.taskType',
       isLocalized: true
@@ -37,59 +42,6 @@ export const TTSAdvancedParamsConfig: ParamsSchema[] = [
     label: {
       text: 'playground.params.language',
       isLocalized: true
-    },
-    rules: [
-      {
-        required: false
-      }
-    ]
-  },
-  {
-    type: 'Input',
-    name: 'instructions',
-    label: {
-      text: 'playground.params.instructions',
-      isLocalized: true
-    },
-    description: {
-      text: 'playground.params.instructions.tips',
-      isLocalized: true
-    },
-    attrs: {
-      allowClear: true
-    },
-    initAttrs: (meta: any) => {
-      return {
-        options: _.map(meta?.voices || [], (item: string) => ({
-          label: item,
-          value: item
-        }))
-      };
-    },
-    rules: [
-      {
-        required: false
-      }
-    ]
-  },
-  {
-    type: 'InputNumber',
-    name: 'max_new_tokens',
-    label: {
-      text: 'playground.params.maxTokens',
-      isLocalized: true
-    },
-    attrs: {
-      step: 1,
-      min: 0,
-      max: 4096
-    },
-    formItemAttrs: {
-      getValueProps: (value: number) => {
-        return {
-          value: value || null
-        };
-      }
     },
     rules: [
       {

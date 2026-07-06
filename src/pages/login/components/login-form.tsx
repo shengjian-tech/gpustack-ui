@@ -1,11 +1,11 @@
 // import LogoIcon from '@/assets/images/gpustack-logo.png';
 import LogoIcon from '@/assets/images/ai-computing power-cloud-logo.svg';
 import { userAtom } from '@/atoms/user';
-import { useIntl, useModel } from '@umijs/max';
+import { history, useIntl, useModel } from '@umijs/max';
 import { Button, Divider, Form, Spin, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useAtom } from 'jotai';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import styled from 'styled-components';
 import { useLocalAuth } from '../hooks/use-local-auth';
@@ -29,9 +29,10 @@ const Buttons = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 24px;
-  width: 360px;
+  width: 100%;
+  max-width: 100%;
   margin-top: 52px;
 `;
 
@@ -148,6 +149,40 @@ const LoginForm = () => {
     });
   };
 
+  // SSO callbacks (CAS / OIDC / SAML) are full-page IdP redirects, so
+  // a JSON exception raised in the callback lands the browser on a
+  // raw error page rather than this form. The backend instead
+  // redirects to ``/login?error=<code>`` on the failure modes that
+  // deserve user-facing copy — read the code on mount, route it
+  // through the existing toast, and clear the param from the URL so
+  // a refresh doesn't re-fire the toast.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const errorCode = params.get('error');
+    if (!errorCode) return;
+    // Codes recognised by the backend's SSO callback wrapper. Map to
+    // an i18n key per code; an unknown code is silently ignored so a
+    // future server release adding a code doesn't render a bare key.
+    const messageIdByCode: Record<string, string> = {
+      source_conflict: 'common.login.error.source_conflict',
+      auth_failed: 'common.login.error.auth_failed'
+    };
+    const messageId = messageIdByCode[errorCode];
+    if (messageId) {
+      handleOnError(new Error(intl.formatMessage({ id: messageId })));
+    }
+    params.delete('error');
+    const newQuery = params.toString();
+    // Route through ``@umijs/max``'s ``history`` rather than
+    // ``window.history.replaceState`` so the router's internal
+    // location stays in sync with the address bar — any other code
+    // that reads it (route guards, ``useLocation``, …) sees the
+    // cleaned URL on the same render.
+    history.replace(
+      window.location.pathname + (newQuery ? `?${newQuery}` : '')
+    );
+  }, []);
+
   // local user authentication
   const { handleLogin, submitLoading } = useLocalAuth({
     fetchUserInfo,
@@ -182,18 +217,12 @@ const LoginForm = () => {
   };
 
   const handleLoginWithThirdParty = () => {
-    if (SSOAuth.options.oidc) {
-      SSOAuth.loginWithOIDC();
-    } else if (SSOAuth.options.saml) {
-      SSOAuth.loginWithSAML();
-    }
+    SSOAuth.loginWithExternalAuth();
     setLoading(true);
     setAuthError(null);
   };
 
-  const hasThirdPartyLogin = useMemo(() => {
-    return SSOAuth.options.oidc || SSOAuth.options.saml;
-  }, [SSOAuth.options]);
+  const hasThirdPartyLogin = !!SSOAuth.options.external_auth;
 
   const isThirdPartyAuthHandling = useMemo(() => {
     return loading && !authError;
@@ -205,18 +234,8 @@ const LoginForm = () => {
 
     return (
       <Buttons>
-        {SSOAuth.options.oidc && (
-          <ButtonWrapper onClick={SSOAuth.loginWithOIDC}>
-            <ButtonText>
-              {intl.formatMessage(
-                { id: 'common.external.login' },
-                { type: 'SSO' }
-              )}
-            </ButtonText>
-          </ButtonWrapper>
-        )}
-        {SSOAuth.options.saml && (
-          <ButtonWrapper onClick={SSOAuth.loginWithSAML}>
+        {SSOAuth.options.external_auth && (
+          <ButtonWrapper onClick={SSOAuth.loginWithExternalAuth}>
             <ButtonText>
               {intl.formatMessage(
                 { id: 'common.external.login' },
@@ -243,7 +262,7 @@ const LoginForm = () => {
             {renderWelCome()}
             <div className="spin">
               <Spin
-                tip={intl.formatMessage({ id: 'common.login.auth' })}
+                description={intl.formatMessage({ id: 'common.login.auth' })}
                 size="middle"
               >
                 <div style={{ width: 300 }}></div>

@@ -17,7 +17,15 @@ export default {
   'apikeys.table.bindModels': 'Доступ к моделям',
   'apikeys.models.all': 'Все модели',
   'apikeys.models.selected': 'Разрешенные модели',
-  'apikeys.models.noModelsFound': 'Модели не найдены'
+  'apikeys.models.noModelsFound': 'Модели не найдены',
+  'apikeys.accessScope.all': 'All',
+  'apikeys.accessScope.management': 'Platform Management',
+  'apikeys.accessScope.inference': 'Inference APIs',
+  'apikeys.access.permissions': 'Access Permissions',
+  'apikeys.type.auto': 'Auto-generated',
+  'apikeys.type.custom': 'Custom',
+  'apikeys.button.ipConfig': 'IP Access Control',
+  'quotaLimits.button.title': 'Quota Limit'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

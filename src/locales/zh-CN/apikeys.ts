@@ -16,5 +16,13 @@ export default {
   'apikeys.table.bindModels': '模型访问',
   'apikeys.models.all': '所有模型',
   'apikeys.models.selected': '指定模型',
-  'apikeys.models.noModelsFound': '未找到模型'
+  'apikeys.models.noModelsFound': '未找到模型',
+  'apikeys.accessScope.all': '全部',
+  'apikeys.accessScope.management': '平台管理',
+  'apikeys.accessScope.inference': '推理接口',
+  'apikeys.access.permissions': '访问权限',
+  'apikeys.type.auto': '自动生成',
+  'apikeys.type.custom': '自定义',
+  'apikeys.button.ipConfig': 'IP 访问控制',
+  'quotaLimits.button.title': '配额限制'
 };

@@ -1,7 +1,9 @@
-import SealSelect from '@/components/seal-form/seal-select';
-import TooltipList from '@/components/tooltip-list';
-import useAppUtils from '@/hooks/use-app-utils';
 import { CaretDownOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import {
+  Select as SealSelect,
+  TooltipList,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { Form, Select } from 'antd';
 import React, { useMemo } from 'react';
@@ -43,11 +45,6 @@ const BackendFields: React.FC = () => {
     useCompareEnvs();
 
   const handleBackendVersionOnChange = (value: any, option: any) => {
-    // const oldEnvs = _.get(initialValues, 'env') || {};
-    // const newEnvs = option.data?.env || {};
-
-    // handleCompareEnvs(oldEnvs, newEnvs);
-
     if (Object.keys(option.data?.env || {}).length > 0) {
       form.setFieldValue('env', { ...(option?.data?.env || {}) });
     }
@@ -248,7 +245,7 @@ const BackendFields: React.FC = () => {
                     },
                     {
                       link: (
-                        <a onClick={() => navigate('/resources/backends')}>
+                        <a onClick={() => navigate('/models/backends')}>
                           {intl.formatMessage({ id: 'backends.title' })}
                         </a>
                       )

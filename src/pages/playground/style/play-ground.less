@@ -1,4 +1,4 @@
-@HEADER_HEIGHT: 56px;
+@HEADER_HEIGHT: 0px;
 
 .play-ground {
   display: flex;
@@ -39,7 +39,11 @@
 
   .params {
     overflow: hidden;
-    height: calc(100vh - @HEADER_HEIGHT);
+    height: calc(
+      100vh - var(--app-banner-height, 0px) - var(--page-header-height) -
+        var(--page-content-padding) - var(--page-content-padding) -
+        @HEADER_HEIGHT
+    );
 
     .collapse {
       width: 0;
@@ -48,7 +52,7 @@
   }
 
   .params-box {
-    padding-inline: 32px;
+    padding-inline: var(--layout-content-inlinepadding);
     height: 100%;
     width: 390px;
     overflow-y: auto;
@@ -70,7 +74,11 @@
 
     .ant-divider {
       margin: 0;
-      height: calc(100vh - 136px);
+      height: calc(
+        100vh - var(--app-banner-height, 0px) - var(--page-header-height) -
+          2px - var(--page-content-padding) - var(--page-content-padding) -
+          @HEADER_HEIGHT
+      );
     }
   }
 }
@@ -83,20 +91,6 @@
 
   .ant-page-header {
     position: relative;
-  }
-
-  &.chat {
-    .ant-page-header {
-      // &::after {
-      //   position: absolute;
-      //   content: '';
-      //   left: 32px;
-      //   right: 32px;
-      //   bottom: 0;
-      //   height: 1px;
-      //   border-bottom: 1px solid var(--ant-color-split);
-      // }
-    }
   }
 
   &.compare {

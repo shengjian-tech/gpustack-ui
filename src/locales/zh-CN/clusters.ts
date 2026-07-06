@@ -38,9 +38,11 @@ export default {
   'clusters.create.noRegions': '无可用的区域',
   'clusters.workerpool.batchSize.desc': '节点池中同时创建的节点数量。',
   'clusters.create.addworker.tips':
-    '在执行以下命令之前，请确保已满足 {label} 的<a href={link} target="_blank">先决条件</a>。',
+    '在执行以下命令之前，请确保已满足<a href={link} target="_blank">先决条件</a>。',
   'clusters.create.addCommand.tips':
     '在需要添加的节点上运行以下命令，将其加入到集群中。',
+  'clusters.create.addCommand.k8s.tips':
+    '在需要注册的 Kubernetes 集群中运行以下命令，创建 Kubernetes 资源，注册该集群。',
   'clusters.create.register.tips':
     '在需要添加的 Kubernetes 集群上运行以下命令，将其中的节点加入到集群中。',
   'cluster.create.checkEnv.tips': '使用以下命令检查环境是否准备妥当。',
@@ -65,8 +67,14 @@ export default {
   'clusters.addworker.selectCluster.tips':
     '<span class="bold-text">非 Docker</span> 集群请前往集群页面注册集群或管理节点池。',
   'clusters.addworker.selectGPU': '选择 GPU 厂商',
+  'clusters.addworker.selectGPU.multiTag': '可多选',
+  'clusters.addworker.selectGPU.subtitle':
+    '可选择多个 GPU 厂商，或不选择以用于仅 CPU 的集群',
   'clusters.addworker.checkEnv': '检查环境',
+  'clusters.addworker.checkEnv.cpuOnlyTips':
+    '使用以下命令验证 Kubernetes 集群中至少有一个就绪节点。你正在注册仅 CPU 的集群。',
   'clusters.addworker.specifyArgs': '指定参数',
+  'clusters.addworker.dtkVersion': 'DTK 版本',
   'clusters.addworker.runCommand': '运行指令',
   'clusters.addworker.specifyWorkerIP': '节点 IP',
   'clusters.addworker.detectWorkerIP': '自动检测节点 IP',
@@ -105,6 +113,8 @@ export default {
     '已将 {count} 个新节点添加到集群中。',
   'clusters.create.serverUrl': 'GPUStack Server 节点地址',
   'clusters.create.workerConfig': '节点配置',
+  'clusters.edit.k8sOptions.changed.tip':
+    '您已修改 Kubernetes 选项，需要在目标集群上重新运行注册命令才会生效。',
   'clusters.addworker.containerName': '节点容器名称',
   'clusters.addworker.containerName.tips': '为节点容器指定一个名称。',
   'clusters.addworker.dataVolume': 'GPUStack 数据卷',
@@ -128,5 +138,56 @@ export default {
   'clusters.addworker.theadNotes-02':
     '平头哥（T-Head）PPU 使用容器设备接口（CDI）进行设备注入，因此需要确保 <span class="bold-text">/var/run/cdi</span> 目录可用以生成 CDI。',
   'clusters.addworker.nvidiaNotes':
-    'GPUStack v2.1 内置推理后端依赖 <span class="bold-text">CUDA 12.6</span> 及以上版本，请确保 NVIDIA 驱动版本为 <span class="bold-text">560</span> 或以上。'
+    'GPUStack 内置推理后端依赖 <span class="bold-text">CUDA 12.8</span> 及以上版本，请确保 NVIDIA 驱动版本为 <span class="bold-text">570</span> 或以上。',
+  'clusters.volume.title': '卷挂载',
+  'clusters.volume.name': '卷名称',
+  'clusters.volume.mountPath': '容器内路径',
+  'clusters.volume.mountPath.format': '路径必须以 / 开头',
+  'clusters.volume.readOnly': '只读',
+  'clusters.volume.sourceType': '存储来源',
+  'clusters.volume.sourceType.hostPath': '主机路径',
+  'clusters.volume.sourceType.pvc': '存储卷声明（PVC）',
+  'clusters.volume.sourceType.configMap': '配置映射（ConfigMap）',
+  'clusters.volume.hostPath.path': '宿主机路径',
+  'clusters.volume.hostPath.type': '路径类型',
+  'clusters.volume.hostPath.type.directory': '目录',
+  'clusters.volume.hostPath.type.directoryOrCreate': '目录（不存在则创建）',
+  'clusters.volume.hostPath.type.file': '文件',
+  'clusters.volume.hostPath.type.fileOrCreate': '文件（不存在则创建）',
+  'clusters.volume.hostPath.type.socket': '套接字',
+  'clusters.volume.hostPath.type.charDevice': '字符设备',
+  'clusters.volume.hostPath.type.blockDevice': '块设备',
+  'clusters.volume.pvc.claimName': 'PVC 名称',
+  'clusters.volume.pvc.readOnly': '只读',
+  'clusters.volume.configMap.name': '配置名称',
+  'clusters.volume.configMap.optional': '可选',
+  'clusters.volume.add': '添加卷挂载',
+  'clusters.systemDefaultContainerRegistry.title': '默认容器镜像仓库',
+  'clusters.systemDefaultContainerRegistry.tip':
+    '用于解析该集群 GPUStack 镜像的默认镜像仓库。未设置时回退到服务端默认值。',
+  'clusters.k8sOptions.title': 'Kubernetes 部署选项',
+  'clusters.imageCredentials.title': '镜像仓库凭证',
+  'clusters.imageCredentials.add': '添加凭证',
+  'clusters.imageCredentials.registry': '镜像仓库地址',
+  'clusters.imageCredentials.username': '用户名',
+  'clusters.imageCredentials.password': '密码',
+  'clusters.nodeSelector.title': '节点选择器',
+  'clusters.nodeSelector.tip':
+    '应用到每个 worker DaemonSet 的 Pod nodeSelector，只有标签匹配的节点才会被调度运行 worker。',
+  'clusters.operatorImage.title': 'Operator 镜像',
+  'clusters.operatorImage.tip':
+    'GPUStack Operator 容器镜像的覆盖值。留空则使用服务端默认值。',
+  'clusters.namespace.title': '命名空间',
+  'clusters.namespace.tip':
+    '集群清单渲染所使用的 Kubernetes 命名空间。留空则使用 gpustack-system。',
+  'clusters.clusterType.title': '集群类型',
+  'clusters.modelService.title': '模型服务',
+  'clusters.modelService.tip':
+    '适用于大模型推理与 API 服务化场景，例如对外提供模型 API 与 Token 服务能力。',
+  'clusters.gpuInstances.title': 'GPU 服务',
+  'clusters.gpuInstances.tip':
+    '适用于按需分配 GPU 计算资源的场景，例如交互式开发、训练任务或自定义运行环境。',
+  'clusters.gpuInstances.staticAddress': 'GPU 服务静态访问地址',
+  'clusters.gpuInstances.staticAddress.tip':
+    'Operator 访问该集群 GPU 实例所使用的静态地址（例如 LoadBalancer VIP）。可选。'
 };

@@ -1,10 +1,4 @@
 import { modelsExpandKeysAtom, modelsSessionAtom } from '@/atoms/models';
-import DeleteModal from '@/components/delete-modal';
-import DropDownActions from '@/components/drop-down-actions';
-import DropdownButtons from '@/components/drop-down-buttons';
-import PageTools from '@/components/page-tools';
-import SealTable from '@/components/seal-table';
-import { TableOrder } from '@/components/seal-table/types';
 import { PageAction } from '@/config';
 import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import { PageActionType } from '@/config/types';
@@ -12,7 +6,6 @@ import useBodyScroll from '@/hooks/use-body-scroll';
 import useExpandedRowKeys from '@/hooks/use-expanded-row-keys';
 import useTableRowSelection from '@/hooks/use-table-row-selection';
 import useWatchList from '@/hooks/use-watch-list';
-import PageBox from '@/pages/_components/page-box';
 import useNoResourceResult from '@/pages/llmodels/hooks/use-no-resource-result';
 import { MODEL_ROUTE_TARGETS } from '@/pages/model-routes/apis';
 import { TargetStatusValueMap } from '@/pages/model-routes/config';
@@ -20,6 +13,14 @@ import useOpenPlayground from '@/pages/model-routes/hooks/use-open-playground';
 import useGranfanaLink from '@/pages/resources/hooks/use-grafana-link';
 import { handleBatchRequest } from '@/utils';
 import { DownOutlined } from '@ant-design/icons';
+import {
+  DeleteModal,
+  DropdownActions,
+  DropdownButtons,
+  PageTools,
+  Table as SealTable,
+  TableOrder
+} from '@gpustack/core-ui';
 import { useIntl, useNavigate, useSearchParams } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { Button, Space, message } from 'antd';
@@ -56,10 +57,10 @@ import {
 import useEditDeployment from '../hooks/use-edit-deployment';
 import useModelsColumns from '../hooks/use-models-columns';
 import useViewInstanceLogs from '../hooks/use-view-instance-logs';
+import LeftFilters from '../instance-view/left-filters';
 import DeployModal from './deployment/deploy-modal';
 import UpdateModelModal from './deployment/update-modal';
 import Instances from './instance/instances';
-import LeftFilters from './left-filters';
 import ViewLogsModal from './view-logs-modal';
 import styled from 'styled-components';
 
@@ -91,7 +92,7 @@ interface ModelsProps {
   onTableSort?: (order: TableOrder | Array<TableOrder>) => void;
   onStatusChange: (value?: any) => void;
   onDeleteInstanceFromCache?: (instanceId: number) => void;
-  onFilterChange?: (filters: any) => void;
+  onFilterChange: (filters: any) => void;
   sortOrder: string[];
   queryParams: {
     page: number;
@@ -104,6 +105,7 @@ interface ModelsProps {
   loading: boolean;
   loadend: boolean;
   total: number;
+  filterValues?: Record<string, any>;
 }
 
 const getFormattedData = (record: any, extraData = {}) => ({
@@ -135,7 +137,6 @@ const Models: React.FC<ModelsProps> = ({
   onTableSort,
   onStatusChange,
   onDeleteInstanceFromCache,
-  onFilterChange,
   sortOrder,
   deleteIds,
   dataSource,
@@ -176,7 +177,6 @@ const Models: React.FC<ModelsProps> = ({
     type: 'model'
   });
 
-  const [openLogModal, setOpenLogModal] = useState(false);
   const [openDeployModal, setOpenDeployModal] = useState<{
     show: boolean;
     width: number | string;
@@ -221,7 +221,7 @@ const Models: React.FC<ModelsProps> = ({
   });
 
   const handleStartModel = async (row: ListItem) => {
-    await updateModel(getFormattedData(row, { replicas: 1 }));
+    await updateModel(getFormattedData(row, { replicas: row.replicas || 1 }));
   };
 
   const handleStopModel = async (row: ListItem) => {
@@ -424,7 +424,8 @@ const Models: React.FC<ModelsProps> = ({
 
         handleOpenPlayGround({
           categories: row.categories || [],
-          name: targetRoute?.route_name || ''
+          name: targetRoute?.route_name || '',
+          owner_principal_id: row.owner_principal_id
         });
       }
       if (val === 'metrics') {
@@ -487,7 +488,11 @@ const Models: React.FC<ModelsProps> = ({
       okText: 'common.button.start',
       operation: 'common.start.confirm',
       async onOk() {
-        await handleBatchRequest(rowSelection.selectedRows, handleStartModel);
+        const selectedKeySet = new Set(rowSelection.selectedRowKeys);
+        const latestRows = dataSource.filter((item) =>
+          selectedKeySet.has(item.id)
+        );
+        await handleBatchRequest(latestRows, handleStartModel);
         onStart?.();
       }
     });
@@ -566,13 +571,20 @@ const Models: React.FC<ModelsProps> = ({
   }, [loadend]);
 
   return (
-    <>
-      <PageBox>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start'
+      }}
+    >
+      <div style={{ flex: 1, padding: '24px' }}>
         <PageTools
           marginBottom={22}
           marginTop={0}
           left={
             <LeftFilters
+              showCategory
+              showWorker={false}
               handleNameChange={handleNameChange}
               handleClusterChange={handleClusterChange}
               handleCategoryChange={handleCategoryChange}
@@ -584,23 +596,21 @@ const Models: React.FC<ModelsProps> = ({
           right={
             <Space size={16}>
               {ActionButton()}
-              {page !== 'clusters' && (
-                <DropDownActions
-                  menu={{
-                    items: sourceOptions,
-                    onClick: handleClickDropdown
-                  }}
-                  placement="bottomRight"
+              <DropdownActions
+                menu={{
+                  items: sourceOptions,
+                  onClick: handleClickDropdown
+                }}
+                placement="bottomRight"
+              >
+                <Button
+                  icon={<DownOutlined></DownOutlined>}
+                  type="primary"
+                  iconPlacement="end"
                 >
-                  <Button
-                    icon={<DownOutlined></DownOutlined>}
-                    type="primary"
-                    iconPlacement="end"
-                  >
-                    {intl?.formatMessage?.({ id: 'models.button.deploy' })}
-                  </Button>
-                </DropDownActions>
-              )}
+                  {intl?.formatMessage?.({ id: 'models.button.deploy' })}
+                </Button>
+              </DropdownActions>
               <DropdownButtons
                 items={ButtonList}
                 extra={
@@ -616,7 +626,6 @@ const Models: React.FC<ModelsProps> = ({
             </Space>
           }
         ></PageTools>
-
         <SealTable
           columns={columns}
           sortDirections={TABLE_SORT_DIRECTIONS}
@@ -649,7 +658,7 @@ const Models: React.FC<ModelsProps> = ({
             onChange: handlePageChange
           }}
         ></SealTable>
-      </PageBox>
+      </div>
       <UpdateModelModal
         open={openEditModalStatus.open}
         action={openEditModalStatus.action}
@@ -681,7 +690,7 @@ const Models: React.FC<ModelsProps> = ({
         onCancel={handleLogModalCancel}
       ></ViewLogsModal>
       <DeleteModal ref={modalRef}></DeleteModal>
-    </>
+    </div>
   );
 };
 

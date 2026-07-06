@@ -1,7 +1,7 @@
-import IconFont from '@/components/icon-font';
-import SealInput from '@/components/seal-form/seal-input';
 import { PageActionType } from '@/config/types';
-import YamlEditor from '@/pages/_components/yaml-editor';
+import useUserSettings from '@/hooks/use-user-settings';
+import { Input as CInput, IconFont } from '@gpustack/core-ui';
+import { YamlEditor } from '@gpustack/core-ui/yaml-editor';
 import { useIntl } from '@umijs/max';
 import { Button, Form } from 'antd';
 import React, { forwardRef, useImperativeHandle } from 'react';
@@ -13,6 +13,7 @@ const AdvanceConfig: React.FC<{
   action: PageActionType;
   ref?: any;
 }> = forwardRef(({ action }, ref) => {
+  const { isDarkTheme } = useUserSettings();
   const form = Form.useFormInstance();
   const intl = useIntl();
   const editorRef = React.useRef<any>(null);
@@ -46,10 +47,11 @@ const AdvanceConfig: React.FC<{
           }
         ]}
       >
-        <SealInput.TextArea required={false} trim={false}></SealInput.TextArea>
+        <CInput.TextArea required={false} trim={false}></CInput.TextArea>
       </Form.Item>
       <YamlEditor
         ref={editorRef}
+        isDarkTheme={isDarkTheme}
         title={
           <span className="flex-center">
             <span>{`${intl.formatMessage({ id: 'providers.form.customConfig' })} (YAML)`}</span>

@@ -39,9 +39,11 @@ export default {
   'clusters.workerpool.batchSize.desc':
     'Number of workers created simultaneously in the Worker pool',
   'clusters.create.addworker.tips':
-    'Please make sure the <a href={link} target="_blank">prerequisites</a> for {label} are met before executing the following command.',
+    'Please make sure the <a href={link} target="_blank">prerequisites</a> are met before executing the following command.',
   'clusters.create.addCommand.tips':
     'On the Worker that needs to be added, run the following command to join it to the cluster.',
+  'clusters.create.addCommand.k8s.tips':
+    'On the Kubernetes cluster that needs to be registered, run the following command to create the Kubernetes resources and register the cluster.',
   'clusters.create.register.tips':
     'On the Kubernetes cluster that needs to be added, run the following command to join its nodes to the cluster.',
   'cluster.create.checkEnv.tips':
@@ -67,8 +69,14 @@ export default {
   'clusters.addworker.selectCluster.tips':
     'For <span class="bold-text">non-Docker</span> clusters, please register clusters or manage worker pools from the Clusters page.',
   'clusters.addworker.selectGPU': 'Select GPU Vendor',
+  'clusters.addworker.selectGPU.multiTag': 'Multi-select',
+  'clusters.addworker.selectGPU.subtitle':
+    'You can select multiple GPU Vendors or none for CPU-only clusters',
   'clusters.addworker.checkEnv': 'Check Environment',
+  'clusters.addworker.checkEnv.cpuOnlyTips':
+    'Use the following command to verify that the Kubernetes cluster has at least one ready node. You are registering a CPU-only cluster.',
   'clusters.addworker.specifyArgs': 'Specify Arguments',
+  'clusters.addworker.dtkVersion': 'DTK Version',
   'clusters.addworker.runCommand': 'Run Command',
   'clusters.addworker.specifyWorkerIP': 'Worker IP',
   'clusters.addworker.detectWorkerIP': 'Auto-detect Worker IP',
@@ -107,6 +115,8 @@ export default {
     '{count} new workers have been added to the cluster.',
   'clusters.create.serverUrl': 'GPUStack Server URL',
   'clusters.create.workerConfig': 'Worker Configuration',
+  'clusters.edit.k8sOptions.changed.tip':
+    'You have changed the Kubernetes options. Re-run the registration command on the target cluster for the changes to take effect.',
   'clusters.addworker.containerName': 'Worker Container Name',
   'clusters.addworker.containerName.tips':
     'Specify a name for the worker container.',
@@ -134,5 +144,57 @@ export default {
   'clusters.addworker.theadNotes-02':
     'T-Head PPU uses the Container Device Interface (CDI) for device injection and requires the <span class="bold-text">/var/run/cdi</span> directory to be available for CDI generation.',
   'clusters.addworker.nvidiaNotes':
-    'The built-in inference backends in GPUStack v2.1 require <span class="bold-text">CUDA 12.6+</span>. Please ensure your NVIDIA driver version is <span class="bold-text">560</span> or newer.'
+    'The built-in inference backends in GPUStack require <span class="bold-text">CUDA 12.8+</span>. Please ensure your NVIDIA driver version is <span class="bold-text">570</span> or newer.',
+  'clusters.volume.title': 'Volume Mounts',
+  'clusters.volume.name': 'Volume Name',
+  'clusters.volume.mountPath': 'Container Path',
+  'clusters.volume.mountPath.format': 'Path must start with /',
+  'clusters.volume.readOnly': 'Read Only',
+  'clusters.volume.sourceType': 'Source Type',
+  'clusters.volume.sourceType.hostPath': 'Host Path',
+  'clusters.volume.sourceType.pvc': 'Persistent Volume Claim (PVC)',
+  'clusters.volume.sourceType.configMap': 'ConfigMap',
+  'clusters.volume.hostPath.path': 'Host Path',
+  'clusters.volume.hostPath.type': 'Path Type',
+  'clusters.volume.hostPath.type.directory': 'Directory',
+  'clusters.volume.hostPath.type.directoryOrCreate':
+    'Directory (create if not exists)',
+  'clusters.volume.hostPath.type.file': 'File',
+  'clusters.volume.hostPath.type.fileOrCreate': 'File (create if not exists)',
+  'clusters.volume.hostPath.type.socket': 'Socket',
+  'clusters.volume.hostPath.type.charDevice': 'Character Device',
+  'clusters.volume.hostPath.type.blockDevice': 'Block Device',
+  'clusters.volume.pvc.claimName': 'PVC Name',
+  'clusters.volume.pvc.readOnly': 'Read Only',
+  'clusters.volume.configMap.name': 'ConfigMap Name',
+  'clusters.volume.configMap.optional': 'Optional',
+  'clusters.volume.add': 'Add Volume Mount',
+  'clusters.systemDefaultContainerRegistry.title': 'Default Container Registry',
+  'clusters.systemDefaultContainerRegistry.tip':
+    'Default registry used to resolve GPUStack images for this cluster. Falls back to the server default when unset.',
+  'clusters.k8sOptions.title': 'Kubernetes Deployment Options',
+  'clusters.imageCredentials.title': 'Image Credentials',
+  'clusters.imageCredentials.add': 'Add Credential',
+  'clusters.imageCredentials.registry': 'Registry',
+  'clusters.imageCredentials.username': 'Username',
+  'clusters.imageCredentials.password': 'Password',
+  'clusters.nodeSelector.title': 'Node Selector',
+  'clusters.nodeSelector.tip':
+    'Pod nodeSelector applied to every worker DaemonSet — only nodes whose labels match are eligible to run the worker.',
+  'clusters.operatorImage.title': 'Operator Image',
+  'clusters.operatorImage.tip':
+    'Override for the GPUStack Operator container image. Leave empty to use the server default.',
+  'clusters.namespace.title': 'Namespace',
+  'clusters.namespace.tip':
+    'Kubernetes namespace the cluster’s manifests render into. Leave empty to use gpustack-system.',
+  'clusters.clusterType.title': 'Cluster Type',
+  'clusters.modelService.title': 'Model Service',
+  'clusters.modelService.tip':
+    'For LLM inference and API serving — e.g. exposing model APIs and token-based services.',
+  'clusters.gpuInstances.title': 'GPU Service',
+  'clusters.gpuInstances.tip':
+    'For on-demand GPU compute — e.g. interactive development, training jobs, or custom environments.',
+  'clusters.gpuInstances.staticAddress': 'GPU Service Static Access Address',
+  'clusters.gpuInstances.staticAddress.tip':
+    'Static address the operator uses to access GPU instances in this cluster (e.g. a LoadBalancer VIP). Optional.'
 };

@@ -1,12 +1,22 @@
+import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import FormDrawer from '@/pages/_components/form-drawer';
-import React, { useRef } from 'react';
-import { ProviderType } from '../config';
+import useSubmitLock from '@/hooks/use-submit-lock';
+import { ExclamationCircleFilled } from '@ant-design/icons';
+import { AlertBlockInfo, FormDrawer, ModalFooter } from '@gpustack/core-ui';
+import { useIntl } from '@umijs/max';
+import React, { useRef, useState } from 'react';
+import { ProviderType, ProviderValueMap } from '../config';
 import {
   ClusterFormData as FormData,
   ClusterListItem as ListItem
 } from '../config/types';
 import ClusterForm from './cluster-form';
+
+const ModalFooterStyle = {
+  padding: '16px 24px 8px',
+  display: 'flex',
+  justifyContent: 'flex-end'
+};
 
 type AddModalProps = {
   title: string;
@@ -28,17 +38,25 @@ const AddCluster: React.FC<AddModalProps> = ({
   onOk,
   onCancel
 }) => {
+  const intl = useIntl();
   const form = useRef<any>(null);
+  const { loading, guard, run, release } = useSubmitLock();
+  // Whether the user has changed any k8s_options field. Lifted from ClusterForm
+  // so the "re-run registration" notice can sit in the drawer footer, above the
+  // Save/Cancel buttons (mirrors the model edit interaction).
+  const [k8sOptionsChanged, setK8sOptionsChanged] = useState<boolean>(false);
 
   const handleSubmit = () => {
-    form.current?.submit();
+    guard(() => form.current?.submit());
   };
 
   const handleOk = async (data: FormData) => {
-    onOk({
-      ...data,
-      provider
-    });
+    await run(() =>
+      onOk({
+        ...data,
+        provider
+      })
+    );
   };
 
   const handleCancel = () => {
@@ -53,6 +71,28 @@ const AddCluster: React.FC<AddModalProps> = ({
       onCancel={handleCancel}
       onSubmit={handleSubmit}
       width={710}
+      footer={
+        <>
+          {action === PageAction.EDIT &&
+            provider === ProviderValueMap.Kubernetes &&
+            k8sOptionsChanged && (
+              <AlertBlockInfo
+                type="warning"
+                style={{ margin: '8px 24px 0' }}
+                icon={<ExclamationCircleFilled />}
+                message={intl.formatMessage({
+                  id: 'clusters.edit.k8sOptions.changed.tip'
+                })}
+              ></AlertBlockInfo>
+            )}
+          <ModalFooter
+            onOk={handleSubmit}
+            onCancel={handleCancel}
+            loading={loading}
+            style={ModalFooterStyle}
+          ></ModalFooter>
+        </>
+      }
     >
       <ClusterForm
         ref={form}
@@ -61,6 +101,8 @@ const AddCluster: React.FC<AddModalProps> = ({
         action={action}
         currentData={currentData}
         onFinish={handleOk}
+        onFinishFailed={release}
+        onK8sOptionsChange={setK8sOptionsChanged}
       />
     </FormDrawer>
   );

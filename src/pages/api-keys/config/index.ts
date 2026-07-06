@@ -24,3 +24,18 @@ export const expirationOptions = [
     locale: true
   }
 ];
+
+export const accessScopeOptions = [
+  {
+    label: 'apikeys.accessScope.management',
+    value: 'management',
+    description: 'v2/',
+    locale: true
+  },
+  {
+    label: 'apikeys.table.bindModels',
+    value: 'inference',
+    description: 'v1/',
+    locale: true
+  }
+];

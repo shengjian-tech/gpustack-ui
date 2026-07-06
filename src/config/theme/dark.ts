@@ -1,4 +1,4 @@
-import { COLOR_PRIMARY } from './index';
+import { COLOR_PRIMARY } from './constants';
 
 export default {
   'root-entry-name': 'variable',
@@ -19,7 +19,7 @@ export default {
       iconSizeSM: 20
     },
     Table: {
-      headerBorderRadius: 4,
+      headerBorderRadius: 6,
       cellPaddingInline: 16,
       cellPaddingBlock: 6,
       cellFontSize: 14,
@@ -28,6 +28,7 @@ export default {
       rowSelectedBg: 'transparent',
       headerSortActiveBg: 'transparent',
       headerSortHoverBg: 'transparent',
+      bodySortBg: 'transparent',
       headerBg: 'none'
     },
     Button: {
@@ -54,10 +55,15 @@ export default {
       itemHoverColor: 'rgba(0,0,0,1)',
       itemColor: 'rgba(0,0,0,1)',
       itemHoverBg: 'rgb(24 25 27)',
-      itemActiveBg: 'rgb(24 25 27)'
+      itemActiveBg: 'rgb(24 25 27)',
+      menuItemSelectedBg: '#292929'
     },
     Progress: {
-      lineBorderRadius: 2
+      lineBorderRadius: 4
+    },
+    Dropdown: {
+      controlItemBgActive: '#333',
+      controlItemBgActiveHover: '#333'
     },
     Select: {
       optionSelectedBg: '#333',
@@ -96,11 +102,15 @@ export default {
     colorText: '#ccc',
     colorPrimary: COLOR_PRIMARY,
     colorSuccess: '#48A77E',
+    colorBorder: '#3a3a3a',
+    borderRadiusOuter: 6,
+    borderRadiusLG: 6,
     borderRadius: 4,
-    borderRadiusSM: 2,
+    borderRadiusSM: 3,
     fontSize: 14,
     motion: true,
     colorFill: '#0A0A0A',
-    colorBgBase: '#0A0A0A'
+    colorBgBase: '#0A0A0A',
+    menuItemSelectedBg: '#292929'
   }
 };

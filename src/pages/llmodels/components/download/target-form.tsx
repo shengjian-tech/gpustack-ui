@@ -1,9 +1,12 @@
-import SealCascader from '@/components/seal-form/seal-cascader';
-import SealInput from '@/components/seal-form/seal-input';
-import SealSelect from '@/components/seal-form/seal-select';
-import TooltipList from '@/components/tooltip-list';
-import useAppUtils from '@/hooks/use-app-utils';
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import { ModelFileFormData as FormData } from '@/pages/resources/config/types';
+import {
+  Input as CInput,
+  Cascader as SealCascader,
+  Select as SealSelect,
+  TooltipList,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
@@ -12,7 +15,8 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
-  useMemo
+  useMemo,
+  useRef
 } from 'react';
 import { localPathTipsList, modelSourceMap, sourceOptions } from '../../config';
 import { useGenerateWorkersModelFileOptions } from '../../hooks';
@@ -53,6 +57,20 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
   const intl = useIntl();
   const [form] = Form.useForm();
   const localPath = Form.useWatch('local_path', form);
+  // Owned by the create-scope picker slot (admin "All" view). When set, scope
+  // the worker picker to clusters owned by that org — a model file's owner is
+  // derived from the target worker's cluster, so this keeps them aligned.
+  const scopeOrgId = Form.useWatch('organization_id', form);
+  const prevScopeRef = useRef<number | null | undefined>(undefined);
+
+  const visibleWorkerOptions = useMemo(() => {
+    if (scopeOrgId == null) {
+      return workerOptions;
+    }
+    return (workerOptions || []).filter(
+      (cluster: any) => cluster.owner_principal_id === scopeOrgId
+    );
+  }, [workerOptions, scopeOrgId]);
 
   useEffect(() => {
     const init = async () => {
@@ -65,6 +83,19 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
     };
     init();
   }, [workersList]);
+
+  // On a genuine org change, drop the now-out-of-scope worker selection.
+  useEffect(() => {
+    if (prevScopeRef.current === undefined) {
+      prevScopeRef.current = scopeOrgId;
+      return;
+    }
+    if (prevScopeRef.current === scopeOrgId) {
+      return;
+    }
+    prevScopeRef.current = scopeOrgId;
+    form.setFieldValue('worker_id', undefined);
+  }, [scopeOrgId]);
 
   useImperativeHandle(ref, () => ({
     form
@@ -131,12 +162,12 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
             }
           ]}
         >
-          <SealInput.Input
+          <CInput.Input
             required
             label={intl.formatMessage({ id: 'models.form.filePath' })}
             onBlur={handleOnLocalPathBlur}
             description={<TooltipList list={localPathTipsList}></TooltipList>}
-          ></SealInput.Input>
+          ></CInput.Input>
         </Form.Item>
       </>
     );
@@ -181,6 +212,10 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
             ></SealSelect>
           }
         </Form.Item>
+        <PluginExtraFields
+          name="CreateOrgScopeField"
+          context={{ action: 'create' }}
+        />
         {renderFieldsBySource}
         <Form.Item
           name="worker_id"
@@ -201,9 +236,16 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
                 root: 'cascader-popup-wrapper gpu-selector'
               }
             }}
+            styles={{
+              popup: {
+                listItem: {
+                  maxWidth: '100%'
+                }
+              }
+            }}
             maxTagCount={1}
             label={intl.formatMessage({ id: 'resources.worker' })}
-            options={workerOptions}
+            options={visibleWorkerOptions}
             showCheckedStrategy="SHOW_CHILD"
             optionNode={renderOptionNode}
             getPopupContainer={(triggerNode) => triggerNode.parentNode}
@@ -222,7 +264,7 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
               }
             ]}
           >
-            <SealInput.Input
+            <CInput.Input
               description={
                 <span
                   dangerouslySetInnerHTML={{
@@ -235,7 +277,7 @@ const TargetForm: React.FC<TargetFormProps> = forwardRef((props, ref) => {
               label={intl.formatMessage({
                 id: 'resources.modelfiles.form.localdir'
               })}
-            ></SealInput.Input>
+            ></CInput.Input>
           </Form.Item>
         )}
       </Form>

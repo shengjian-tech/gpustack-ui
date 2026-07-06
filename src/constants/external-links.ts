@@ -1,6 +1,6 @@
 const externalLinks = {
   documentation: 'https://www.shengjian.net/',
-  github: 'https://www.shengjian.net/',
+  github: 'https://github.com/shengjian-tech/gpustack-ui',
   discord: 'https://www.shengjian.net/',
   site: 'https://www.shengjian.net/',
   release: 'https://www.shengjian.net/',

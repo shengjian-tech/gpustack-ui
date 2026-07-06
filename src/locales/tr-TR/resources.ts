@@ -2,6 +2,7 @@ export default {
   'resources.title': 'Kaynaklar',
   'resources.nodes': 'İşçi Düğümler',
   'resources.worker': 'İşçi Düğüm',
+  'resources.container': 'Konteyner',
   'resources.button.create': 'İşçi Düğüm Ekle',
   'resources.button.edit': 'İşçi Düğümü Düzenle',
   'resources.button.edittags': 'Etiketleri Düzenle',
@@ -97,6 +98,7 @@ export default {
   'resources.worker.download.privatekey': 'Özel Anahtarı İndir',
   'resources.modelfiles.form.exsting': 'İndirilmiş',
   'resources.modelfiles.form.added': 'Eklenmiş',
+  'resources.modelfiles.form.isLora': 'Is LoRA',
   'resources.worker.maintenance.title': 'Sistem Bakımı',
   'resources.worker.maintenance.enable': 'Bakım Moduna Gir',
   'resources.worker.maintenance.disable': 'Bakım Modundan Çık',
@@ -108,7 +110,12 @@ export default {
     'Kullanılabilir küme yok. Lütfen düğüm eklemeden önce bir küme oluşturun.',
   'resources.metrics.details': 'İzleme',
   'resoureces.worker.upgrade.tips':
-    'Please upgrade to match the GPUStack Server version.'
+    'Please upgrade to match the GPUStack Server version.',
+  'resources.worker.version': 'Worker Version: {version}',
+  'resources.server.version': 'Server Version: {version}',
+  'resources.worker.currentVersion': 'Current Version: {version}',
+  'resources.worker.targetVersion': 'Target Version: {version}',
+  'resources.driver.version': 'Driver Version: {version}'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

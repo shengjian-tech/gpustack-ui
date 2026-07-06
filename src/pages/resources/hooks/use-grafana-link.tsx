@@ -1,6 +1,6 @@
 import { systemConfigAtom } from '@/atoms/system';
 import { GPUSTACK_API_BASE_URL } from '@/config/settings';
-import GrafanaIcon from '@/pages/_components/grafana-icon';
+import { GrafanaIcon } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button } from 'antd';
 import { useAtomValue } from 'jotai';
@@ -10,7 +10,7 @@ const useGranfanaLink = (options: {
 }) => {
   const intl = useIntl();
   const systemConfig = useAtomValue(systemConfigAtom);
-  const grafanaUrl = systemConfig.grafana_url || 'grafana';
+  const grafanaUrl = systemConfig?.grafana_url || 'grafana';
 
   // for worker/model/instance/cluster item entry
   const goToModelGrafana = (row: { id: number }) => {
@@ -55,12 +55,12 @@ const useGranfanaLink = (options: {
 
   // all endpoints of grafana
   const modelEntry = () => {
-    const modelURL = systemConfig.grafana_model_dashboard_uid;
+    const modelURL = systemConfig?.grafana_model_dashboard_uid;
     window.open(`${grafanaUrl}/d/${modelURL}/gpustack-model`, '_blank');
   };
 
   const workerEntry = () => {
-    const workerURL = systemConfig.grafana_worker_dashboard_uid;
+    const workerURL = systemConfig?.grafana_worker_dashboard_uid;
     window.open(`${grafanaUrl}/d/${workerURL}/gpustack-worker`, '_blank');
   };
 

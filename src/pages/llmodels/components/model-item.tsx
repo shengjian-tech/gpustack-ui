@@ -1,8 +1,9 @@
-import IconFont from '@/components/icon-font';
-import StatusTag from '@/components/status-tag';
-import TagWrapper from '@/components/tags-wrapper';
-import ThemeTag from '@/components/tags-wrapper/theme-tag';
-import Card from '@/components/templates/card';
+import {
+  StatusTag,
+  TagsWrapper,
+  TemplateCard,
+  ThemeTag
+} from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { Button } from 'antd';
 import _ from 'lodash';
@@ -18,6 +19,7 @@ import {
   MyModelsStatusValueMap
 } from '../config';
 import { categoryToPathMap } from '../config/button-actions';
+import { getModelLogo } from '../utils/model-logo';
 
 const CardWrapper = styled.div`
   &:hover {
@@ -82,6 +84,14 @@ const ModelItemContent = styled.div`
   }
 `;
 
+const ModelLogo = styled.img`
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex: none;
+`;
+
 const Header = styled.div`
   margin-bottom: 8px;
   display: flex;
@@ -117,13 +127,16 @@ const renderTag = (item: any, index = 0) => {
 
 const ModelItem: React.FC<{
   model: Record<string, any>;
-  onClick: (model: any) => void;
 }> = (props) => {
-  const { model, onClick } = props;
+  const { model } = props;
   const intl = useIntl();
   const navigate = useNavigate();
 
-  const handleOpenPlayGround = () => {
+  // ``model.name`` from ``/v2/my-models`` is the OpenAI-style id
+  // (org-prefixed for non-platform routes, bare for platform). Use it
+  // verbatim — the playground / dispatcher both key off that exact id.
+  const handleOpenPlayGroundClick = () => {
+    const modelName = encodeURIComponent(model.name);
     for (const [category, path] of Object.entries(categoryToPathMap)) {
       if (
         model.categories?.includes(category) &&
@@ -132,15 +145,15 @@ const ModelItem: React.FC<{
           modelCategoriesMap.speech_to_text
         ].includes(category)
       ) {
-        navigate(`${path}&model=${model.name}`);
+        navigate(`${path}&model=${modelName}`);
         return;
       }
       if (model.categories?.includes(category)) {
-        navigate(`${path}?model=${model.name}`);
+        navigate(`${path}?model=${modelName}`);
         return;
       }
     }
-    navigate(`/playground/chat?model=${model.name}`);
+    navigate(`/playground/chat?model=${modelName}`);
   };
 
   // context length
@@ -163,19 +176,15 @@ const ModelItem: React.FC<{
 
   return (
     <CardWrapper>
-      <Card
+      <TemplateCard
         height={140}
-        onClick={() => onClick(model)}
         clickable={false}
         hoverable={true}
         ghost
         header={
           <Header>
             <span className="text gap-8">
-              <IconFont
-                type={sourceIconMap[model.source]}
-                style={{ fontSize: 24 }}
-              />
+              <ModelLogo src={getModelLogo(model.name)} alt="" />
               <span>{model.name}</span>
             </span>
             <StatusTag
@@ -222,11 +231,11 @@ const ModelItem: React.FC<{
                 {model.meta?.voices?.length > 0 && (
                   <>
                     <Dot></Dot>
-                    <TagWrapper
+                    <TagsWrapper
                       gap={8}
                       dataList={model.meta?.voices}
                       renderTag={renderTag}
-                    ></TagWrapper>
+                    ></TagsWrapper>
                   </>
                 )}
               </div>
@@ -235,7 +244,7 @@ const ModelItem: React.FC<{
                   size="middle"
                   className="btn"
                   type="primary"
-                  onClick={handleOpenPlayGround}
+                  onClick={handleOpenPlayGroundClick}
                 >
                   {intl.formatMessage({ id: 'models.openinplayground' })}
                 </Button>
@@ -243,7 +252,7 @@ const ModelItem: React.FC<{
             </div>
           </div>
         </ModelItemContent>
-      </Card>
+      </TemplateCard>
     </CardWrapper>
   );
 };

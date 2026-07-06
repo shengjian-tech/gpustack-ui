@@ -1,9 +1,11 @@
-import LabelSelector from '@/components/label-selector';
-import CheckboxField from '@/components/seal-form/checkbox-field';
-import SealSelect from '@/components/seal-form/seal-select';
 import { PageAction } from '@/config';
 import DocLink from '@/pages/_components/doc-link';
 import { genericReferLink } from '@/pages/model-routes/config';
+import {
+  CheckboxField,
+  LabelSelector,
+  Select as SealSelect
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
@@ -13,11 +15,11 @@ import { useFormContext } from '../config/form-context';
 import { FormData } from '../config/types';
 import { backendOptionsMap } from '../constants/backend-parameters';
 import BackendParametersList from './backend-parameters-list';
+import ModelLoraList from './model-lora-list';
 
 const AdvanceConfig = () => {
   const intl = useIntl();
   const form = Form.useFormInstance();
-  const EnviromentVars = Form.useWatch('env', form);
   const backend = Form.useWatch('backend', form);
   const modelRouteEnable = Form.useWatch('enable_model_route', form);
   const {
@@ -34,9 +36,7 @@ const AdvanceConfig = () => {
     return flatBackendOptions?.find((item) => item.value === backend);
   }, [backend, flatBackendOptions]);
 
-  const handleEnviromentVarsChange = (labels: Record<string, any>) => {
-    form.setFieldValue('env', labels);
-  };
+  console.log('currentBackendOptions', currentBackendOptions);
 
   const onSelectorChange = (field: string, allowEmpty?: boolean) => {
     const workerSelector = form.getFieldValue(field);
@@ -84,13 +84,12 @@ const AdvanceConfig = () => {
           label={intl.formatMessage({
             id: 'models.form.env'
           })}
-          labels={EnviromentVars}
           btnText={intl.formatMessage({ id: 'common.button.vars' })}
           onBlur={handleEnvSelectorOnBlur}
           onDelete={handleDeleteEnvSelector}
-          onChange={handleEnviromentVarsChange}
         ></LabelSelector>
       </Form.Item>
+      <ModelLoraList></ModelLoraList>
       {(backend === backendOptionsMap.custom ||
         !currentBackendOptions?.isBuiltIn) && (
         <Form.Item<FormData>
@@ -108,7 +107,7 @@ const AdvanceConfig = () => {
           ></CheckboxField>
         </Form.Item>
       )}
-      {backend !== backendOptionsMap.voxBox && (
+      {currentBackendOptions?.isBuiltIn && (
         <Form.Item<FormData>
           name="distributed_inference_across_workers"
           valuePropName="checked"

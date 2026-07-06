@@ -1,14 +1,16 @@
-import DeleteModal from '@/components/delete-modal';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
 import useTableFetch from '@/hooks/use-table-fetch';
+import {
+  DeleteModal,
+  FilterBar,
+  IconFont,
+  InfiniteScrollerProvider,
+  NoResult
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import useMemoizedFn from 'ahooks/lib/useMemoizedFn';
 import _ from 'lodash';
 import { useState } from 'react';
-import { ScrollerContext } from '../_components/infinite-scroller/use-scroller-context';
-import NoResult from '../_components/no-result';
 import PageBox from '../_components/page-box';
 import {
   createBackend,
@@ -164,7 +166,15 @@ const BackendList = () => {
     }
     // ================ Delete ================
     if (item.action === 'delete') {
-      if (item.data.backend_source === BackendSourceValueMap.COMMUNITY) {
+      // Platform community rows aren't actually deletable — the
+      // "delete" action there is a soft-disable on the admin-curated
+      // catalog. An org-scoped row of any source (including an org's
+      // override of a community backend) IS owner-mutable data and
+      // gets a real DELETE.
+      const isPlatformCommunity =
+        item.data.backend_source === BackendSourceValueMap.COMMUNITY &&
+        item.data.owner_principal_id == null;
+      if (isPlatformCommunity) {
         modalRef.current?.show({
           content: 'backends.title',
           operation: 'common.delete.single.confirm',
@@ -227,13 +237,17 @@ const BackendList = () => {
     });
   });
 
+  const handleRefresh = () => {
+    fetchData({ query: { ...queryParams, page: 1 } });
+  };
+
   return (
     <PageBox>
       <FilterBar
         marginBottom={22}
         marginTop={30}
         widths={{
-          input: 300
+          input: 230
         }}
         actionItems={addActions}
         actionType="dropdown"
@@ -241,7 +255,7 @@ const BackendList = () => {
         selectHolder={intl.formatMessage({ id: 'backend.filter.source' })}
         buttonText={intl.formatMessage({ id: 'backend.button.add' })}
         handleClickPrimary={handleAddBackend}
-        handleSearch={handleSearch}
+        handleSearch={handleRefresh}
         handleSelectChange={handleFilterBySource}
         handleInputChange={handleNameChange}
         rowSelection={rowSelection}
@@ -251,7 +265,7 @@ const BackendList = () => {
           value: item.value
         }))}
       ></FilterBar>
-      <ScrollerContext.Provider
+      <InfiniteScrollerProvider
         value={{
           total: dataSource.totalPage,
           current: queryParams.page!,
@@ -281,7 +295,7 @@ const BackendList = () => {
           onClick={() => handleAddBackend({ key: 'community' })}
           buttonText={intl.formatMessage({ id: 'noresult.button.add' })}
         ></NoResult>
-      </ScrollerContext.Provider>
+      </InfiniteScrollerProvider>
       <AddModal
         action={openBackendModalStatus.action}
         onClose={() => closeBackendModal('custom')}

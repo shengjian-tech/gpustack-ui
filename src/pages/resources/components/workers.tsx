@@ -1,5 +1,3 @@
-import DeleteModal from '@/components/delete-modal';
-import { FilterBar } from '@/components/page-tools';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useTableFetch from '@/hooks/use-table-fetch';
 import PageBox from '@/pages/_components/page-box';
@@ -9,6 +7,7 @@ import useAddWorker from '@/pages/cluster-management/hooks/use-add-worker';
 import { useQueryClusterList } from '@/pages/cluster-management/services/use-query-cluster-list';
 import useNoResourceResult from '@/pages/llmodels/hooks/use-no-resource-result';
 import useGranfanaLink from '@/pages/resources/hooks/use-grafana-link';
+import { DeleteModal, FilterBar } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table, message } from 'antd';
@@ -27,7 +26,16 @@ import UpdateLabels from './update-labels';
 import WorkerDetailModal from './worker-detail-modal';
 import WorkerRightActions from './worker-right-actions';
 
-const Workers = () => {
+// Optional ``clusterId`` pins the list to a single cluster (used by
+// the cluster-detail page) and hides the cluster-filter dropdown so
+// the user can't change scope away from the cluster they're already
+// inside.
+interface WorkersProps {
+  clusterId?: number;
+  source?: 'clusterDetail';
+}
+
+const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
   const {
     dataSource,
     rowSelection,
@@ -51,7 +59,8 @@ const Workers = () => {
     contentForDelete: 'resources.worker',
     watch: true,
     API: WORKERS_API,
-    updateManually: true
+    updateManually: true,
+    defaultQueryParams: clusterId ? { cluster_id: clusterId } : undefined
   });
   const { goToGrafana, ActionButton } = useGranfanaLink({
     type: 'worker'
@@ -240,6 +249,7 @@ const Workers = () => {
     loadend: dataSource.loadend,
     firstLoad: extraStatus.firstLoad,
     sortOrder,
+    source,
     handleSelect
   });
 
@@ -252,7 +262,7 @@ const Workers = () => {
     <>
       <PageBox>
         <FilterBar
-          showSelect={true}
+          showSelect={source !== 'clusterDetail'}
           selectHolder={intl.formatMessage({ id: 'clusters.filterBy.cluster' })}
           marginBottom={22}
           marginTop={30}
@@ -264,13 +274,22 @@ const Workers = () => {
           handleInputChange={handleNameChange}
           rowSelection={rowSelection}
           selectOptions={clusterData.list}
+          widths={
+            source !== 'clusterDetail'
+              ? { select: 230, input: 230 }
+              : { input: 300 }
+          }
           right={
-            <WorkerRightActions
-              handleDeleteByBatch={handleDeleteBatch}
-              handleClickPrimary={handleOnAddWorker}
-              rowSelection={rowSelection}
-              MonitorButton={ActionButton()}
-            ></WorkerRightActions>
+            source === 'clusterDetail' ? (
+              <></>
+            ) : (
+              <WorkerRightActions
+                handleDeleteByBatch={handleDeleteBatch}
+                handleClickPrimary={handleOnAddWorker}
+                rowSelection={rowSelection}
+                MonitorButton={ActionButton()}
+              ></WorkerRightActions>
+            )
           }
         ></FilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
@@ -288,8 +307,9 @@ const Workers = () => {
             rowKey="id"
             scroll={{ x: 900 }}
             onChange={handleTableChange}
-            rowSelection={rowSelection}
+            rowSelection={source === 'clusterDetail' ? undefined : rowSelection}
             pagination={{
+              size: 'middle',
               showSizeChanger: true,
               pageSize: queryParams.perPage,
               current: queryParams.page,

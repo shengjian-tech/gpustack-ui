@@ -1,9 +1,8 @@
-import AutoTooltip from '@/components/auto-tooltip';
+import { AutoTooltip } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Descriptions, Flex, Tag } from 'antd';
 import React, { useMemo } from 'react';
 import { useDetailContext } from '../../config/detail-context';
-
 const Instance: React.FC = () => {
   const intl = useIntl();
   const { detailData } = useDetailContext();
@@ -55,33 +54,35 @@ const Instance: React.FC = () => {
     const { snapshot } = detailData;
     const [instanceName, instanceData] =
       Object.entries(snapshot?.instances || {})[0] || [];
+
+    const renderParams = (params: string[]) =>
+      params.length > 0 ? (
+        <Flex
+          gap={'4px 8px'}
+          wrap="wrap"
+          style={{
+            backgroundColor: 'var(--ant-color-fill-quaternary)',
+            padding: '4px 6px',
+            borderRadius: '2px'
+          }}
+        >
+          {params.map((param: string, index: number) => (
+            <span key={index} style={{ margin: 0 }}>
+              {param}
+            </span>
+          ))}
+        </Flex>
+      ) : (
+        '-'
+      );
+
     return [
       {
         key: '1',
-        label: intl.formatMessage({ id: 'models.form.backend_parameters' }),
-        children:
-          instanceData?.backend_parameters &&
-          instanceData?.backend_parameters.length > 0 ? (
-            <Flex
-              gap={8}
-              wrap="wrap"
-              style={{
-                backgroundColor: 'var(--ant-color-fill-quaternary)',
-                padding: '4px',
-                borderRadius: '2px'
-              }}
-            >
-              {instanceData?.backend_parameters?.map(
-                (param: string, index: number) => (
-                  <span key={index} style={{ margin: 0 }}>
-                    {param}
-                  </span>
-                )
-              )}
-            </Flex>
-          ) : (
-            '-'
-          )
+        label: intl.formatMessage({
+          id: 'models.form.backend_parameters'
+        }),
+        children: renderParams(instanceData?.backend_parameters || [])
       },
       {
         key: '3',

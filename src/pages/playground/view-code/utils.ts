@@ -2,12 +2,12 @@ import _ from 'lodash';
 
 function toShellSafeMultilineJson(value: any): string {
   const json = JSON.stringify(value, null, 2);
-  const escaped = json.replace(/'/g, `'\\''`);
+  const escaped = json?.replace(/'/g, `'\\''`);
   return `${escaped}`;
 }
 
 function toShellSafeJson(value: any): string {
-  return JSON.stringify(value, null, 2).replace(/'/g, `'\\''`);
+  return JSON.stringify(value, null, 2)?.replace(/'/g, `'\\''`);
 }
 
 // curl format
@@ -16,6 +16,7 @@ export const formatCurlArgs = (
   isFormdata?: boolean
 ) => {
   if (isFormdata) {
+    console.log('parameters===', parameters);
     return _.keys(parameters).reduce((acc: string, key: string) => {
       const val = parameters[key];
       const value =
@@ -28,21 +29,38 @@ export const formatCurlArgs = (
   return `-d '${toShellSafeMultilineJson(parameters)}'`;
 };
 
+const toPyLiteral = (val: any, indent = 2, level = 0): string => {
+  if (val === null) return 'None';
+  if (typeof val === 'boolean') return val ? 'True' : 'False';
+  if (typeof val === 'string') return JSON.stringify(val);
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '[]';
+    const pad = ' '.repeat((level + 1) * indent);
+    const closePad = ' '.repeat(level * indent);
+    const items = val.map((v) => `${pad}${toPyLiteral(v, indent, level + 1)}`);
+    return `[\n${items.join(',\n')}\n${closePad}]`;
+  }
+  if (typeof val === 'object') {
+    const keys = Object.keys(val);
+    if (keys.length === 0) return '{}';
+    const pad = ' '.repeat((level + 1) * indent);
+    const closePad = ' '.repeat(level * indent);
+    const entries = keys.map(
+      (k) =>
+        `${pad}${JSON.stringify(k)}: ${toPyLiteral(val[k], indent, level + 1)}`
+    );
+    return `{\n${entries.join(',\n')}\n${closePad}}`;
+  }
+  return String(val);
+};
+
 // python format
 export const formatPyParams = (parameters: Record<string, any>) => {
   return _.keys(parameters).reduce((acc: string, key: string) => {
     if (parameters[key] === null || parameters[key] === undefined) {
       return acc;
     }
-    const vauleType = typeof parameters[key];
-    const value =
-      vauleType === 'object'
-        ? JSON.stringify(parameters[key], null, 2)
-        : vauleType === 'string'
-          ? `"${parameters[key]}"`
-          : parameters[key];
-
-    return acc + `  ${key}=${value},\n`;
+    return acc + `  ${key}=${toPyLiteral(parameters[key], 2, 1)},\n`;
   }, '');
 };
 

@@ -1,32 +1,39 @@
 // columns.ts
-import AutoTooltip from '@/components/auto-tooltip';
-import DropdownButtons from '@/components/drop-down-buttons';
 import { tableSorter } from '@/config/settings';
+import { usePluginListColumns } from '@/plugins/list-extra-columns';
+import { AutoTooltip, DropdownButtons } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
 import { ProviderLabelMap, credentialActionList } from '../config';
 import { CredentialListItem as ListItem } from '../config/types';
-
 const useCredentialColumns = (
   sortOrder: string[],
   handleSelect: (val: string, record: ListItem) => void
 ): ColumnsType<ListItem> => {
   const intl = useIntl();
+  const pluginCols = usePluginListColumns('cloudCredentials');
 
   return useMemo(() => {
+    const pluginRendered = pluginCols.map((c) => ({
+      title: intl.formatMessage({ id: c.titleId }),
+      key: c.key,
+      ellipsis: { showTitle: false },
+      render: (_text: any, record: ListItem) => c.render(record)
+    }));
     return [
       {
         title: intl.formatMessage({ id: 'common.table.name' }),
         dataIndex: 'name',
         sorter: tableSorter(1),
         render: (text: string) => (
-          <AutoTooltip ghost minWidth={20}>
-            {text}
+          <AutoTooltip ghost minWidth={20} title={text}>
+            <span className="text-primary">{text}</span>
           </AutoTooltip>
         )
       },
+      ...pluginRendered,
       {
         title: intl.formatMessage({ id: 'clusters.table.provider' }),
         dataIndex: 'provider',
@@ -70,7 +77,7 @@ const useCredentialColumns = (
         )
       }
     ];
-  }, [intl, handleSelect]);
+  }, [intl, handleSelect, pluginCols]);
 };
 
 export default useCredentialColumns;

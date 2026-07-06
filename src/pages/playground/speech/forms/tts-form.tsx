@@ -1,7 +1,9 @@
-import AutoComplete from '@/components/seal-form/auto-complete';
-import CheckboxField from '@/components/seal-form/checkbox-field';
-import SealSelect from '@/components/seal-form/seal-select';
-import CollapsePanel from '@/pages/_components/collapse-panel';
+import {
+  AutoComplete,
+  CheckboxField,
+  CollapsePanel,
+  Select as SealSelect
+} from '@gpustack/core-ui';
 import { getLocale, useIntl, useSearchParams } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { Form } from 'antd';
@@ -108,12 +110,15 @@ const ParamsSettings: React.FC<ParamsSettingsProps> = forwardRef(
       const newList = updateVoiceOptions(model!);
       setModelMeta(model?.meta || {});
 
+      form.resetFields();
+
       const values = {
         ..._.pick(model?.meta || {}, MetaFields),
         task_type: model?.meta?.task_type,
         model: value,
         language: model?.meta?.languages?.[0] || '',
-        voice: newList[0]?.value
+        voice: newList[0]?.value,
+        x_vector_only_mode: model?.meta?.x_vector_only_mode || null
       };
       updatateParams(values);
       form.setFieldsValue(values);

@@ -1,7 +1,7 @@
+import { IconFont } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Space } from 'antd';
 import React from 'react';
-import IconFont from '../../../components/icon-font';
 
 const ViewCodeButtons: React.FC<{
   handleViewCode: () => void;
@@ -15,7 +15,7 @@ const ViewCodeButtons: React.FC<{
   }
 
   return (
-    <Space key="buttons" style={{ marginRight: 8 }}>
+    <Space key="buttons">
       <Button
         size="middle"
         onClick={handleViewCode}

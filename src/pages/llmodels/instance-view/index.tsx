@@ -1,15 +1,12 @@
-import DeleteModal from '@/components/delete-modal';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useTableFetch from '@/hooks/use-table-fetch';
-import NoResult from '@/pages/_components/no-result';
 import PageBox from '@/pages/_components/page-box';
+import { DeleteModal, FilterBar, IconFont, NoResult } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table } from 'antd';
 import _ from 'lodash';
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import {
   deleteModelInstance,
   MODEL_INSTANCE_API,
@@ -19,8 +16,24 @@ import ViewLogsModal from '../components/view-logs-modal';
 import { useDeploymentsContext } from '../config/deploments-context';
 import { ModelInstanceListItem as ListItem } from '../config/types';
 import useViewInstanceLogs from '../hooks/use-view-instance-logs';
+import useQueryModelList from '../services/use-query-model-list';
 import LeftFilters from './left-filters';
 import useInstanceColumns from './use-instance-columns';
+
+const filterOptions = {
+  optionList: [
+    {
+      label: 'Running',
+      value: 'running',
+      color: 'var(--ant-color-success)'
+    },
+    {
+      label: 'Error',
+      value: 'error',
+      color: 'var(--ant-color-error)'
+    }
+  ]
+};
 
 const InstanceView = forwardRef((props, ref) => {
   const {
@@ -47,10 +60,15 @@ const InstanceView = forwardRef((props, ref) => {
     contentForDelete: 'menu.models.instances'
   });
   const intl = useIntl();
+  const { dataList: modelList, fetchData: fetchModelList } =
+    useQueryModelList();
   const { clusterList, workerList } = useDeploymentsContext();
   const { openViewLogsModal, openViewLogsModalStatus, closeViewLogsModal } =
     useViewInstanceLogs();
 
+  useEffect(() => {
+    fetchModelList({ page: -1 });
+  }, []);
   const handleSelect = useMemoizedFn((val: any, row: ListItem) => {
     if (val === 'delete') {
       handleDelete(row, {
@@ -122,11 +140,12 @@ const InstanceView = forwardRef((props, ref) => {
   const columns = useInstanceColumns({
     handleSelect,
     clusterList,
+    modelList,
     workerList
   });
 
   return (
-    <>
+    <div style={{ padding: 24 }}>
       <PageBox>
         <FilterBar
           showSelect={false}
@@ -146,13 +165,14 @@ const InstanceView = forwardRef((props, ref) => {
               handleSearch={handleSearch}
               clusterList={clusterList}
               workerList={workerList}
+              filterOptions={filterOptions}
             ></LeftFilters>
           }
         ></FilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
           <Table
             rowKey="id"
-            tableLayout="fixed"
+            tableLayout="auto"
             className={'scroll-table'}
             sortDirections={TABLE_SORT_DIRECTIONS}
             showSorterTooltip={false}
@@ -165,6 +185,7 @@ const InstanceView = forwardRef((props, ref) => {
             columns={columns}
             scroll={{ x: 900 }}
             pagination={{
+              size: 'middle',
               showSizeChanger: true,
               pageSize: queryParams.perPage,
               current: queryParams.page,
@@ -185,7 +206,7 @@ const InstanceView = forwardRef((props, ref) => {
         onCancel={closeViewLogsModal}
       ></ViewLogsModal>
       <DeleteModal ref={modalRef}></DeleteModal>
-    </>
+    </div>
   );
 });
 

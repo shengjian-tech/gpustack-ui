@@ -1,12 +1,15 @@
-import CollapsibleContainer from '@/components/collapse-container';
-import LabelSelector from '@/components/label-selector';
-import BaseSelect from '@/components/seal-form/base/select';
-import SealInput from '@/components/seal-form/seal-input';
-import SealSelect from '@/components/seal-form/seal-select';
-import SealTextArea from '@/components/seal-form/seal-textarea';
 import { PageActionType } from '@/config/types';
-import useAppUtils from '@/hooks/use-app-utils';
+import { backendOptionsMap } from '@/pages/llmodels/constants/backend-parameters';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  BaseSelect,
+  Input as CInput,
+  CollapseContainer,
+  LabelSelector,
+  Select as SealSelect,
+  Textarea as SealTextArea,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Form, Tag } from 'antd';
 import React, { useEffect, useMemo } from 'react';
@@ -14,7 +17,6 @@ import styled from 'styled-components';
 import { BackendSourceValueMap, frameworks } from '../config';
 import { useFormContext } from '../config/form-context';
 import { ListItem } from '../config/types';
-
 // version must be endwith '-custom'
 
 const Box = styled.div`
@@ -48,6 +50,19 @@ const Title = styled.div`
   padding-top: 8px;
   padding-bottom: 8px;
 `;
+
+const backendHolder = {
+  [backendOptionsMap.SGLang]: {
+    defaultEntry: 'sglang serve',
+    defaultCommand:
+      '--model-path {{model_path}} --host {{worker_ip}} --port {{port}}'
+  },
+  [backendOptionsMap.vllm]: {
+    defaultEntry: 'vllm serve',
+    defaultCommand:
+      '{{model_path}} --host {{worker_ip}} --port {{port}} --served-model-name {{model_name}}'
+  }
+};
 
 type AddModalProps = {
   action: PageActionType;
@@ -141,23 +156,14 @@ const VersionsForm: React.FC<AddModalProps> = ({
     setDefaultVersion(value);
   };
 
-  const handleEnviromentVarsChange = (
-    envs: Record<string, any>,
-    name: number
-  ) => {
-    const versions = form.getFieldValue('version_configs') || [];
-    const updatedVersions = versions.map((version: any, idx: number) => {
-      if (idx === name) {
-        return {
-          ...version,
-          env: {
-            ...envs
-          }
-        };
+  const getDefaultHolder = (content: string) => {
+    if (!content) return '';
+    return intl.formatMessage(
+      { id: 'common.help.default' },
+      {
+        content: content
       }
-      return version;
-    });
-    form.setFieldValue('version_configs', updatedVersions);
+    );
   };
 
   useEffect(() => {
@@ -202,6 +208,7 @@ const VersionsForm: React.FC<AddModalProps> = ({
 
   const isBuiltin = backendSource === BackendSourceValueMap.BUILTIN;
   const isCommunity = backendSource === BackendSourceValueMap.COMMUNITY;
+  const backend = currentData?.backend_name;
 
   return (
     <>
@@ -259,17 +266,19 @@ const VersionsForm: React.FC<AddModalProps> = ({
               <div
                 key={name}
                 style={{
-                  borderRadius: 'var(--ant-border-radius)',
+                  borderRadius: 'var(--ant-border-radius-lg)',
                   border: '1px solid var(--ant-color-split)'
                 }}
               >
-                <CollapsibleContainer
+                <CollapseContainer
                   collapsible={true}
                   showExpandIcon={true}
                   key={name}
                   defaultOpen
                   styles={{
-                    body: collapseKey.has(name) ? { padding: 16 } : {},
+                    body: collapseKey.has(name)
+                      ? { paddingInline: 16, paddingBlock: '16px 0' }
+                      : {},
                     content: { paddingTop: 0 },
                     header: {
                       backgroundColor: 'unset'
@@ -289,7 +298,7 @@ const VersionsForm: React.FC<AddModalProps> = ({
                       )}
                     </Label>
                   }
-                  onToggle={(open) => onToggle(open, name)}
+                  onToggle={(open: boolean) => onToggle(open, name)}
                   deleteBtn={false}
                   right={
                     <div className="flex-center gap-8">
@@ -328,13 +337,13 @@ const VersionsForm: React.FC<AddModalProps> = ({
                         }
                       ]}
                     >
-                      <SealInput.Input
+                      <CInput.Input
                         trim
                         addAfter={showCustomSuffix ? '-custom' : null}
                         onChange={handleVersionChange}
                         label={intl.formatMessage({ id: 'backend.version' })}
                         required
-                      ></SealInput.Input>
+                      ></CInput.Input>
                     </Form.Item>
                     <Form.Item
                       name={[name, 'image_name']}
@@ -345,7 +354,7 @@ const VersionsForm: React.FC<AddModalProps> = ({
                         }
                       ]}
                     >
-                      <SealInput.Input
+                      <CInput.Input
                         trim
                         required
                         placeholder={intl.formatMessage(
@@ -353,7 +362,7 @@ const VersionsForm: React.FC<AddModalProps> = ({
                           { content: 'vllm/vllm-openai:v0.12.0' }
                         )}
                         label={intl.formatMessage({ id: 'backend.imageName' })}
-                      ></SealInput.Input>
+                      ></CInput.Input>
                     </Form.Item>
                   </Box>
                   <Form.Item
@@ -374,15 +383,27 @@ const VersionsForm: React.FC<AddModalProps> = ({
                     />
                   </Form.Item>
                   <Form.Item name={[name, 'entrypoint']}>
-                    <SealInput.TextArea
+                    <CInput.TextArea
                       allowClear
+                      alwaysFocus={true}
                       description={intl.formatMessage({
                         id: 'backend.entrypoint.tips'
                       })}
                       label={intl.formatMessage({
                         id: 'backend.replaceEntrypoint'
                       })}
-                    ></SealInput.TextArea>
+                      placeholder={
+                        getDefaultHolder(
+                          backendHolder[backend as string]?.defaultEntry
+                        ) ||
+                        intl.formatMessage(
+                          { id: 'common.help.eg' },
+                          {
+                            content: 'vllm serve'
+                          }
+                        )
+                      }
+                    ></CInput.TextArea>
                   </Form.Item>
                   <Form.Item name={[name, 'run_command']}>
                     <SealTextArea
@@ -391,13 +412,18 @@ const VersionsForm: React.FC<AddModalProps> = ({
                       description={intl.formatMessage({
                         id: 'backend.form.defaultExecuteCommand.tips'
                       })}
-                      placeholder={intl.formatMessage(
-                        { id: 'common.help.eg' },
-                        {
-                          content:
-                            '{{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}'
-                        }
-                      )}
+                      placeholder={
+                        getDefaultHolder(
+                          backendHolder[backend as string]?.defaultCommand
+                        ) ||
+                        intl.formatMessage(
+                          { id: 'common.help.eg' },
+                          {
+                            content:
+                              '{{model_path}} --port {{port}} --host {{worker_ip}} --served-model-name {{model_name}}'
+                          }
+                        )
+                      }
                       label={intl.formatMessage({ id: 'backend.runCommand' })}
                     ></SealTextArea>
                   </Form.Item>
@@ -406,14 +432,10 @@ const VersionsForm: React.FC<AddModalProps> = ({
                       label={intl.formatMessage({
                         id: 'models.form.env'
                       })}
-                      labels={versionConfigs?.[name]?.env}
                       btnText={intl.formatMessage({ id: 'common.button.vars' })}
-                      onChange={(envs) =>
-                        handleEnviromentVarsChange(envs, name)
-                      }
                     ></LabelSelector>
                   </Form.Item>
-                </CollapsibleContainer>
+                </CollapseContainer>
               </div>
             ));
           }}

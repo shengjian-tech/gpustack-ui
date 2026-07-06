@@ -12,6 +12,11 @@ export default {
   'users.form.active.description': '启用或禁用此用户账户',
   'users.form.fullname': '全名',
   'users.form.source': '来源',
+  'users.form.source.local': '本地',
+  'users.form.source.tip.switchToLocal':
+    '切换到本地需要设置新密码,之后用户将通过标准登录表单登录。',
+  'users.form.source.tip.switchToExternal':
+    '切换到外部来源会清除该用户的本地密码,之后用户将通过所配置的身份提供商登录。',
   'users.table.user': '用户',
   'users.form.admin': '管理员',
   'users.form.user': '普通用户',
@@ -27,6 +32,7 @@ export default {
   'users.password.length': '长度在6至64个字符之间',
   'users.password.modify.title': '修改密码',
   'users.password.modify.description': '为了确保您的账户安全，请修改初始密码',
+  'users.password.modify.tips': '定期更新密码有助于保护账户安全。',
   'users.password.confirm': '确认新密码',
   'users.password.confirm.empty': '请确认新密码',
   'users.password.confirm.error': '两次输入的密码不一致',

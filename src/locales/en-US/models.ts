@@ -62,6 +62,8 @@ export default {
   'models.table.layers': 'Layers',
   'models.form.backend': 'Backend',
   'models.form.backend_parameters': 'Backend Parameters',
+  'models.instance.params.configured': 'User Configured',
+  'models.instance.params.autoInjected': 'Auto-injected Parameters',
   'models.search.gguf.tips':
     'GGUF models use llama-box(supports Linux, macOS and Windows).',
   'models.search.vllm.tips':
@@ -155,6 +157,7 @@ export default {
   'models.table.apiAccessInfo.modelName': 'Model Name',
   'models.table.apiAccessInfo.apikey': 'API Key',
   'models.table.apiAccessInfo.openaiCompatible': 'OpenAI Compatible',
+  'models.table.apiAccessInfo.anthropicCompatible': 'Anthropic Compatible',
   'models.table.apiAccessInfo.jinaCompatible': 'Jina Compatible',
   'models.table.apiAccessInfo.gotoCreate': 'Go to Create',
   'models.search.parts': '{n} parts',
@@ -282,5 +285,17 @@ export default {
     'Not enabled yet. Will be enabled after deployment. ',
   'models.table.instance.benchmark': 'Run Benchmark',
   'models.table.modelView': 'Model List',
-  'models.table.instanceView': 'Instance List'
+  'models.table.instanceView': 'Instance List',
+  'models.table.category': 'Category',
+  'models.instance.currentRun': 'Current Run',
+  'models.instance.previousRun': 'Previous Run',
+  'models.instance.startHistory': 'Run History',
+  'models.instance.startHistory.tips':
+    'Shows logs from the run before the last error-triggered restart.',
+  'models.form.lora.label': 'LoRA Adapters',
+  'models.form.lora.add': 'Add LoRA Adapter',
+  'models.form.lora.select': 'Select LoRA',
+  'models.form.lora.name': 'LoRA name',
+  'models.form.lora.rule.empty': 'Input cannot be empty',
+  'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 };

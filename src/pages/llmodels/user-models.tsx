@@ -1,25 +1,21 @@
-import IconFont from '@/components/icon-font';
-import PageTools from '@/components/page-tools';
-import BaseSelect from '@/components/seal-form/base/select';
-import CardList from '@/components/templates/card-list';
 import useTableFetch from '@/hooks/use-table-fetch';
 import { SyncOutlined } from '@ant-design/icons';
-import { useIntl, useNavigate } from '@umijs/max';
+import {
+  BaseSelect,
+  IconFont,
+  InfiniteScrollerProvider,
+  NoResult,
+  PageTools,
+  TemplateCardList
+} from '@gpustack/core-ui';
+import { useIntl } from '@umijs/max';
 import useMemoizedFn from 'ahooks/lib/useMemoizedFn';
 import { Button, Input, Space } from 'antd';
 import React, { useCallback, useMemo } from 'react';
-import { ScrollerContext } from '../_components/infinite-scroller/use-scroller-context';
-import NoResult from '../_components/no-result';
 import PageBox from '../_components/page-box';
 import { MY_MODELS_API, queryMyModels } from './apis';
 import ModelItem from './components/model-item';
-import {
-  categoryOptions,
-  modelCategoriesMap,
-  MyModelsStatusValueMap
-} from './config';
-import { categoryToPathMap } from './config/button-actions';
-
+import { categoryOptions, MyModelsStatusValueMap } from './config';
 const Dot = ({ color }: { color: string }) => {
   return (
     <span
@@ -44,7 +40,6 @@ const optionRender = (item: any) => {
 };
 
 const UserModels: React.FC = () => {
-  const navigate = useNavigate();
   const {
     dataSource,
     queryParams,
@@ -95,28 +90,8 @@ const UserModels: React.FC = () => {
     });
   };
 
-  const handleOnClick = (model: any) => {
-    for (const [category, path] of Object.entries(categoryToPathMap)) {
-      if (
-        model.categories?.includes(category) &&
-        [
-          modelCategoriesMap.text_to_speech,
-          modelCategoriesMap.speech_to_text
-        ].includes(category)
-      ) {
-        navigate(`${path}&model=${model.name}`);
-        return;
-      }
-      if (model.categories?.includes(category)) {
-        navigate(`${path}?model=${model.name}`);
-        return;
-      }
-    }
-    navigate(`/playground/chat?model=${model.name}`);
-  };
-
   const renderCard = (data: any) => {
-    return <ModelItem model={data} onClick={handleOnClick} />;
+    return <ModelItem model={data} />;
   };
 
   const loadMore = useMemoizedFn((nextPage: number) => {
@@ -170,6 +145,12 @@ const UserModels: React.FC = () => {
     return result;
   }, [dataSource.dataList]);
 
+  const handleRefresh = () => {
+    fetchData({
+      query: { ...queryParams, page: 1 }
+    });
+  };
+
   return (
     <PageBox>
       <PageTools
@@ -217,12 +198,12 @@ const UserModels: React.FC = () => {
               type="text"
               style={{ color: 'var(--ant-color-text-tertiary)' }}
               icon={<SyncOutlined></SyncOutlined>}
-              onClick={handleSearch}
+              onClick={handleRefresh}
             ></Button>
           </Space>
         }
       ></PageTools>
-      <ScrollerContext.Provider
+      <InfiniteScrollerProvider
         value={{
           total: dataSource.totalPage,
           current: queryParams.page,
@@ -230,13 +211,13 @@ const UserModels: React.FC = () => {
           refresh: loadMore
         }}
       >
-        <CardList
+        <TemplateCardList
           dataList={dataList}
           loading={dataSource.loading}
           activeId={false}
           isFirst={!dataSource.loadend}
           renderItem={renderCard}
-        ></CardList>
+        ></TemplateCardList>
         <NoResult
           loading={dataSource.loading}
           loadend={dataSource.loadend}
@@ -249,7 +230,7 @@ const UserModels: React.FC = () => {
           title={intl.formatMessage({ id: 'noresult.mymodels.title' })}
           subTitle={intl.formatMessage({ id: 'noresult.mymodels.subTitle' })}
         ></NoResult>
-      </ScrollerContext.Provider>
+      </InfiniteScrollerProvider>
     </PageBox>
   );
 };

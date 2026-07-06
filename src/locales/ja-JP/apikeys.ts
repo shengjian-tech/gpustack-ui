@@ -17,12 +17,21 @@ export default {
   'apikeys.table.bindModels': 'Model Access',
   'apikeys.models.all': 'All models',
   'apikeys.models.selected': 'Allowed models',
-  'apikeys.models.noModelsFound': 'No models found'
+  'apikeys.models.noModelsFound': 'No models found',
+  'apikeys.accessScope.all': 'All',
+  'apikeys.accessScope.management': 'Platform Management',
+  'apikeys.accessScope.inference': 'Inference APIs',
+  'apikeys.access.permissions': 'Access Permissions',
+  'apikeys.type.auto': 'Auto-generated',
+  'apikeys.type.custom': 'Custom',
+  'apikeys.button.ipConfig': 'IP Access Control',
+  'quotaLimits.button.title': 'Quota Limit'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
 // 1. 'apikeys.table.bindModels': 'Model Access',
 // 2. 'apikeys.models.all': 'All models',
 // 3. 'apikeys.models.selected': 'Allowed models',
-// 4. 'apikeys.models.noModelsFound': 'No models found'
+// 4. 'apikeys.models.noModelsFound': 'No models found',
+// 5. 'apikeys.access.permissions': 'Access Permissions'
 // ========== End of To-Do List ==========

@@ -36,9 +36,12 @@ export default {
   'noresult.catalog.nofound': 'No matching models found.',
   'noresult.resources.cluster':
     'No clusters available. Add a cluster to get started.',
+  'noresult.resources.k8sCluster':
+    'No clusters available. Add a Kubernetes cluster to get started.',
   'noresult.resources.worker':
     'No workers available. Add a worker to get started.',
   'noresult.resources.gotocluster': 'Create Your First Cluster',
+  'noresult.resources.addk8scluster': 'Add a Kubernetes Cluster',
   'noresult.resources.gotoworker': 'Add Worker',
   'noresult.benchmark.title': 'No Benchmarks',
   'noresult.benchmark.subTitle': 'No benchmarks have been added yet.',
@@ -52,5 +55,25 @@ export default {
   'noresult.instances.title': 'No instances',
   'noresult.instances.subTitle':
     'There are no running model instances. Deploy a model to create one automatically.',
-  'noresult.instances.nofound': 'No matching instances found.'
+  'noresult.instances.nofound': 'No matching instances found.',
+  'noresult.gpuservice.template.title': 'No Instance Templates',
+  'noresult.gpuservice.template.subTitle':
+    'No instance templates have been added yet.',
+  'noresult.gpuservice.template.nofound':
+    'No matching instance templates found.',
+  'noresult.gpuservice.instance.title': 'No GPU Instances',
+  'noresult.gpuservice.instance.subTitle':
+    'No GPU instances have been added yet.',
+  'noresult.gpuservice.instance.nofound': 'No matching GPU instances found.',
+  'noresult.gpuservice.storage.title': 'No Storage',
+  'noresult.gpuservice.storage.subTitle': 'No storage has been added yet.',
+  'noresult.gpuservice.storage.nofound': 'No matching storage found.',
+  'noresult.gpuservice.storageType.title': 'No Storage Types',
+  'noresult.gpuservice.storageType.subTitle':
+    'No storage types have been added yet.',
+  'noresult.gpuservice.storageType.nofound': 'No matching storage types found.',
+  'noresult.gpuservice.sshkey.title': 'No SSH Public Keys',
+  'noresult.gpuservice.sshkey.subTitle':
+    'No SSH public keys have been added yet.',
+  'noresult.gpuservice.sshkey.nofound': 'No matching SSH public keys found.'
 };

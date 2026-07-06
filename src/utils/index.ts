@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import tinycolor from 'tinycolor2';
 
 export const isNotEmptyValue = (value: any) => {
   if (Array.isArray(value)) {
@@ -245,25 +244,6 @@ export const isOnline = () => {
   return window.navigator.onLine;
 };
 
-export const genColors = ({
-  color,
-  alpha1,
-  alpha2
-}: {
-  color: string;
-  alpha1?: number;
-  alpha2?: number;
-}) => {
-  const base = tinycolor(color);
-  const alpha_start = alpha1 || base.getAlpha();
-  const alpha_end = alpha2 || base.getAlpha();
-
-  return [
-    base.setAlpha(alpha_start).toRgbString(),
-    base.setAlpha(alpha_end).toRgbString()
-  ];
-};
-
 /**
  * Parse a command-line parameter string into an array format.
  * @param paramsString - The parameter string to parse (supports multiline).
@@ -364,3 +344,18 @@ export const parseParamsString = (paramsString: string): string[] => {
 
   return result;
 };
+
+// ordinal.ts
+const enOrdinalRules = new Intl.PluralRules('en', { type: 'ordinal' });
+
+const suffixMap: Record<string, string> = {
+  one: 'st',
+  two: 'nd',
+  few: 'rd',
+  other: 'th'
+};
+
+export function formatOrdinal(n: number): string {
+  const rule = enOrdinalRules.select(n);
+  return `${n}${suffixMap[rule]}`;
+}

@@ -1,7 +1,9 @@
-import LabelSelector from '@/components/label-selector';
-import ModalFooter from '@/components/modal-footer';
-import ScrollerModal from '@/components/scroller-modal';
-import SealInput from '@/components/seal-form/seal-input';
+import {
+  Input as CInput,
+  LabelSelector,
+  ModalFooter,
+  ScrollerModal
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
@@ -26,11 +28,6 @@ const UpdateLabels: React.FC<ViewModalProps> = (props) => {
   const { open, onCancel, data, onOk } = props || {};
   const intl = useIntl();
   const [form] = Form.useForm();
-  const labels = Form.useWatch('labels', form);
-
-  const handleLabelsChange = (labels: object) => {
-    form.setFieldValue('labels', labels);
-  };
 
   const handleSumit = () => {
     form.submit();
@@ -66,7 +63,7 @@ const UpdateLabels: React.FC<ViewModalProps> = (props) => {
         }}
       >
         <Form.Item<FormData> name="name">
-          <SealInput.Input
+          <CInput.Input
             label={intl.formatMessage({
               id: 'common.table.name'
             })}
@@ -103,9 +100,7 @@ const UpdateLabels: React.FC<ViewModalProps> = (props) => {
             label={intl.formatMessage({
               id: 'resources.table.labels'
             })}
-            labels={labels}
             btnText={intl.formatMessage({ id: 'common.button.addLabel' })}
-            onChange={handleLabelsChange}
           ></LabelSelector>
         </Form.Item>
       </Form>

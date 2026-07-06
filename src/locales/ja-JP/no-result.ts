@@ -36,9 +36,12 @@ export default {
   'noresult.catalog.nofound': 'No matching models found.',
   'noresult.resources.cluster':
     'No clusters available. Add a cluster to get started.',
+  'noresult.resources.k8sCluster':
+    'No clusters available. Add a Kubernetes cluster to get started.',
   'noresult.resources.worker':
     'No workers available. Add a worker to get started.',
   'noresult.resources.gotocluster': 'Create Your First Cluster',
+  'noresult.resources.addk8scluster': 'Add a Kubernetes Cluster',
   'noresult.resources.gotoworker': 'Add Worker',
   'noresult.benchmark.title': 'No Benchmarks',
   'noresult.benchmark.subTitle': 'No benchmarks have been added yet.',
@@ -52,5 +55,27 @@ export default {
   'noresult.instances.title': 'No instances',
   'noresult.instances.subTitle':
     'There are no running model instances. Deploy a model to create one automatically.',
-  'noresult.instances.nofound': 'No matching instances found.'
+  'noresult.instances.nofound': 'No matching instances found.',
+  'noresult.gpuservice.template.title': 'インスタンステンプレートなし',
+  'noresult.gpuservice.template.subTitle':
+    'インスタンステンプレートはまだ追加されていません。',
+  'noresult.gpuservice.template.nofound':
+    '一致するインスタンステンプレートが見つかりません。',
+  'noresult.gpuservice.instance.title': 'GPU インスタンスなし',
+  'noresult.gpuservice.instance.subTitle':
+    'GPU インスタンスはまだ追加されていません。',
+  'noresult.gpuservice.instance.nofound':
+    '一致する GPU インスタンスが見つかりません。',
+  'noresult.gpuservice.storage.title': 'ストレージなし',
+  'noresult.gpuservice.storage.subTitle':
+    'ストレージはまだ追加されていません。',
+  'noresult.gpuservice.storage.nofound': '一致するストレージが見つかりません。',
+  'noresult.gpuservice.storageType.title': 'ストレージタイプなし',
+  'noresult.gpuservice.storageType.subTitle':
+    'ストレージタイプはまだ追加されていません。',
+  'noresult.gpuservice.storageType.nofound':
+    '一致するストレージタイプが見つかりません。',
+  'noresult.gpuservice.sshkey.title': 'SSH 公開鍵なし',
+  'noresult.gpuservice.sshkey.subTitle': 'SSH 公開鍵はまだ追加されていません。',
+  'noresult.gpuservice.sshkey.nofound': '一致する SSH 公開鍵が見つかりません。'
 };

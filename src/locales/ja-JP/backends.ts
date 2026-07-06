@@ -19,9 +19,18 @@ export default {
   'backend.mode.form': 'Form Mode',
   'backend.mode.yaml': 'YAML Mode',
   'backend.form.healthCheckPath': 'Health Check Path',
+  'backend.form.defaultEntrypoint': 'Default Image Entrypoint',
   'backend.form.defaultExecuteCommand': 'Default Execution Command',
   'backend.form.defaultExecuteCommand.tips': `'{{'model_path'}}', '{{'port'}}', '{{'worker_ip'}}' and '{{'model_name'}}' are placeholders that will be substituted with the actual values during deployment.`,
   'backend.form.defaultBackendParameters': 'Default Backend Parameters',
+  'backend.form.flagFormat': 'フラグ形式',
+  'backend.form.flagFormat.tips':
+    'オプションとその値を連結する形式。空欄の場合は各パラメータを入力されたまま保持し、形式を統一しません。',
+  'backend.form.flagFormat.space': 'スペース区切り (--key value)',
+  'backend.form.flagFormat.equal': 'イコール記号 (--key=value)',
+  'backend.form.commonParameters': 'よく使うバックエンドパラメータ',
+  'backend.form.commonParameters.tips':
+    'モデルのデプロイ時にバックエンドパラメータ入力欄の候補として表示されます。',
   'backend.form.versionConfig': 'Versions Config',
   'backend.form.addParameter': 'Add Parameter',
   'backend.form.noVersion': 'No versions added',

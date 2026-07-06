@@ -1,4 +1,4 @@
-import LineChart from '@/components/echarts/line-chart';
+import { LineChart } from '@gpustack/core-ui/charts';
 import { useIntl } from '@umijs/max';
 import dayjs from 'dayjs';
 import _ from 'lodash';
@@ -32,9 +32,14 @@ const TypeKeyMap = {
   }
 };
 
-const UtilizationOvertime: React.FC = () => {
+type ResourceUtilizationProps = {
+  data?: Record<string, any[]>;
+};
+
+const UtilizationOvertime: React.FC<ResourceUtilizationProps> = (props) => {
   const intl = useIntl();
-  const data = useContext(DashboardContext)?.system_load?.history || {};
+  const contextData = useContext(DashboardContext)?.system_load?.history || {};
+  const data = props.data || contextData;
 
   const typeList = ['gpu', 'cpu', 'ram', 'vram'];
 

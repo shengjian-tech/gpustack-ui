@@ -1,5 +1,5 @@
 import { HEADER_HEIGHT } from '@/config/settings';
-import useOverlayScroller from '@/hooks/use-overlay-scroller';
+import { useOverlayScroller } from '@gpustack/core-ui';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CompareContext from '../../config/compare-context';
@@ -39,7 +39,7 @@ const MultiCompare: React.FC<MultiCompareProps> = ({ modelList, loaded }) => {
   const modelsCounterMap = useRef<Record<string, number>>({});
   const modelRefs = useRef<any>({});
   const chatListScrollRef = useRef<any>(null);
-  const boxHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
+  const boxHeight = `calc(100vh - var(--app-banner-height, 0px) - ${HEADER_HEIGHT}px - 2px - var(--page-header-height) - var(--page-content-padding) - var(--page-content-padding))`;
   const [actions, setActions] = useState<MessageItemAction[]>([
     'upload',
     'delete',

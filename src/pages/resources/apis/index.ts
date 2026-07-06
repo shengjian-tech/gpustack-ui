@@ -44,13 +44,15 @@ export async function downloadWorkerPrivateKey({
 export async function queryWorkersList<T extends Record<string, any>>(
   params: Global.SearchParams & T,
   options?: {
-    token: any;
+    token?: any;
+    skipErrorHandler?: boolean;
   }
 ) {
   return request<Global.PageResponse<ListItem>>(`${WORKERS_API}`, {
     method: 'GET',
     params,
-    cancelToken: options?.token
+    cancelToken: options?.token,
+    skipErrorHandler: options?.skipErrorHandler
   });
 }
 

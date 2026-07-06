@@ -38,9 +38,12 @@ export default {
   'noresult.catalog.nofound': 'Eşleşen model bulunamadı.',
   'noresult.resources.cluster':
     'Kullanılabilir küme yok. Başlamak için bir küme ekleyin.',
+  'noresult.resources.k8sCluster':
+    'Kullanılabilir küme yok. Başlamak için bir Kubernetes kümesi ekleyin.',
   'noresult.resources.worker':
     'Kullanılabilir işçi düğüm yok. Başlamak için bir işçi düğüm ekleyin.',
   'noresult.resources.gotocluster': 'İlk Kümenizi Oluşturun',
+  'noresult.resources.addk8scluster': 'Kubernetes Kümesi Ekle',
   'noresult.resources.gotoworker': 'İşçi Düğüm Ekle',
   'noresult.benchmark.title': 'Kıyaslama Yok',
   'noresult.benchmark.subTitle': 'Henüz kıyaslama eklenmedi.',
@@ -54,7 +57,23 @@ export default {
   'noresult.instances.title': 'No instances',
   'noresult.instances.subTitle':
     'There are no running model instances. Deploy a model to create one automatically.',
-  'noresult.instances.nofound': 'No matching instances found.'
+  'noresult.instances.nofound': 'No matching instances found.',
+  'noresult.gpuservice.template.title': 'Örnek Şablonu Yok',
+  'noresult.gpuservice.template.subTitle': 'Henüz örnek şablonu eklenmedi.',
+  'noresult.gpuservice.template.nofound': 'Eşleşen örnek şablonu bulunamadı.',
+  'noresult.gpuservice.instance.title': 'GPU Örneği Yok',
+  'noresult.gpuservice.instance.subTitle': 'Henüz GPU örneği eklenmedi.',
+  'noresult.gpuservice.instance.nofound': 'Eşleşen GPU örneği bulunamadı.',
+  'noresult.gpuservice.storage.title': 'Depolama Yok',
+  'noresult.gpuservice.storage.subTitle': 'Henüz depolama eklenmedi.',
+  'noresult.gpuservice.storage.nofound': 'Eşleşen depolama bulunamadı.',
+  'noresult.gpuservice.storageType.title': 'Depolama Türü Yok',
+  'noresult.gpuservice.storageType.subTitle': 'Henüz depolama türü eklenmedi.',
+  'noresult.gpuservice.storageType.nofound':
+    'Eşleşen depolama türü bulunamadı.',
+  'noresult.gpuservice.sshkey.title': 'SSH Açık Anahtarı Yok',
+  'noresult.gpuservice.sshkey.subTitle': 'Henüz SSH açık anahtarı eklenmedi.',
+  'noresult.gpuservice.sshkey.nofound': 'Eşleşen SSH açık anahtarı bulunamadı.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

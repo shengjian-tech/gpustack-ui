@@ -1,18 +1,15 @@
 import { clusterSessionAtom, fromClusterCreationAtom } from '@/atoms/clusters';
-import DeleteModal from '@/components/delete-modal';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import type { PageActionType } from '@/config/types';
 import useTableFetch from '@/hooks/use-table-fetch';
+import { DeleteModal, FilterBar, IconFont, NoResult } from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table, message } from 'antd';
 import { useAtom } from 'jotai';
 import _ from 'lodash';
 import { useState } from 'react';
-import NoResult from '../_components/no-result';
 import PageBox from '../_components/page-box';
 import {
   createCredential,
@@ -215,6 +212,7 @@ const Credentials: React.FC = () => {
             rowKey="id"
             onChange={handleTableChange}
             pagination={{
+              size: 'middle',
               showSizeChanger: true,
               pageSize: queryParams.perPage,
               current: queryParams.page,

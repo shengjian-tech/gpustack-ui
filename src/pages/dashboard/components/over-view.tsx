@@ -14,7 +14,7 @@ const renderCardItem = (data: {
   desc: string;
   logoUrl?: string;
 }) => {
-  const { label, value, bgColor,desc,logoUrl } = data;
+  const { label, value, bgColor, desc, logoUrl } = data;
   return (
     <>
       {/* <Card
@@ -30,13 +30,10 @@ const renderCardItem = (data: {
         <div className={styles['card-title']}>
           <img src={logoUrl} /> {label}
         </div>
-        <div className={styles['card-val']}>
-          {value}
-        </div>
+        <div className={styles['card-val']}>{value}</div>
         <p className={styles['card-desc']}>{desc}</p>
       </div>
     </>
-    
   );
 };
 const Overview: React.FC = () => {
@@ -67,15 +64,12 @@ const Overview: React.FC = () => {
     <div>
       <Row gutter={[20, 20]} className={styles.row}>
         {overviewConfigs.map((config, index) => (
-          <Col
-            span={12}
-            key={config.key}
-          >
+          <Col span={12} key={config.key}>
             {renderCardItem({
               label: intl.formatMessage({ id: config.label }),
               value: renderValue(_.get(data, config.key, 0)),
               bgColor: config.backgroundColor,
-              desc: intl.formatMessage({ id: config.desc }),
+              desc: config.desc ? intl.formatMessage({ id: config.desc }) : '',
               logoUrl: config.logoUrl
             })}
           </Col>

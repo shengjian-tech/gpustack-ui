@@ -1,18 +1,21 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import SealInput from '@/components/seal-form/seal-input';
-import SealSelect from '@/components/seal-form/seal-select';
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import { modelNameReg, PageAction } from '@/config';
 import { OPENAI_COMPATIBLE } from '@/config/settings';
-import useAppUtils from '@/hooks/use-app-utils';
 import {
   ClusterStatusLabelMap,
   ClusterStatusValueMap
 } from '@/pages/cluster-management/config';
+import {
+  AutoTooltip,
+  Input as CInput,
+  Select as SealSelect,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import styled from 'styled-components';
-import { sourceOptions } from '../config';
+import { DeployFormKeyMap, sourceOptions } from '../config';
 import { useFormContext } from '../config/form-context';
 import { FormData } from '../config/types';
 import BackendForm from './backend';
@@ -21,7 +24,6 @@ import CustomBackend from './custom-backend';
 import LocalPathSource from './local-path-source';
 import ModeField from './mode-field';
 import OnlineSource from './online-source';
-
 const ClusterOption = styled.span`
   display: flex;
   padding: 8px 0;
@@ -67,7 +69,6 @@ const ClusterOption = styled.span`
 `;
 
 interface BasicFormProps {
-  fields?: string[];
   sourceDisable?: boolean;
   sourceList?: Global.BaseOption<string>[];
   clusterList: Global.BaseOption<
@@ -76,6 +77,7 @@ interface BasicFormProps {
       provider: string;
       state: string;
       is_default: boolean;
+      owner_principal_id?: number;
       workers: number;
       ready_workers: number;
       gpus: number;
@@ -87,7 +89,6 @@ interface BasicFormProps {
 
 const BasicForm: React.FC<BasicFormProps> = (props) => {
   const {
-    fields = [],
     sourceList,
     clusterList,
     sourceDisable,
@@ -97,7 +98,7 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
   const intl = useIntl();
   const form = Form.useFormInstance();
   const { getRuleMessage } = useAppUtils();
-  const { onValuesChange, action } = useFormContext();
+  const { onValuesChange, action, formKey } = useFormContext();
 
   const handleOnSourceChange = (val: string) => {
     onSourceChange?.(val);
@@ -110,20 +111,65 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
     }
   };
 
+  // `organization_id` is owned by the create-scope picker slot; it only
+  // appears when a platform admin is in the "All" view. When set, scope the
+  // cluster dropdown to that org's own clusters — the backend derives the
+  // deployment's owner from the chosen cluster, so this keeps them aligned.
+  const scopeOrgId = Form.useWatch('organization_id', form);
+  const prevScopeRef = useRef<number | null | undefined>(undefined);
+
   const clusterOptions = useMemo(() => {
-    return clusterList?.map((item) => {
-      return {
-        label:
-          item.state === ClusterStatusValueMap.Ready
-            ? item.label
-            : `${item.label} [${ClusterStatusLabelMap[item.state as string]}]`,
-        value: item.value,
-        workers: item.workers,
-        ready_workers: item.ready_workers,
-        gpus: item.gpus
-      };
-    });
-  }, [clusterList]);
+    return clusterList
+      ?.filter((item) =>
+        scopeOrgId == null ? true : item.owner_principal_id === scopeOrgId
+      )
+      .map((item) => {
+        return {
+          label:
+            item.state === ClusterStatusValueMap.Ready
+              ? item.label
+              : `${item.label} [${ClusterStatusLabelMap[item.state as string]}]`,
+          value: item.value,
+          state: item.state,
+          is_default: item.is_default,
+          workers: item.workers,
+          ready_workers: item.ready_workers,
+          gpus: item.gpus
+        };
+      });
+  }, [clusterList, scopeOrgId]);
+
+  // On a genuine org change (not the initial value — the modal's open
+  // handler seeds the first cluster), drop a now-out-of-scope cluster and
+  // re-pick within the new org so GPU/backend options refetch for it.
+  useEffect(() => {
+    if (prevScopeRef.current === undefined) {
+      prevScopeRef.current = scopeOrgId;
+      return;
+    }
+    if (prevScopeRef.current === scopeOrgId) {
+      return;
+    }
+    prevScopeRef.current = scopeOrgId;
+
+    const current = form.getFieldValue('cluster_id');
+    const stillValid = clusterOptions?.some((c) => c.value === current);
+    if (stillValid) {
+      return;
+    }
+    const next =
+      clusterOptions?.find((c) => c.is_default)?.value ??
+      clusterOptions?.find((c) => c.state === ClusterStatusValueMap.Ready)
+        ?.value ??
+      clusterOptions?.[0]?.value ??
+      null;
+    form.setFieldValue('cluster_id', next ?? null);
+    if (next != null) {
+      handleClusterChange?.(next as number);
+    }
+    // The prevScopeRef guard above makes this a no-op unless scopeOrgId
+    // actually changed, so listing the other deps is safe (no extra runs).
+  }, [scopeOrgId, clusterOptions, form, handleClusterChange]);
 
   const clusterOptionRender = (option: any) => {
     const { data } = option;
@@ -173,39 +219,39 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
           }
         ]}
       >
-        <SealInput.Input
+        <CInput.Input
           onBlur={handleNameBlur}
           description={intl.formatMessage({ id: 'models.form.rules.name' })}
           label={intl.formatMessage({
             id: 'common.table.name'
           })}
           required
-        ></SealInput.Input>
+        ></CInput.Input>
       </Form.Item>
-      {fields.includes('source') && (
-        <Form.Item<FormData>
-          name="source"
-          rules={[
-            {
-              required: true,
-              message: getRuleMessage('select', 'models.form.source')
-            }
-          ]}
-        >
-          {
-            <SealSelect
-              onChange={handleOnSourceChange}
-              disabled={sourceDisable}
-              label={intl.formatMessage({
-                id: 'models.form.source'
-              })}
-              options={sourceList ?? sourceOptions}
-              required
-            ></SealSelect>
-          }
-        </Form.Item>
-      )}
+      <PluginExtraFields name="CreateOrgScopeField" context={{ action }} />
 
+      <Form.Item<FormData>
+        name="source"
+        hidden={formKey === DeployFormKeyMap.CATALOG}
+        rules={[
+          {
+            required: true,
+            message: getRuleMessage('select', 'models.form.source')
+          }
+        ]}
+      >
+        {
+          <SealSelect
+            onChange={handleOnSourceChange}
+            disabled={sourceDisable}
+            label={intl.formatMessage({
+              id: 'models.form.source'
+            })}
+            options={sourceList ?? sourceOptions}
+            required
+          ></SealSelect>
+        }
+      </Form.Item>
       <OnlineSource></OnlineSource>
       <LocalPathSource></LocalPathSource>
       <Form.Item<FormData>
@@ -240,7 +286,7 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
           }
         ]}
       >
-        <SealInput.Number
+        <CInput.Number
           style={{ width: '100%' }}
           label={intl.formatMessage({
             id: 'models.form.replicas'
@@ -251,15 +297,15 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
             { api: `${window.location.origin}/${OPENAI_COMPATIBLE}` }
           )}
           min={0}
-        ></SealInput.Number>
+        ></CInput.Number>
       </Form.Item>
       <Form.Item<FormData> name="description">
-        <SealInput.TextArea
+        <CInput.TextArea
           scaleSize={true}
           label={intl.formatMessage({
             id: 'common.table.description'
           })}
-        ></SealInput.TextArea>
+        ></CInput.TextArea>
       </Form.Item>
     </>
   );

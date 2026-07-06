@@ -1,5 +1,4 @@
-import SealInput from '@/components/seal-form/seal-input';
-import useAppUtils from '@/hooks/use-app-utils';
+import { Input as CInput, useAppUtils } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import React from 'react';
@@ -32,10 +31,10 @@ const CatalogForm: React.FC = () => {
           }
         ]}
       >
-        <SealInput.Input
+        <CInput.Input
           label={intl.formatMessage({ id: 'models.catalog.precision' })}
           disabled
-        ></SealInput.Input>
+        ></CInput.Input>
       </Form.Item>
     </>
   );

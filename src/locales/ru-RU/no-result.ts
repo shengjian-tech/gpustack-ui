@@ -37,9 +37,12 @@ export default {
   'noresult.catalog.nofound': 'Подходящие модели не найдены.',
   'noresult.resources.cluster':
     'No clusters available. Add a cluster to get started.',
+  'noresult.resources.k8sCluster':
+    'No clusters available. Add a Kubernetes cluster to get started.',
   'noresult.resources.worker':
     'No workers available. Add a worker to get started.',
   'noresult.resources.gotocluster': 'Create Your First Cluster',
+  'noresult.resources.addk8scluster': 'Add a Kubernetes Cluster',
   'noresult.resources.gotoworker': 'Add Worker',
   'noresult.benchmark.title': 'No Benchmarks',
   'noresult.benchmark.subTitle': 'No benchmarks have been added yet.',
@@ -53,7 +56,27 @@ export default {
   'noresult.instances.title': 'No instances',
   'noresult.instances.subTitle':
     'There are no running model instances. Deploy a model to create one automatically.',
-  'noresult.instances.nofound': 'No matching instances found.'
+  'noresult.instances.nofound': 'No matching instances found.',
+  'noresult.gpuservice.template.title': 'Нет шаблонов экземпляров',
+  'noresult.gpuservice.template.subTitle':
+    'Шаблоны экземпляров ещё не добавлены.',
+  'noresult.gpuservice.template.nofound':
+    'Подходящие шаблоны экземпляров не найдены.',
+  'noresult.gpuservice.instance.title': 'Нет экземпляров GPU',
+  'noresult.gpuservice.instance.subTitle': 'Экземпляры GPU ещё не добавлены.',
+  'noresult.gpuservice.instance.nofound':
+    'Подходящие экземпляры GPU не найдены.',
+  'noresult.gpuservice.storage.title': 'Нет хранилищ',
+  'noresult.gpuservice.storage.subTitle': 'Хранилища ещё не добавлены.',
+  'noresult.gpuservice.storage.nofound': 'Подходящие хранилища не найдены.',
+  'noresult.gpuservice.storageType.title': 'Нет типов хранилищ',
+  'noresult.gpuservice.storageType.subTitle': 'Типы хранилищ ещё не добавлены.',
+  'noresult.gpuservice.storageType.nofound':
+    'Подходящие типы хранилищ не найдены.',
+  'noresult.gpuservice.sshkey.title': 'Нет открытых ключей SSH',
+  'noresult.gpuservice.sshkey.subTitle': 'Открытые ключи SSH ещё не добавлены.',
+  'noresult.gpuservice.sshkey.nofound':
+    'Подходящие открытые ключи SSH не найдены.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

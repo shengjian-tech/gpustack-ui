@@ -1,17 +1,19 @@
 import breakpoints from '@/config/breakpoints';
 import HotKeys from '@/config/hotkeys';
 import useWindowResize from '@/hooks/use-window-resize';
-import { ExtraContent } from '@/layouts/extraRender';
 import { modelCategoriesMap } from '@/pages/llmodels/config';
 import { MessageOutlined, OneToOneOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
-import { Divider, Segmented, Tabs, TabsProps } from 'antd';
-import classNames from 'classnames';
+import { Segmented, Tabs, TabsProps } from 'antd';
 import _ from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { PageContainerInner } from '../../_components/page-box';
+import {
+  HeaderLeft,
+  HeaderRight,
+  usePageContentStyle
+} from '../../_components/page-box';
 import { queryModelsList } from '../apis';
 import MultipleChat from '../components/multiple-chat';
 import ViewCodeButtons from '../components/view-code-buttons';
@@ -109,11 +111,11 @@ const Playground: React.FC = () => {
     fetchData();
   }, []);
 
-  const header = useMemo(() => {
-    return {
-      title: (
+  const title = useMemo(() => {
+    return (
+      <div className="flex justify-between items-center">
         <div className="flex items-center">
-          <span className="font-600">
+          <span className="font-600 flex-center">
             {intl.formatMessage({ id: 'menu.playground.chat' })}
           </span>
           {
@@ -123,11 +125,18 @@ const Playground: React.FC = () => {
               className="m-l-24 font-600"
               value={activeKey}
               onChange={(key) => setActiveKey(key)}
+              style={{ fontSize: 13 }}
             ></Segmented>
           }
         </div>
-      )
-    };
+        <ViewCodeButtons
+          handleViewCode={handleViewCode}
+          handleToggleCollapse={handleToggleCollapse}
+          activeKey={activeKey}
+          key="view-code-buttons"
+        />
+      </div>
+    );
   }, [activeKey, optionsList, intl]);
 
   useHotkeys(
@@ -142,38 +151,43 @@ const Playground: React.FC = () => {
     }
   );
 
+  usePageContentStyle({ padding: 0 });
+
   return (
-    <PageContainerInner
-      className={classNames('playground-container', {
-        compare: activeKey === 'compare',
-        chat: activeKey !== 'compare'
-      })}
-      header={header}
-      extra={[
+    <>
+      <HeaderLeft>
+        <div className="flex items-center">
+          <span className="font-600 flex-center">
+            {intl.formatMessage({ id: 'menu.playground.chat' })}
+          </span>
+          <Segmented
+            shape="round"
+            style={{
+              backgroundColor: 'var(--ant-color-fill-secondary)',
+              fontSize: 13
+            }}
+            size="middle"
+            className="m-l-24 font-400"
+            options={optionsList}
+            value={activeKey}
+            onChange={(key) => setActiveKey(key)}
+          ></Segmented>
+        </div>
+      </HeaderLeft>
+      <HeaderRight>
         <ViewCodeButtons
           handleViewCode={handleViewCode}
           handleToggleCollapse={handleToggleCollapse}
           activeKey={activeKey}
           key="view-code-buttons"
-        />,
-        <div key="divider-wrapper">
-          {activeKey === 'chat' && (
-            <Divider
-              key="divider"
-              orientation="vertical"
-              style={{ height: 16, marginInline: 16 }}
-            />
-          )}
-        </div>,
-        <ExtraContent key="extra-content" />
-      ]}
-    >
+        />
+      </HeaderRight>
       <div className="play-ground">
         <div className="chat">
           <Tabs items={items} activeKey={activeKey}></Tabs>
         </div>
       </div>
-    </PageContainerInner>
+    </>
   );
 };
 

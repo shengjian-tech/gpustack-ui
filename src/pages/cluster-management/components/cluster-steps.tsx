@@ -1,6 +1,18 @@
-import { Steps } from 'antd';
+import { Steps, Typography } from 'antd';
+import _ from 'lodash';
 import React from 'react';
 import styled from 'styled-components';
+import { ProviderType } from '../config';
+
+const { Text } = Typography;
+
+const ANTD_STEP_KEYS = [
+  'title',
+  'icon',
+  'status',
+  'disabled',
+  'subTitle'
+] as const;
 
 const Wrapper = styled.div`
   display: flex;
@@ -24,6 +36,11 @@ const Box = styled.div`
     .ant-steps-item-rail-wait {
       --steps-item-solid-line-color: var(--ant-color-split);
     }
+    .ant-steps-item-subtitle {
+      margin-left: 6px;
+      font-size: 13px;
+      color: var(--ant-color-text-tertiary);
+    }
     &:not(.ant-steps-panel) {
       .ant-steps-item-finish {
         --steps-item-icon-bg-color: var(--ant-color-primary);
@@ -36,10 +53,23 @@ const ClusterSteps: React.FC<{
   currentStep: number;
   onChange?: (step: number) => void;
   steps: any[];
+  selectedProvider?: ProviderType;
 }> = (props) => {
   const { steps, currentStep = 0, onChange } = props;
 
-  const visibleSteps = steps.filter((step) => !step.hideInSteps);
+  const visibleSteps = steps
+    .filter((step) => !step.hideInSteps)
+    .map((step, index) => {
+      return {
+        ..._.pick(step, ANTD_STEP_KEYS),
+        subTitle:
+          index === 0 && props.selectedProvider ? (
+            <span>[{props.selectedProvider}]</span>
+          ) : (
+            ''
+          )
+      };
+    });
 
   const styles: Record<string, any> = {
     root: {

@@ -1,7 +1,5 @@
-import CardWrapper from '@/components/card-wrapper';
-import IconFont from '@/components/icon-font';
-import StatusTag from '@/components/status-tag';
 import { StarFilled } from '@ant-design/icons';
+import { CardWrapper, IconFont, StatusTag } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import type { DescriptionsProps } from 'antd';
 import { Descriptions, Tooltip } from 'antd';
@@ -18,10 +16,10 @@ import { useClusterDetail } from '../../services/use-cluster-detail';
 
 const Container = styled.div`
   display: flex;
-  height: 168px;
+  height: 146px;
   .left {
-    padding: 16px 24px;
-    width: 160px;
+    padding: 16px 0px;
+    width: 124px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -58,7 +56,7 @@ const Resources = styled.div`
   gap: 24px;
   align-items: center;
   line-height: 22px;
-  margin-top: 16px;
+  margin-top: 24px;
   .item {
     display: flex;
     align-items: center;
@@ -136,7 +134,6 @@ const ClusterBasic: React.FC<{ clusterId: number }> = ({ clusterId }) => {
                 )}
               </Title>
             }
-            layout="vertical"
             items={items}
           />
           <Resources>
@@ -145,17 +142,23 @@ const ClusterBasic: React.FC<{ clusterId: number }> = ({ clusterId }) => {
               <span className="value">
                 {clusterDetail.ready_workers}/{clusterDetail.workers}
               </span>
-              <span className="label">Workers</span>
+              <span className="label">
+                {intl.formatMessage({ id: 'resources.nodes' })}
+              </span>
             </div>
             <div className="item">
               <IconFont type="icon-rocket-launch-fill"></IconFont>
               <span className="value">{clusterDetail.models}</span>
-              <span className="label">Deployments</span>
+              <span className="label">
+                {intl.formatMessage({ id: 'clusters.table.deployments' })}
+              </span>
             </div>
             <div className="item">
               <IconFont type="icon-gpu"></IconFont>
               <span className="value">{clusterDetail.gpus}</span>
-              <span className="label">GPUs</span>
+              <span className="label">
+                {intl.formatMessage({ id: 'menu.resources.gpus' })}
+              </span>
             </div>
           </Resources>
         </div>

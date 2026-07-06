@@ -1,11 +1,14 @@
-import AlertBlockInfo from '@/components/alert-info/block';
-import CopyButton from '@/components/copy-button';
-import ModalFooter from '@/components/modal-footer';
-import GSDrawer from '@/components/scroller-modal/gs-drawer';
-import SealInput from '@/components/seal-form/seal-input';
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import ColumnWrapper from '@/pages/_components/column-wrapper';
+import useSubmitLock from '@/hooks/use-submit-lock';
+import {
+  AlertBlockInfo,
+  Input as CInput,
+  ColumnWrapper,
+  CopyButton,
+  GSDrawer,
+  ModalFooter
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form, Tag } from 'antd';
 import dayjs from 'dayjs';
@@ -43,7 +46,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const intl = useIntl();
   const [showKey, setShowKey] = useState(false);
   const [apikeyValue, setAPIKeyValue] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { loading, guard, run, release } = useSubmitLock();
   const [isChanged, setIsChanged] = useState(false);
   const cacheFormRef = useRef<{
     allowed_type: string;
@@ -96,6 +99,13 @@ const AddModal: React.FC<AddModalProps> = ({
       expires_in: getExpireValue(data.expires_in)
     };
     const res = await createApisKey({ data: params });
+    onOk();
+    // if custom value
+    if (data.custom) {
+      onCancel();
+      return;
+    }
+
     setAPIKeyValue(res.value);
     setShowKey(true);
   };
@@ -103,37 +113,39 @@ const AddModal: React.FC<AddModalProps> = ({
   const updateAPIKey = async (data: FormData) => {
     await updateApisKey(currentData?.id as number, { data });
     onOk();
+    onCancel();
   };
 
   const handleOnOk = async (formdata: FormData) => {
-    try {
-      setLoading(true);
-      const data = {
-        ..._.omit(formdata, ['allowed_type']),
-        allowed_model_names:
-          formdata.allowed_type === 'all'
-            ? []
-            : formdata.allowed_model_names || []
-      };
-      if (action === PageAction.CREATE) {
-        await createAPIKey(data);
-      } else if (action === PageAction.EDIT && currentData?.id) {
-        await updateAPIKey({
-          ..._.omit(data, ['expires_in'])
-        });
+    await run(async () => {
+      try {
+        const data = {
+          ..._.omit(formdata, ['allowed_type']),
+          allowed_model_names:
+            formdata.allowed_type === 'all' ||
+            !formdata.scope?.includes('inference')
+              ? []
+              : formdata.allowed_model_names || []
+        };
+        if (action === PageAction.CREATE) {
+          await createAPIKey(data);
+        } else if (action === PageAction.EDIT && currentData?.id) {
+          await updateAPIKey({
+            ..._.omit(data, ['expires_in'])
+          });
+        }
+      } catch (error) {
+        // handled in interceptor
       }
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-    }
+    });
   };
 
   const handleSumit = () => {
-    form.submit();
+    guard(() => form.submit());
   };
 
   const handleDone = () => {
-    onOk();
+    onCancel();
   };
 
   const handleAfterOpenChange = (isOpen: boolean) => {
@@ -173,14 +185,20 @@ const AddModal: React.FC<AddModalProps> = ({
     }
     if (action === PageAction.EDIT && currentData && open) {
       parseExpireValue(currentData as ListItem);
+      const isLegacyAllScope = currentData.scope?.includes('*');
+      const normalizedScope = isLegacyAllScope
+        ? ['management', 'inference']
+        : currentData.scope;
+      const normalizedAllowedModelNames = isLegacyAllScope
+        ? []
+        : currentData.allowed_model_names || [];
       form.setFieldsValue({
         name: currentData.name,
         description: currentData.description,
-        allowed_type: currentData.allowed_model_names?.length
-          ? 'custom'
-          : 'all',
+        scope: normalizedScope,
+        allowed_type: normalizedAllowedModelNames.length ? 'custom' : 'all',
         expires_in: parseExpireValue(currentData as ListItem),
-        allowed_model_names: currentData.allowed_model_names || []
+        allowed_model_names: normalizedAllowedModelNames
       });
     }
 
@@ -191,10 +209,11 @@ const AddModal: React.FC<AddModalProps> = ({
   };
 
   useEffect(() => {
-    initValues();
     if (!open) {
       setIsChanged(false);
       cacheFormRef.current = {} as any;
+    } else {
+      initValues();
     }
   }, [open]);
 
@@ -260,7 +279,13 @@ const AddModal: React.FC<AddModalProps> = ({
           name="addAPIKey"
           form={form}
           onFinish={handleOnOk}
+          onFinishFailed={release}
           preserve={false}
+          initialValues={{
+            allowed_type: 'all',
+            scope: ['inference'],
+            allowed_model_names: []
+          }}
         >
           {!showKey && (
             <APIKeyForm
@@ -284,7 +309,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   {intl.formatMessage({ id: 'apikeys.table.save.tips' })}
                 </Tag>
               </div>
-              <SealInput.Input
+              <CInput.Input
                 label={intl.formatMessage({ id: 'apikeys.form.apikey' })}
                 value={apikeyValue}
                 addAfter={
@@ -295,7 +320,7 @@ const AddModal: React.FC<AddModalProps> = ({
                     type="text"
                   ></CopyButton>
                 }
-              ></SealInput.Input>
+              ></CInput.Input>
             </Form.Item>
           )}
         </Form>

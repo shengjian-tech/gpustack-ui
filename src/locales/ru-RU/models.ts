@@ -63,6 +63,8 @@ export default {
   'models.table.layers': 'Слои',
   'models.form.backend': 'Бэкенд',
   'models.form.backend_parameters': 'Параметры бэкенда',
+  'models.instance.params.configured': 'User Configured',
+  'models.instance.params.autoInjected': 'Автовнедрённые параметры',
   'models.search.gguf.tips':
     'GGUF-модели используют llama-box (поддерживает Linux, macOS и Windows).',
   'models.search.vllm.tips':
@@ -156,6 +158,7 @@ export default {
   'models.table.apiAccessInfo.modelName': 'Имя модели',
   'models.table.apiAccessInfo.apikey': 'Ключ API',
   'models.table.apiAccessInfo.openaiCompatible': 'Совместимо с OpenAI',
+  'models.table.apiAccessInfo.anthropicCompatible': 'Совместимо с Anthropic',
   'models.table.apiAccessInfo.jinaCompatible': 'Совместимо с Jina',
   'models.table.apiAccessInfo.gotoCreate': 'Перейти к созданию',
   'models.search.parts': '{n} частей',
@@ -285,7 +288,19 @@ export default {
     'Not enabled yet. Will be enabled after deployment. ',
   'models.table.instance.benchmark': 'Run Benchmark',
   'models.table.modelView': 'Model List',
-  'models.table.instanceView': 'Instance List'
+  'models.table.instanceView': 'Instance List',
+  'models.table.category': 'Category',
+  'models.instance.currentRun': 'Current Run',
+  'models.instance.previousRun': 'Previous Run',
+  'models.instance.startHistory': 'Run History',
+  'models.instance.startHistory.tips':
+    'Shows logs from the run before the last error-triggered restart.',
+  'models.form.lora.label': 'LoRA Adapters',
+  'models.form.lora.add': 'Add LoRA Adapter',
+  'models.form.lora.select': 'Select LoRA',
+  'models.form.lora.name': 'LoRA name',
+  'models.form.lora.rule.empty': 'Input cannot be empty',
+  'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -297,5 +312,12 @@ export default {
 // 4. 'models.form.backend.vllm': 'Built-in support for NVIDIA, AMD, Ascend, Hygon, Moore Threads, Iluvatar, MetaX, T-Head PPU devices.',
 // 5.  'models.form.backend.sglang': 'Built-in support for NVIDIA, AMD, Ascend, Moore Threads, MetaX, T-Head PPU devices.',
 // 6.  'models.table.modelView': 'Model List',
-// 7.  'models.table.instanceView': 'Instance List'
+// 7.  'models.table.instanceView': 'Instance List',
+// 8. 'models.table.category': 'Category',
+// 9. 'models.form.lora.label': 'LoRA Adapter',
+// 10. 'models.form.lora.add': 'Add LoRA Adapter',
+// 11. 'models.form.lora.select': 'Select LoRA',
+// 12. 'models.form.lora.name': 'LoRA name',
+// 13. 'models.form.lora.rule.empty': 'Input cannot be empty',
+// 14. 'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 // ========== End of To-Do List ==========

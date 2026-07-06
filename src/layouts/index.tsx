@@ -1,29 +1,46 @@
 import { routeCacheAtom, setRouteCache } from '@/atoms/route-cache';
 import { userAtom } from '@/atoms/user';
 import DarkMask from '@/components/dark-mask';
-import IconFont from '@/components/icon-font';
+import '@/components/iconfont/iconfont.js';
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import routeCachekey from '@/config/route-cachekey';
-import { DEFAULT_ENTER_PAGE } from '@/config/settings';
-import useOverlayScroller from '@/hooks/use-overlay-scroller';
+import { DEFAULT_ENTER_PAGE, GPUSTACK_API_BASE_URL } from '@/config/settings';
+import { COLOR_PRIMARY } from '@/config/theme';
+import useCurrentUser from '@/hooks/use-current-user';
+import useTableFetch from '@/hooks/use-table-fetch';
 import useUserSettings from '@/hooks/use-user-settings';
+import useUserSettingsStorage from '@/hooks/use-user-settings-storage';
 import useAddResource from '@/pages/dashboard/hooks/use-add-resource';
 import { logout } from '@/pages/login/apis';
+import { didInitialStateProbe, probeAccessFlags } from '@/utils/access-probes';
+import {
+  readColumnSettings,
+  readState,
+  writeColumnSettings,
+  writeState
+} from '@/utils/localstore';
 import { useAccessMarkedRoutes } from '@@/plugin-access';
 import { useModel } from '@@/plugin-model';
 import { ProLayout } from '@ant-design/pro-components';
+import { CoreUIProvider } from '@gpustack/core-ui';
 import {
+  Access,
+  Link,
   Outlet,
   dropByCacheKey,
+  getAllLocales,
   history,
   matchRoutes,
+  request,
+  setLocale,
+  useAccess,
   useAppData,
   useIntl,
   useLocation,
   useNavigate,
   type IRoute
 } from '@umijs/max';
-import { Button, ConfigProvider, Modal, theme } from 'antd';
-import 'driver.js/dist/driver.css';
+import { ConfigProvider, Modal, theme } from 'antd';
 import { useAtom } from 'jotai';
 import 'overlayscrollbars/overlayscrollbars.css';
 import { useEffect, useMemo, useRef } from 'react';
@@ -34,28 +51,12 @@ import { LogoIcon, SLogoIcon } from './Logo';
 import ErrorBoundary from './error-boundary';
 import { ExtraContent } from './extraRender';
 import { patchRoutes } from './runtime';
-import SiderMenu from './sider-menu';
-
-// Pages that use the page container in the page
-const NO_CONTAINER_PAGES = [
-  'chat',
-  'rerank',
-  'embedding',
-  'speech',
-  'image',
-  'text2images',
-  'clusterDetail',
-  'clusterCreate',
-  'benchmarkDetail',
-  'deployment',
-  'video'
-];
 
 const CHECK_RESOURCE_PATH = [
   '/resources/workers',
-  '/cluster-management/clusters/list',
-  '/cluster-management/credentials',
-  '/cluster-management/clusters/create'
+  '/resources/clusters/list',
+  '/resources/credentials',
+  '/resources/clusters/create'
 ];
 
 type NewRoute = IRoute & {
@@ -74,7 +75,7 @@ const filterRoutes = (
     return [];
   }
 
-  let newRoutes: NewRoute[] = [];
+  const newRoutes: NewRoute[] = [];
   for (const route of routes) {
     const newRoute = { ...route };
     if (filterFn(route)) {
@@ -116,9 +117,6 @@ const mapRoutes = (routes: IRoute[], role: string) => {
 };
 
 export default (props: any) => {
-  const { initialize: initialize } = useOverlayScroller({
-    defer: false
-  });
   const [, contextHolder] = Modal.useModal();
   const { themeData, setUserSettings, userSettings } = useUserSettings();
   const [userInfo] = useAtom(userAtom);
@@ -142,6 +140,51 @@ export default (props: any) => {
   };
 
   const { initialState, loading, setInitialState } = initialInfo;
+  const access = useAccess();
+  const probedForUserRef = useRef<string | null>(null);
+
+  // Backfill the access probes (cluster / resource-events) once we're in
+  // the authenticated shell. `getInitialState` runs only once at app
+  // boot and can't probe on the login page (no session => 401), so after
+  // a first login the flags arrive here as `undefined` — which the
+  // access predicate treats as "don't restrict", flashing GPU Service /
+  // the full Usage page on until a manual refresh. This layout mounts
+  // only post-auth (login is `layout:false`) and on every entry, so it's
+  // the reliable place to resolve them.
+  //
+  // The effect is keyed on the user IDENTITY, not on the flag values —
+  // gating on the flags is what made this fragile (on a refresh
+  // `getInitialState` commits `currentUser` and the flags in the same
+  // update, so a flag-gated effect sees them already-known and never
+  // fires). Whether to actually hit the network is decided by the
+  // module-scoped `didInitialStateProbe()` marker, which is true only
+  // when `getInitialState` already probed for an authenticated user this
+  // page load (the refresh path) — so we skip the duplicate request there
+  // but still probe on the SPA-login path. Keying on identity also
+  // re-probes correctly if the signed-in user changes.
+  const currentUser = initialState?.currentUser;
+  const username = currentUser?.username;
+
+  useEffect(() => {
+    if (!username || !setInitialState) {
+      return;
+    }
+    if (probedForUserRef.current === username) {
+      return;
+    }
+    probedForUserRef.current = username;
+    // The refresh path already resolved the flags inside `getInitialState`
+    // for this user — don't issue a duplicate probe.
+    if (didInitialStateProbe()) {
+      return;
+    }
+    probeAccessFlags().then((accessFlags) => {
+      setInitialState((prev: any) => ({
+        ...prev,
+        ...accessFlags
+      }));
+    });
+  }, [username, setInitialState]);
 
   const userConfig = {
     title: '',
@@ -159,7 +202,7 @@ export default (props: any) => {
   };
 
   const dropRouteCache = (pathname: string) => {
-    for (let key of routeCache.keys()) {
+    for (const key of routeCache.keys()) {
       if (key !== pathname && !routeCache.get(key) && routeCachekey[key]) {
         dropByCacheKey(key);
         routeCache.delete(key);
@@ -178,13 +221,8 @@ export default (props: any) => {
     notFound: <span>404 not found</span>
   };
 
-  const handleToggleCollapse = (e: any) => {
-    e.stopPropagation();
-    setUserSettings({
-      ...userSettings,
-      collapsed: !userSettings.collapsed
-    });
-  };
+  const coreUISlots = useMemo(() => ({ ExtraContent }), []);
+
   const newRoutes = filterRoutes(
     // @ts-ignore
     clientRoutes.filter((route) => route.id === 'max-tabs'),
@@ -198,7 +236,7 @@ export default (props: any) => {
 
   const role = initialState?.currentUser?.is_admin ? 'admin' : 'user';
   const [route] = useAccessMarkedRoutes(mapRoutes(newRoutes, role));
-
+  console.log('route++++++++', route, clientRoutes);
   patchRoutes({
     routes: route.children,
     initialState: initialInfo.initialState
@@ -208,61 +246,23 @@ export default (props: any) => {
     () => matchRoutes(route?.children || [], location.pathname)?.pop?.()?.route,
     [location.pathname]
   );
-
-  const isNoContainerPage = useMemo(() => {
-    // @ts-ignore
-    return NO_CONTAINER_PAGES.includes(matchedRoute?.name as string);
-  }, [matchedRoute]);
-
-  useEffect(() => {
-    const body = document.querySelector('body');
-    if (body) {
-      const ins = initialize(body);
-      window.__GPUSTACK_BODY_SCROLLER__ = ins;
-    }
-  }, [initialize]);
-
-  const collapsed = useMemo(() => {
-    return userSettings.collapsed || false;
-  }, [userSettings.collapsed]);
+  const pageContainerKey = matchedRoute?.path || location.pathname;
 
   const renderMenuHeader = (logo: React.ReactNode, title: React.ReactNode) => {
-    return (
-      <>
-        {logo}
-        {/* <div className="collapse-wrap" onClick={handleToggleCollapse}>
-          <Button
-            style={{
-              marginRight: collapsed ? 0 : -14,
-              border: 'none',
-              cursor: 'w-resize'
-            }}
-            size="small"
-            type={collapsed ? 'default' : 'text'}
-          >
-            <IconFont
-              type={collapsed ? 'icon-expand-left' : 'icon-expand-right'}
-              className="font-size-18 text-secondary"
-              style={{
-                display: 'block'
-              }}
-            />
-          </Button>
-        </div> */}
-      </>
-    );
-  };
-
-  const menuContentRender = (menuProps: any, defaultDom: React.ReactNode) => {
-    return <SiderMenu {...menuProps}></SiderMenu>;
+    return <>{logo}</>;
   };
 
   const menuItemRender = (item: any, defaultDom: React.ReactNode) => {
-    if (!item || !item.path) return defaultDom;
+    if (!item || !item.path) {
+      return defaultDom;
+    }
+
+    const path = item.path.replace('/*', '');
+
     return (
-      <div onClick={() => navigate(item.path)}>
+      <Link to={path} target={item.target}>
         {defaultDom}
-      </div>
+      </Link>
     );
   };
 
@@ -293,7 +293,14 @@ export default (props: any) => {
     if (!initialState?.currentUser && location.pathname !== loginPath) {
       history.push(loginPath);
     } else if (location.pathname === '/') {
-      const pathname = initialState?.currentUser?.is_admin
+      // Pick a landing route the caller can actually see. Access
+      // extensions can narrow ``canSeeAdmin`` to ``false`` even when
+      // ``currentUser.is_admin`` is ``true``; pushing an admin to
+      // ``/dashboard`` (gated by ``canSeeAdmin``) in that case
+      // dead-ends in ``Exception`` 403 → redirect-to-``/`` →
+      // re-push, looping into a blank screen. Honoring the resolved
+      // predicate keeps the user on a route they can render.
+      const pathname = access?.canSeeAdmin
         ? DEFAULT_ENTER_PAGE.adminForNormal
         : DEFAULT_ENTER_PAGE.user;
       history.push(pathname);
@@ -303,7 +310,7 @@ export default (props: any) => {
   const onMenuHeaderClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const pagepath = initialState?.currentUser?.is_admin
+    const pagepath = access?.canSeeAdmin
       ? DEFAULT_ENTER_PAGE.adminForNormal
       : DEFAULT_ENTER_PAGE.user;
 
@@ -324,7 +331,6 @@ export default (props: any) => {
   return (
     <ConfigProvider
       componentSize="large"
-      key={userSettings.colorPrimary}
       theme={{
         algorithm: userSettings.isDarkTheme
           ? theme.darkAlgorithm
@@ -342,61 +348,93 @@ export default (props: any) => {
         }
       }}
     >
-      <DarkMask></DarkMask>
-      <ProLayout
-        fixSiderbar
-        fixedHeader={true}
-        breadcrumbRender={false}
-        route={route}
-        location={location}
-        title={userConfig.title}
-        navTheme={userSettings.theme}
-        layout="top"
-        contentWidth="Fixed"
-        openKeys={false}
-        disableMobile={true}
-        siderWidth={220}
-        onCollapse={onCollapse}
-        onMenuHeaderClick={onMenuHeaderClick}
-        menuHeaderRender={renderMenuHeader}
-        onPageChange={onPageChange}
-        formatMessage={formatMessage}
-        menu={{
-          locale: true,
-          type: 'group',
+      <CoreUIProvider
+        config={{
+          apiBaseUrl: GPUSTACK_API_BASE_URL,
+          theme: userSettings.theme,
+          iconUrl: '',
+          isDarkTheme: userSettings.isDarkTheme,
+          defaultColorPrimary: COLOR_PRIMARY
         }}
-        splitMenus={true}
-        logo={userSettings.collapsed ? <SLogoIcon /> : <LogoIcon />}
-        menuContentRender={menuContentRender}
-        menuItemRender={menuItemRender}
-        {...runtimeConfig}
-        ErrorBoundary={ErrorBoundary}
-        // @ts-ignore
-        extra={[
-          <ExtraContent
-            key="extra-content"
-            isDarkTheme={userSettings.isDarkTheme}
-          />
-        ]}
+        hooks={{
+          useUserSettings,
+          useUserSettingsStorage,
+          useIntl,
+          useCurrentUser,
+          useTableFetch
+        }}
+        i18n={intl}
+        locale={{
+          getAllLocales: getAllLocales,
+          setLocale: setLocale
+        }}
+        services={{
+          request: request,
+          router: {
+            push: (path: string) => navigate(path),
+            replace: (path: string) => navigate(path, { replace: true }),
+            goBack: () => navigate(-1)
+          }
+        }}
+        localStore={{
+          readColumnSettings,
+          writeColumnSettings,
+          readState,
+          writeState
+        }}
+        slots={coreUISlots}
+        access={{ Access, useAccess }}
       >
-        <Exception
-          route={matchedRoute}
-          notFound={runtimeConfig?.notFound}
-          noFound={runtimeConfig?.noFound}
-          unAccessible={runtimeConfig?.unAccessible}
-          noAccessible={runtimeConfig?.noAccessible}
+        <DarkMask></DarkMask>
+        <ProLayout
+          fixSiderbar
+          fixedHeader={true}
+          breadcrumbRender={false}
+          route={route}
+          location={location}
+          title={userConfig.title}
+          navTheme={userSettings.theme}
+          layout="top"
+          contentWidth="Fixed"
+          contentStyle={{
+            paddingBlock: 0,
+            paddingInline: 0
+          }}
+          openKeys={false}
+          disableMobile={true}
+          siderWidth={220}
+          onCollapse={onCollapse}
+          onMenuHeaderClick={onMenuHeaderClick}
+          menuHeaderRender={renderMenuHeader}
+          collapsed={userSettings.collapsed}
+          onPageChange={onPageChange}
+          formatMessage={formatMessage}
+          menu={{
+            locale: true,
+            type: 'group'
+          }}
+          splitMenus={true}
+          logo={userSettings.collapsed ? <SLogoIcon /> : <LogoIcon />}
+          menuItemRender={menuItemRender}
+          {...runtimeConfig}
+          ErrorBoundary={ErrorBoundary}
         >
-          {isNoContainerPage ? (
-            <Outlet />
-          ) : (
-            <PageContainerInner>
+          <PluginExtraFields name="GlobalLicenseBanner" />
+          <Exception
+            route={matchedRoute}
+            notFound={runtimeConfig?.notFound}
+            noFound={runtimeConfig?.noFound}
+            unAccessible={runtimeConfig?.unAccessible}
+            noAccessible={runtimeConfig?.noAccessible}
+          >
+            <PageContainerInner key={pageContainerKey}>
               <Outlet />
             </PageContainerInner>
-          )}
-        </Exception>
-        {NoResourceModal}
-        {contextHolder}
-      </ProLayout>
+          </Exception>
+          {NoResourceModal}
+          {contextHolder}
+        </ProLayout>
+      </CoreUIProvider>
     </ConfigProvider>
   );
 };

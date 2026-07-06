@@ -1,6 +1,7 @@
 export default {
   'resources.title': 'リソース',
   'resources.nodes': 'ノード',
+  'resources.container': 'コンテナ',
   'resources.button.create': 'ワーカーを追加',
   'resources.button.edit': 'ワーカーを編集',
   'resources.button.edittags': 'ラベルを編集',
@@ -98,6 +99,7 @@ export default {
   'resources.worker': 'Worker',
   'resources.modelfiles.form.exsting': 'Downloaded',
   'resources.modelfiles.form.added': 'Added',
+  'resources.modelfiles.form.isLora': 'Is LoRA',
   'resources.worker.maintenance.title': 'System Maintenance',
   'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
   'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
@@ -110,7 +112,12 @@ export default {
     'No available clusters. Please create a cluster before adding a node.',
   'resources.metrics.details': 'Monitoring',
   'resoureces.worker.upgrade.tips':
-    'Please upgrade to match the GPUStack Server version.'
+    'Please upgrade to match the GPUStack Server version.',
+  'resources.worker.version': 'Worker Version: {version}',
+  'resources.server.version': 'Server Version: {version}',
+  'resources.worker.currentVersion': 'Current Version: {version}',
+  'resources.worker.targetVersion': 'Target Version: {version}',
+  'resources.driver.version': 'Driver Version: {version}'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

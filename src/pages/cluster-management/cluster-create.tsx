@@ -1,7 +1,7 @@
 import { systemConfigAtom } from '@/atoms/system';
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import ColumnWrapper from '@/pages/_components/column-wrapper';
+import { ColumnWrapper } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { useAtom } from 'jotai';
 import _ from 'lodash';
@@ -55,17 +55,29 @@ const MainWrapper = styled.div`
 
 const ClusterCreate: React.FC<{
   action: PageActionType;
+  // Preselect a provider and skip the provider-catalog step. Set by
+  // empty-state CTAs that already know which kind of cluster the user
+  // is heading for (e.g. GPU Service's "Add a Kubernetes Cluster").
+  providerHint?: string;
+  presetClusterType?: 'model' | 'gpu';
   setCurrentTitle?: (title: string) => void;
   onClose?: () => void;
-}> = ({ onClose, action, setCurrentTitle }) => {
-  const startStep = 0;
+}> = ({
+  onClose,
+  action,
+  providerHint,
+  presetClusterType,
+  setCurrentTitle
+}) => {
   const stepList = useStepList();
   const [systemConfigState] = useAtom(systemConfigAtom);
   const intl = useIntl();
   const [credentialList, setCredentialList] = useState<
     Global.BaseOption<number, { provider: ProviderType }>[]
   >([]);
-  const [currentStep, setCurrentStep] = useState<number>(startStep);
+  // When the caller already picked a provider for us, start one step
+  // in — provider catalog is step 0; configure is step 1.
+  const [currentStep, setCurrentStep] = useState<number>(providerHint ? 1 : 0);
   const [registrationInfo, setRegistrationInfo] = useState<{
     token: string;
     image: string;
@@ -79,7 +91,7 @@ const ClusterCreate: React.FC<{
     cluster_id: 0
   });
   const [extraData, setExtraData] = useState<ClusterFormData>({
-    provider: ProviderValueMap.Docker
+    provider: (providerHint as ProviderType) ?? ProviderValueMap.Docker
   } as ClusterFormData);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
@@ -326,12 +338,18 @@ const ClusterCreate: React.FC<{
     <MainWrapper>
       {!isAddWorkerStep && (
         <StepWrapper>
-          <ClusterSteps steps={steps} currentStep={currentStep}></ClusterSteps>
+          <ClusterSteps
+            steps={steps}
+            currentStep={currentStep}
+            selectedProvider={extraData.provider}
+          ></ClusterSteps>
         </StepWrapper>
       )}
       <ColumnWrapper
         maxHeight={
-          isAddWorkerStep ? 'calc(100vh - 200px)' : 'calc(100vh - 150px)'
+          isAddWorkerStep
+            ? 'calc(100vh - var(--app-banner-height, 0px) - 200px)'
+            : 'calc(100vh - var(--app-banner-height, 0px) - 150px)'
         }
         styles={{
           container: { paddingTop: 16, paddingBottom: 16 }
@@ -349,7 +367,12 @@ const ClusterCreate: React.FC<{
         }
       >
         <div style={{ flex: 1 }}>
-          {currentStep === startStep && (
+          {currentStep === 0 && (
+            // Catalog belongs to step 0 only. The previous gate used
+            // ``startStep`` which is 1 when ``providerHint`` skips the
+            // catalog — that wrongly re-rendered it on top of the
+            // configure form for entry points like "Add a Kubernetes
+            // Cluster".
             <ProviderCatalog
               cols={2}
               dataList={providerList}
@@ -361,6 +384,7 @@ const ClusterCreate: React.FC<{
           )}
           <StepsContext.Provider
             value={{
+              presetClusterType: presetClusterType,
               formValues: formValues,
               systemConfig: systemConfigState
             }}

@@ -1,17 +1,11 @@
-import LabelSelector from '@/components/label-selector';
+import { LabelSelector } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
 import { FormData } from '../config/types';
 
 const LabelsForm: React.FC = () => {
-  const form = Form.useFormInstance();
-  const labels = Form.useWatch('labels', form);
   const intl = useIntl();
-
-  const handleLabelsChange = (labels: object) => {
-    form.setFieldValue('labels', labels);
-  };
 
   return (
     <Form.Item<FormData>
@@ -44,9 +38,7 @@ const LabelsForm: React.FC = () => {
         label={intl.formatMessage({
           id: 'resources.table.labels'
         })}
-        labels={labels}
         btnText={intl.formatMessage({ id: 'common.button.addLabel' })}
-        onChange={handleLabelsChange}
       ></LabelSelector>
     </Form.Item>
   );

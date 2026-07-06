@@ -38,6 +38,10 @@ export interface GPUDeviceItem {
   worker_id: number;
   worker_name: string;
   worker_ip: string;
+  cluster_id?: number;
+  // Denormalized from the parent worker → cluster on the wire so
+  // per-row tenant filtering works without joining.
+  owner_principal_id?: number | null;
 }
 
 export interface Filesystem {
@@ -65,6 +69,9 @@ export interface ListItem {
   state: string;
   ip: string;
   cluster_id: number;
+  // Denormalized from the parent cluster on the wire so per-row
+  // tenant filtering works without joining.
+  owner_principal_id?: number | null;
   state_message: string;
   ssh_key_id: string;
   advertise_address: string;
@@ -116,6 +123,7 @@ export interface ModelFile {
   local_path: string;
   local_dir: string;
   worker_id: number;
+  owner_principal_id?: number | null;
   size: number;
   download_progress: number;
   resolved_paths: string[];
@@ -124,6 +132,7 @@ export interface ModelFile {
   id: number;
   created_at: string;
   updated_at: string;
+  is_lora: boolean;
 }
 
 export interface ModelFileFormData {
@@ -135,4 +144,5 @@ export interface ModelFileFormData {
   model_scope_file_path: string;
   local_path: string;
   local_dir: string;
+  is_lora: boolean;
 }

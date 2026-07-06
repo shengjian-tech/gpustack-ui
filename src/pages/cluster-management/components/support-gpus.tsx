@@ -7,12 +7,12 @@ import mooreLogo from '@/assets/logo/moore-logo.png';
 import nvidiaLogo from '@/assets/logo/nvidia.png';
 import theadLogoEN from '@/assets/logo/t-head-en.png';
 import theadLogoZH from '@/assets/logo/t-head-zh.png';
-import IconFont from '@/components/icon-font';
 import useUserSettings from '@/hooks/use-user-settings';
 import {
   AddWorkerDockerNotes,
   GPUDriverMap
 } from '@/pages/resources/config/gpu-driver';
+import { IconFont } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import styled from 'styled-components';
 import ProviderCatalog from './provider-catalog';
@@ -24,6 +24,7 @@ const Box = styled.div`
     background-color: rgba(255, 255, 255, 0.1);
     &.active {
       background-color: var(--ant-color-fill-tertiary);
+      border-color: var(--ant-color-primary);
     }
     .template-card-icon {
       margin-right: 0;
@@ -57,6 +58,7 @@ const Box = styled.div`
       }
       &.active {
         background-color: var(--ant-color-bg-solid);
+        border-color: var(--ant-color-primary);
       }
     }
   }
@@ -76,14 +78,19 @@ const ProviderImage = ({ src, height }: { src: string; height?: number }) => {
 
 interface SupportedHardwareProps {
   onSelect?: (provider: string, item: any) => void;
-  current?: string;
+  // Single (legacy) or array of selected GPU driver keys (multi-select).
+  current?: string | string[];
   clickable?: boolean;
+  // Set of GPU driver keys that are valid to pick. When provided, items
+  // outside this set render as disabled. Undefined means "no restriction".
+  availableKeys?: Set<string>;
 }
 
 const SupportedHardware: React.FC<SupportedHardwareProps> = ({
   onSelect,
   clickable,
-  current
+  current,
+  availableKeys
 }) => {
   const intl = useIntl();
   const { userSettings } = useUserSettings();
@@ -139,6 +146,16 @@ const SupportedHardware: React.FC<SupportedHardwareProps> = ({
       icon: <ProviderImage src={hyponPNG} height={18} />
     },
     {
+      label: intl.formatMessage({ id: 'vendor.metax' }),
+      hiddenTitle: true,
+      value: GPUDriverMap.METAX,
+      key: GPUDriverMap.METAX,
+      locale: false,
+      link: 'https://docs.gpustack.ai/latest/installation/requirements/#metax-gpu',
+      notes: AddWorkerDockerNotes[GPUDriverMap.METAX],
+      icon: <ProviderImage src={metaxLogo} height={20} />
+    },
+    {
       label: intl.formatMessage({ id: 'vendor.moorthreads' }),
       hiddenTitle: true,
       extra: intl.formatMessage({ id: 'common.tag.experimental' }),
@@ -172,17 +189,6 @@ const SupportedHardware: React.FC<SupportedHardwareProps> = ({
       icon: <ProviderImage src={CambriconPNG} height={24} />
     },
     {
-      label: intl.formatMessage({ id: 'vendor.metax' }),
-      hiddenTitle: true,
-      extra: intl.formatMessage({ id: 'common.tag.experimental' }),
-      value: GPUDriverMap.METAX,
-      key: GPUDriverMap.METAX,
-      locale: false,
-      link: 'https://docs.gpustack.ai/latest/installation/requirements/#metax-gpu',
-      notes: AddWorkerDockerNotes[GPUDriverMap.METAX],
-      icon: <ProviderImage src={metaxLogo} height={20} />
-    },
-    {
       label: `${intl.formatMessage({ id: 'vendor.thead' })} `,
       hiddenTitle: true,
       extra: intl.formatMessage({ id: 'common.tag.experimental' }),
@@ -200,13 +206,20 @@ const SupportedHardware: React.FC<SupportedHardwareProps> = ({
     }
   ];
 
+  const platformsWithDisabled = availableKeys
+    ? supportedHardPlatforms.map((p) => ({
+        ...p,
+        disabled: !availableKeys.has(p.value)
+      }))
+    : supportedHardPlatforms;
+
   return (
     <Box className={userSettings?.theme === 'realDark' ? 'dark-theme' : ''}>
       <ProviderCatalog
         onSelect={onSelect}
         height={60}
         current={current}
-        dataList={supportedHardPlatforms}
+        dataList={platformsWithDisabled}
         clickable={clickable}
         showTooltip={true}
         cols={5}

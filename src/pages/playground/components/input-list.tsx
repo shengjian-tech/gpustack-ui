@@ -1,4 +1,4 @@
-import RowTextarea from '@/components/seal-form/row-textarea';
+import { RowTextarea } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import '../style/input-list.less';
@@ -109,6 +109,7 @@ const InputList: React.FC<InputListProps> = forwardRef(
             <div key={item.uid} className="input-item" data-uid={item.uid}>
               <div className="input-wrap">
                 <RowTextarea
+                  showUpload={false}
                   height={height}
                   label={showLabel ? `${index + 1}` : null}
                   data={item}

@@ -46,22 +46,28 @@ export default {
   'common.button.enabled': '有効',
   'common.button.disabled': '無効',
   'common.button.upgrade': 'アップグレード',
+  'common.enterprise.feature': 'Available in GPUStack Enterprise',
   'common.input.holder': '入力してください',
   'common.validate.value': '{name} の値は必須です',
   'common.button.edit': '編集',
   'common.button.authorize': 'ロール認可',
   'common.button.confirm': '確認',
   'common.button.viewlog': 'ログを表示',
+  'common.button.viewevent': 'イベントを表示',
+  'common.button.recreate': '再作成',
   'common.table.operation': '操作',
+  'common.table.creator': '作成者',
   'common.table.createTime': '作成日時',
   'common.table.updateTime': '更新日時',
   'common.table.description': '説明',
+  'common.table.displayName': '表示名',
   'common.table.name': '名前',
   'common.table.status': 'ステータス',
   'common.table.name.list': '{type} 名称',
   'common.search.name.placeholder': '名前でフィルタ',
   'common.search.id.placeholder': 'IDでフィルタ',
   'common.filter.byId': 'IDでフィルタ',
+  'common.filter.byCreator': '作成者でフィルタ',
   'common.table.type': 'タイプ',
   'common.table.default': 'デフォルト値',
   'common.copy.success': 'コピー成功！',
@@ -164,6 +170,7 @@ export default {
   'common.time.hour': '時間',
   'common.time.minute': '分',
   'common.issue.report': '問題を報告',
+  'common.github.star.tooltip': 'GitHub でスターをつける',
   'common.social.discord': 'Discordに参加',
   'common.table.mark': 'コメント',
   'common.table.rollback.mark': 'ロールバックコメント',
@@ -192,6 +199,7 @@ export default {
   'common.table.user': 'ユーザー',
   'common.settings.instructions': '手順',
   'common.settings.language': '言語',
+  'common.settings.language.tips': 'インターフェースの表示言語を設定します。',
   'common.delete.confirm': '選択した {type} を削除してもよろしいですか？',
   'common.delete.single.confirm':
     '<span style="font-size: 13px;font-weight: 700">{name}</span> を削除してもよろしいですか？',
@@ -223,7 +231,6 @@ export default {
   'common.text.latest': '最新',
   'common.text.new': '新規',
   'common.text.changelog': 'リリースノート',
-  'common.button.recreate': '再作成',
   'common.button.delrecreate': '削除（再作成）',
   'common.options.all': 'すべて',
   'common.options.none': 'なし',
@@ -245,6 +252,11 @@ export default {
   'common.appearance.tips': 'Default follows system preference.',
   'common.button.forgotpassword': 'Forgot password?',
   'common.appearance.theme': 'Theme',
+  'common.appearance.description':
+    'デバイス上でのインターフェースの表示をカスタマイズします。',
+  'common.security': 'セキュリティ',
+  'common.security.description':
+    'アカウントへのログインに使用するパスワードを管理します。',
   'common.page.wentwrong': 'Something went wrong.',
   'common.page.refresh.tips':
     'The page may need to be updated. Try refreshing it!',
@@ -254,7 +266,15 @@ export default {
   'common.select.count': '{count} selected',
   'common.login.auth': 'Authenticating...',
   'common.login.auth.failed': 'Authentication failed',
+  'common.login.error.source_conflict':
+    'このユーザー名のアカウントは別の認証ソースで既に存在します。管理者にリンクまたは変換を依頼してください。',
+  'common.login.error.auth_failed':
+    'ID プロバイダーでの認証に失敗しました。再試行するか、管理者にお問い合わせください。',
   'common.login.password': 'Log in with Password',
+  'common.login.username.holder': 'Please enter username',
+  'common.login.password.holder': 'Please enter password',
+  'common.login.newpassword.holder': 'Please enter new password',
+  'common.login.confirm.holder': 'Please enter password again',
   'common.external.login': 'Log in with {type}',
   'common.sso.noConfig':
     'Single sign-on is not enabled on this system. Please contact your administrator.',
@@ -276,7 +296,16 @@ export default {
   'common.status.enabled': 'Enabled',
   'common.status.disabled': 'Disabled',
   'common.button.duplicate': 'Duplicate',
-  'common.option.other': 'Other'
+  'common.option.other': 'Other',
+  'common.file.size.limit': 'File size must not exceed {size}.',
+  'common.file.format.limit': 'Invalid file format. Allowed: {formats}.',
+  'common.image.limit.width': 'Image width must be {width}.',
+  'common.image.limit.height': 'Image height must be {height}.',
+  'common.remaining': '残り {count}',
+  'common.max': '最大 {count}',
+  'common.max.count': '{label} 数',
+  'common.validate.group': 'Please complete the {group} configuration',
+  'common.preferences': 'Preferences'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

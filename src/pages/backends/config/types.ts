@@ -28,6 +28,8 @@ export interface FormData {
   enabled?: boolean;
   backend_source?: string;
   default_env?: Record<string, any>;
+  parameter_format?: 'space' | 'equal' | null;
+  common_parameters?: string[];
 }
 
 export interface ListItem extends FormData {
@@ -40,4 +42,7 @@ export interface ListItem extends FormData {
   recommend_models: string[];
   built_in_version_configs?: Record<string, VersionConfigs>;
   framework_index_map?: Record<string, string[]>;
+  // Backend owner — NULL for platform-curated rows shared across orgs;
+  // populated for org-scoped overrides / custom backends.
+  owner_principal_id?: number | null;
 }

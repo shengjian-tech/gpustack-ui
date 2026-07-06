@@ -1,7 +1,6 @@
-import AlertBlockInfo from '@/components/alert-info/block';
-import ModalFooter from '@/components/modal-footer';
 import { PageActionType } from '@/config/types';
-import FormDrawer from '@/pages/_components/form-drawer';
+import useSubmitLock from '@/hooks/use-submit-lock';
+import { AlertBlockInfo, FormDrawer, ModalFooter } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import React, { useRef } from 'react';
 import { FormData, RouteItem as ListItem } from '../config/types';
@@ -28,15 +27,18 @@ const AddProvider: React.FC<AddModalProps> = ({
   const intl = useIntl();
   const [isChanged, setIsChanged] = React.useState(false);
   const form = useRef<any>(null);
+  const { loading, guard, run, release } = useSubmitLock();
 
   const handleSubmit = () => {
-    form.current?.submit();
+    guard(() => form.current?.submit());
   };
 
   const onFinish = async (data: FormData) => {
-    onOk({
-      ...data
-    });
+    await run(() =>
+      onOk({
+        ...data
+      })
+    );
   };
 
   const handleCancel = () => {
@@ -65,6 +67,7 @@ const AddProvider: React.FC<AddModalProps> = ({
           <ModalFooter
             onOk={handleSubmit}
             onCancel={onCancel}
+            loading={loading}
             styles={{
               wrapper: {
                 paddingTop: 16
@@ -80,6 +83,7 @@ const AddProvider: React.FC<AddModalProps> = ({
         realAction={realAction}
         currentData={currentData}
         onFinish={onFinish}
+        onFinishFailed={release}
         open={open}
         onFallbackChange={(changed: boolean) => {
           setIsChanged(changed);

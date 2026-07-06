@@ -1,4 +1,4 @@
-@HEADER_HEIGHT: 56px;
+@HEADER_HEIGHT: 0px;
 
 .ground-left-wrapper {
   display: flex;
@@ -9,7 +9,11 @@
     justify-content: space-between;
     flex-direction: column;
     position: relative;
-    height: calc(100vh - @HEADER_HEIGHT);
+    height: calc(
+      100vh - var(--app-banner-height, 0px) - @HEADER_HEIGHT - 4px -
+        var(--page-content-padding) - var(--page-content-padding) -
+        var(--page-header-height)
+    );
     width: calc(100% - 390px);
 
     .message-list-wrap {

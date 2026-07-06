@@ -1,19 +1,21 @@
 import { modelsExpandKeysAtom, modelsSessionAtom } from '@/atoms/models';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
 import useBodyScroll from '@/hooks/use-body-scroll';
 import useTableFetch from '@/hooks/use-table-fetch';
-import { ScrollerContext } from '@/pages/_components/infinite-scroller/use-scroller-context';
 import { IS_FIRST_LOGIN, writeState } from '@/utils/localstore/index';
 import { SearchOutlined } from '@ant-design/icons';
+import {
+  FilterBar,
+  IconFont,
+  InfiniteScrollerProvider,
+  NoResult
+} from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { message } from 'antd';
 import { useAtom } from 'jotai';
 import styled from 'styled-components';
 import _ from 'lodash';
 import React, { useCallback, useEffect, useState } from 'react';
-import NoResult from '../_components/no-result';
 import PageBox from '../_components/page-box';
 import { createModel, queryCatalogItemSpec, queryCatalogList } from './apis';
 import CatalogList from './components/catalog/catalog-list';
@@ -43,7 +45,7 @@ const Catalog: React.FC = () => {
   const {
     dataSource,
     queryParams,
-    handleSearch,
+    fetchData,
     handleQueryChange,
     loadMore,
     handleNameChange
@@ -127,6 +129,10 @@ const Catalog: React.FC = () => {
     navigate('/models/deployments');
   };
 
+  const handleSearch = () => {
+    fetchData({ query: { ...queryParams, page: 1 } });
+  };
+
   useEffect(() => {
     if (dataSource.loadend) {
       const getCatalogSource = async () => {
@@ -161,7 +167,7 @@ const Catalog: React.FC = () => {
         buttonIcon={<SearchOutlined />}
         widths={{ input: 230, select: 200 }}
       ></FilterBar>
-      <ScrollerContext.Provider
+      <InfiniteScrollerProvider
         value={{
           total: dataSource.totalPage,
           current: queryParams.page,
@@ -189,7 +195,7 @@ const Catalog: React.FC = () => {
           title={intl.formatMessage({ id: 'noresult.catalog.title' })}
           subTitle={intl.formatMessage({ id: 'noresult.catalog.subTitle' })}
         ></NoResult>
-      </ScrollerContext.Provider>
+      </InfiniteScrollerProvider>
       <DelopyBuiltInModal
         open={openDeployModal.show}
         action={PageAction.CREATE}

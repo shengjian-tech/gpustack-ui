@@ -1,9 +1,10 @@
-import HighlightCode from '@/components/highlight-code';
+import { HighlightCode } from '@gpustack/core-ui';
 import React, { useMemo } from 'react';
 import { generateK8sRegisterCommand } from '../config';
 
 type AddModalProps = {
   currentGPU?: string;
+  currentGPUs?: string[];
   registrationInfo: {
     token: string;
     image: string;
@@ -13,16 +14,18 @@ type AddModalProps = {
 };
 const AddCluster: React.FC<AddModalProps> = ({
   registrationInfo,
-  currentGPU
+  currentGPU,
+  currentGPUs
 }) => {
   const code = useMemo(() => {
     return generateK8sRegisterCommand({
       server: registrationInfo?.server_url || window.location.origin,
       clusterId: registrationInfo?.cluster_id,
       registrationToken: registrationInfo?.token,
-      currentGPU
+      currentGPU,
+      currentGPUs
     });
-  }, [registrationInfo, currentGPU]);
+  }, [registrationInfo, currentGPU, currentGPUs]);
 
   return (
     <div>

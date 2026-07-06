@@ -9,7 +9,6 @@ export const dockerConfig = `# This is a template for worker_config.
  
 # ========= container & image ===========
  
-# system_default_container_registry: "docker.io"
 # image_name_override: "gpustack/gpustack:dev"
 # image_repo: "gpustack/gpustack"
  
@@ -53,14 +52,12 @@ export const kubernetesConfig = `# This is a template for worker_config.
  
 # ========= container & image ===========
  
-# system_default_container_registry: "docker.io"
 # image_name_override: "gpustack/gpustack:dev"
 # image_repo: "gpustack/gpustack"
- 
+
 # ========= service & networking ===========
- 
+
 # service_discovery_name: "worker"
-# namespace: "gpustack-system"
 # worker_port: 10150
 # worker_metrics_port: 10150
 # service_port_range: "40000-40063"

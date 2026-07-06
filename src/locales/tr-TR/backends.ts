@@ -19,9 +19,18 @@ export default {
   'backend.mode.form': 'Form Modu',
   'backend.mode.yaml': 'YAML Modu',
   'backend.form.healthCheckPath': 'Sağlık Kontrolü Yolu',
+  'backend.form.defaultEntrypoint': 'Varsayılan İmaj Giriş Noktası',
   'backend.form.defaultExecuteCommand': 'Varsayılan Çalıştırma Komutu',
   'backend.form.defaultExecuteCommand.tips': `'{{'model_path'}}', '{{'port'}}', '{{'worker_ip'}}' ve '{{'model_name'}}' dağıtım sırasında gerçek değerlerle değiştirilecek yer tutuculardır.`,
   'backend.form.defaultBackendParameters': 'Varsayılan Altyapı Parametreleri',
+  'backend.form.flagFormat': 'Bayrak Biçimi',
+  'backend.form.flagFormat.tips':
+    'Bir seçenek ile değerinin birleştirilme biçimi. Boş bırakılırsa her parametre girildiği biçimde korunur, biçim birleştirilmez.',
+  'backend.form.flagFormat.space': 'Boşlukla Ayır (--key value)',
+  'backend.form.flagFormat.equal': 'Eşittir İşareti (--key=value)',
+  'backend.form.commonParameters': 'Ortak Altyapı Parametreleri',
+  'backend.form.commonParameters.tips':
+    'Dağıtım sırasında altyapı parametreleri girişinde öneri olarak gösterilir.',
   'backend.form.versionConfig': 'Sürüm Yapılandırması',
   'backend.form.addParameter': 'Parametre Ekle',
   'backend.form.noVersion': 'Sürüm eklenmedi',
@@ -30,8 +39,7 @@ export default {
   'backend.version.rules.builtin': '"-custom" ile bitmelidir',
   'backend.version.no.tips':
     'Yerleşik altyapının özel sürüm adı "-custom" ile bitmelidir.',
-  'backend.backend.rules.custom':
-    'Özel altyapı adı "-custom" ile bitmelidir.',
+  'backend.backend.rules.custom': 'Özel altyapı adı "-custom" ile bitmelidir.',
   'backend.quickConfig': 'Hızlı Yapılandırma',
   'backend.version.default.not.exists':
     'Varsayılan sürüm {versions} içinde mevcut değil.',

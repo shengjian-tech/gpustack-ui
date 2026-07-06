@@ -1,6 +1,5 @@
 import { GPUStackVersionAtom, UpdateCheckAtom } from '@/atoms/user';
-import DropDownActions from '@/components/drop-down-actions';
-import IconFont from '@/components/icon-font';
+import PluginExtraField from '@/components/plugin-extra-fields';
 import VersionInfo, { modalConfig } from '@/components/version-info';
 import externalLinks from '@/constants/external-links';
 import useBodyScroll from '@/hooks/use-body-scroll';
@@ -12,21 +11,14 @@ import {
   HomeOutlined,
   ReadOutlined
 } from '@ant-design/icons';
+import { DropdownActions, IconFont } from '@gpustack/core-ui';
 import { history, useIntl, useNavigate } from '@umijs/max';
 import { Avatar, Button, Divider, Modal } from 'antd';
 import { useAtom } from 'jotai';
 import { useMemo } from 'react';
 import styled from 'styled-components';
 import { DEFAULT_ENTER_PAGE } from '../config/settings';
-
-const UpdateDot = styled.span`
-  margin-left: 5px;
-  display: flex;
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  background-color: var(--ant-orange-5);
-`;
+import GithubStar from './github-star';
 
 const NewLabel = styled.span`
   position: relative;
@@ -60,7 +52,7 @@ const Wrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 24px;
-  height: 40px;
+  height: 32px;
 `;
 const DropdownWrapper = styled.div`
   min-width: 160px;
@@ -216,31 +208,17 @@ export const ExtraContent = (props: { isDarkTheme?: boolean }) => {
   const userMenu = {
     items: [
       {
-        key: 'apikeys',
-        label: (
-          <span className="flex flex-center">
-            <IconFont type="icon-key" />
-            <span className="m-l-8" style={{ marginLeft: 8 }}>
-              {intl?.formatMessage?.({ id: 'menu.apikeys' })}
-            </span>
-          </span>
-        ),
-        onClick: () => {
-          history.push('/api-keys');
-        }
-      },
-      {
         key: 'settings',
         label: (
           <span className="flex flex-center">
-            <IconFont type="icon-settings-02" />
+            <IconFont type="icon-preferences" />
             <span className="m-l-8" style={{ marginLeft: 8 }}>
-              {intl?.formatMessage?.({ id: 'common.button.settings' })}
+              {intl?.formatMessage?.({ id: 'common.preferences' })}
             </span>
           </span>
         ),
         onClick: () => {
-          history.push('/profile');
+          history.push('/preferences');
         }
       }
     ]
@@ -282,6 +260,8 @@ export const ExtraContent = (props: { isDarkTheme?: boolean }) => {
   return (
     <Wrapper>
       {contextHolder}
+      <PluginExtraField name="OrgSwitcher" isDarkTheme={isDarkTheme} />
+      {process.env.ENABLE_ENTERPRISE !== 'true' && <GithubStar />}
       <div
         style={{
           display: 'flex',
@@ -306,7 +286,7 @@ export const ExtraContent = (props: { isDarkTheme?: boolean }) => {
           </NewLabel>
         )}
       </div>
-      <DropDownActions menu={{ ...helpMenu }} popupRender={helpPopupRender}>
+      <DropdownActions menu={{ ...helpMenu }} popupRender={helpPopupRender}>
         <IconWrapper>
           <IconFont
             type="icon-help"
@@ -314,8 +294,9 @@ export const ExtraContent = (props: { isDarkTheme?: boolean }) => {
             style={{ color: 'var(--ant-color-text-tertiary)' }}
           />
         </IconWrapper>
-      </DropDownActions>
-      <DropDownActions menu={{ ...userMenu }} popupRender={userPopupRender}>
+      </DropdownActions>
+      <PluginExtraField name="GlobalSettings" />
+      <DropdownActions menu={{ ...userMenu }} popupRender={userPopupRender}>
         <IconWrapper>
           <Avatar
             size={24}
@@ -324,7 +305,7 @@ export const ExtraContent = (props: { isDarkTheme?: boolean }) => {
             icon={<IconFont type="icon-user-filled" className="font-size-24" />}
           />
         </IconWrapper>
-      </DropDownActions>
+      </DropdownActions>
     </Wrapper>
   );
 };

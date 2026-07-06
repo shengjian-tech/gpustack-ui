@@ -1,9 +1,11 @@
-import IconFont from '@/components/icon-font';
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import CollapsePanel from '@/pages/_components/collapse-panel';
-import { useWrapperContext } from '@/pages/_components/column-wrapper/use-wrapper-context';
-import ScrollSpyTabs from '@/pages/_components/scroll-spy-tabs';
+import {
+  CollapsePanel,
+  IconFont,
+  ScrollSpyTabs,
+  useWrapperContext
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import {
@@ -27,6 +29,7 @@ interface ProviderFormProps {
   datasetList: Global.BaseOption<number | string>[];
   profilesOptions: Global.BaseOption<string>[];
   onFinish: (values: FormData) => Promise<void>;
+  onFinishFailed?: (errorInfo: any) => void;
 }
 
 const TABKeysMap = {
@@ -40,6 +43,7 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
     action,
     currentData,
     onFinish,
+    onFinishFailed,
     open,
     clusterList,
     profilesOptions,
@@ -120,6 +124,7 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
         <Form
           form={form}
           onFinish={onFinish}
+          onFinishFailed={onFinishFailed}
           initialValues={{
             dataset_input_tokens: null,
             dataset_output_tokens: null,

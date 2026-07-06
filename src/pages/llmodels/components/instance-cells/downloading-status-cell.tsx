@@ -1,6 +1,5 @@
-import SimpleTabel, { ColumnProps } from '@/components/simple-table';
-import StatusTag from '@/components/status-tag';
 import { ListItem as WorkerListItem } from '@/pages/resources/config/types';
+import { SimpleTable, StatusTag, type ColumnProps } from '@gpustack/core-ui';
 import { Progress, Tooltip } from 'antd';
 import _ from 'lodash';
 import { InstanceStatusMap, status } from '../../config';
@@ -102,21 +101,21 @@ const DownloadingTips = (props: {
   return (
     <div>
       {severList.length > 0 && (
-        <SimpleTabel
+        <SimpleTable
           columns={downloadList}
           dataSource={[...mainWorker, ...list]}
           rowKey="worker_name"
           theme="light"
-        ></SimpleTabel>
+        ></SimpleTable>
       )}
 
       {draftModelList.length > 0 && (
-        <SimpleTabel
+        <SimpleTable
           columns={draftModelDownloadList}
           dataSource={[...draftModelList]}
           rowKey="worker_name"
           theme="light"
-        ></SimpleTabel>
+        ></SimpleTable>
       )}
     </div>
   );

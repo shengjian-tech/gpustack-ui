@@ -1,6 +1,5 @@
-import SealInput from '@/components/seal-form/seal-input';
 import { PageAction } from '@/config';
-import useAppUtils from '@/hooks/use-app-utils';
+import { Input as CInput, useAppUtils } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import React from 'react';
@@ -20,8 +19,7 @@ const HuggingFaceForm: React.FC = () => {
     ![
       modelSourceMap.huggingface_value,
       modelSourceMap.modelscope_value
-    ].includes(source) ||
-    formKey === DeployFormKeyMap.CATALOG
+    ].includes(source)
   ) {
     return null;
   }
@@ -37,6 +35,7 @@ const HuggingFaceForm: React.FC = () => {
           <Form.Item<FormData>
             name="huggingface_repo_id"
             key="huggingface_repo_id"
+            hidden={formKey === DeployFormKeyMap.CATALOG}
             rules={[
               {
                 required: true,
@@ -44,22 +43,23 @@ const HuggingFaceForm: React.FC = () => {
               }
             ]}
           >
-            <SealInput.Input
+            <CInput.Input
               label={intl.formatMessage({ id: 'models.form.repoid' })}
               required
               disabled={action === PageAction.CREATE}
               onBlur={handleOnBlur}
-            ></SealInput.Input>
+            ></CInput.Input>
           </Form.Item>
           {isGGUF && (
             <Form.Item<FormData>
+              hidden={formKey === DeployFormKeyMap.CATALOG}
               name="huggingface_filename"
               key="huggingface_filename"
             >
-              <SealInput.Input
+              <CInput.Input
                 label={intl.formatMessage({ id: 'models.form.filename' })}
                 disabled={action === PageAction.CREATE}
-              ></SealInput.Input>
+              ></CInput.Input>
             </Form.Item>
           )}
         </>
@@ -68,6 +68,7 @@ const HuggingFaceForm: React.FC = () => {
           <Form.Item<FormData>
             name="model_scope_model_id"
             key="model_scope_model_id"
+            hidden={formKey === DeployFormKeyMap.CATALOG}
             rules={[
               {
                 required: true,
@@ -75,22 +76,23 @@ const HuggingFaceForm: React.FC = () => {
               }
             ]}
           >
-            <SealInput.Input
+            <CInput.Input
               required
               label={intl.formatMessage({ id: 'models.form.repoid' })}
               disabled={action === PageAction.CREATE}
               onBlur={handleOnBlur}
-            ></SealInput.Input>
+            ></CInput.Input>
           </Form.Item>
           {isGGUF && (
             <Form.Item<FormData>
               name="model_scope_file_path"
               key="model_scope_file_path"
+              hidden={formKey === DeployFormKeyMap.CATALOG}
             >
-              <SealInput.Input
+              <CInput.Input
                 label={intl.formatMessage({ id: 'models.form.filename' })}
                 disabled={action === PageAction.CREATE}
-              ></SealInput.Input>
+              ></CInput.Input>
             </Form.Item>
           )}
         </>

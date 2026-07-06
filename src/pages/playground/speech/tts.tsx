@@ -1,12 +1,9 @@
 import { setRouteCache } from '@/atoms/route-cache';
-import AlertInfo from '@/components/alert-info';
-import IconFont from '@/components/icon-font';
-import SpeechContent from '@/components/speech-content';
 import routeCachekey from '@/config/route-cachekey';
+import { AlertInfo, IconFont, SpeechContent } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Spin } from 'antd';
 import _ from 'lodash';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useImperativeHandle,
@@ -125,7 +122,7 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
     onError: (error) => {
       setTokenResult({
         error: true,
-        errorMessage: error
+        errorMessage: error.message || _.toString(error)
       });
       setMessageList([]);
       setPlayingStream(false);
@@ -189,9 +186,6 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
 
   const submitMessage = async (current?: { role: string; content: string }) => {
     try {
-      await formRef.current?.form.validateFields();
-      if (!parameters.model) return;
-
       setLoading(true);
       setMessageId();
       setTokenResult(null);
@@ -207,7 +201,6 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
       };
 
       setParams(params);
-      console.log('submitMessage params:', streamTTS.isPlaying);
 
       // Choose stream or non-stream based on parameters
       if (parameters.stream) {
@@ -230,8 +223,8 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
         await nonStreamTTS.generate(params);
       }
     } catch (error: any) {
-      console.log('error:', error);
       setPlayingStream(false);
+      console.error('Error generating TTS:', error);
       setTokenResult({
         error: true,
         errorMessage: error?.message || 'Unknown error'
@@ -248,7 +241,7 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
   };
 
   const handleSendMessage = (message: Omit<MessageItem, 'uid'>) => {
-    submitMessage(message);
+    formRef.current?.form.submit();
   };
 
   const handleCloseViewCode = () => {
@@ -353,6 +346,7 @@ const GroundTTS: React.FC<MessageProps> = forwardRef((props, ref) => {
         <TTSDataForm
           ref={formRef}
           modelList={modelList}
+          onFinish={submitMessage}
           updatateParams={updatateParams}
         />
       </RightContainer>

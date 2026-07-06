@@ -62,6 +62,8 @@ export default {
   'models.table.layers': '层',
   'models.form.backend': '后端',
   'models.form.backend_parameters': '后端参数',
+  'models.instance.params.configured': '用户配置',
+  'models.instance.params.autoInjected': '自动注入参数',
   'models.search.gguf.tips':
     'GGUF 模型用 llama-box（支持 Linux, macOS 和 Windows）。',
   'models.search.vllm.tips':
@@ -98,7 +100,7 @@ export default {
   'models.form.search.gguftips':
     '当 macOS 或 Windows 作节点时勾选 GGUF（搜索语音模型时取消勾选）',
   'models.form.button.addlabel': '添加标签',
-  'models.filter.category': '按类别筛选',
+  'models.filter.category': '按类别过滤',
   'models.list.more.logs': '查看更多',
   'models.catalog.release.date': '发布日期',
   'models.localpath.gguf.tips.title': 'GGUF 格式模型',
@@ -147,6 +149,7 @@ export default {
   'models.table.apiAccessInfo.modelName': '模型名称',
   'models.table.apiAccessInfo.apikey': 'API 密钥',
   'models.table.apiAccessInfo.openaiCompatible': 'OpenAI 兼容',
+  'models.table.apiAccessInfo.anthropicCompatible': 'Anthropic 兼容',
   'models.table.apiAccessInfo.jinaCompatible': 'Jina 兼容',
   'models.table.apiAccessInfo.gotoCreate': '去创建',
   'models.search.parts': '{n} 个文件',
@@ -266,5 +269,17 @@ export default {
   'models.form.backend.helperText': '该社区后端暂未启用，部署后将自动启用',
   'models.table.instance.benchmark': '运行基准测试',
   'models.table.modelView': '模型列表',
-  'models.table.instanceView': '实例列表'
+  'models.table.instanceView': '实例列表',
+  'models.table.category': '类别',
+  'models.instance.currentRun': '当前运行',
+  'models.instance.previousRun': '上一次运行',
+  'models.instance.startHistory': '运行记录',
+  'models.instance.startHistory.tips':
+    '显示上一次因错误自动重启之前的那次运行的日志。',
+  'models.form.lora.label': 'LoRA 适配器',
+  'models.form.lora.add': '添加 LoRA 适配器',
+  'models.form.lora.select': '选择 LoRA',
+  'models.form.lora.name': 'LoRA 名称',
+  'models.form.lora.rule.empty': '输入不能为空',
+  'models.form.lora.rule.duplicate': 'LoRA name 不能重复'
 };

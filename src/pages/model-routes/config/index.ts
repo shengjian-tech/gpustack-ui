@@ -1,6 +1,6 @@
-import icons from '@/components/icon-font/icons';
 import { StatusMaps } from '@/config';
 import { StatusType } from '@/config/types';
+import { icons } from '@gpustack/core-ui';
 
 export const TargetStatusValueMap: Record<string, string> = {
   Active: 'active',

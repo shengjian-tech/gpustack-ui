@@ -19,9 +19,18 @@ export default {
   'backend.mode.form': 'Режим формы',
   'backend.mode.yaml': 'Режим YAML',
   'backend.form.healthCheckPath': 'Путь проверки здоровья',
+  'backend.form.defaultEntrypoint': 'Точка входа образа по умолчанию',
   'backend.form.defaultExecuteCommand': 'Команда выполнения по умолчанию',
   'backend.form.defaultExecuteCommand.tips': `'{{'model_path'}}', '{{'port'}}', '{{'worker_ip'}}' и '{{'model_name'}}' заполняются реальными значениями во время запуска`,
   'backend.form.defaultBackendParameters': 'Параметры бэкенда по умолчанию',
+  'backend.form.flagFormat': 'Формат флага',
+  'backend.form.flagFormat.tips':
+    'Формат соединения опции и её значения. Оставьте пустым, чтобы сохранить каждый параметр в исходном виде, без приведения к единому формату.',
+  'backend.form.flagFormat.space': 'Разделение пробелом (--key value)',
+  'backend.form.flagFormat.equal': 'Знак равенства (--key=value)',
+  'backend.form.commonParameters': 'Общие параметры бэкенда',
+  'backend.form.commonParameters.tips':
+    'Отображаются как подсказки в поле параметров бэкенда при развёртывании.',
   'backend.form.versionConfig': 'Конфигурация версий',
   'backend.form.addParameter': 'Добавить параметр',
   'backend.form.noVersion': 'Версии не добавлены',

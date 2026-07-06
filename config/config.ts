@@ -1,5 +1,6 @@
 import { defineConfig } from '@umijs/max';
 import keepAlive from './keep-alive';
+import { extraMfsuExclude } from './mfsu.extensions';
 import { compressionPluginConfig, monacoPluginConfig } from './plugins';
 import proxy from './proxy';
 import routes from './routes';
@@ -19,6 +20,9 @@ export default defineConfig({
   history: {
     type: 'hash'
   },
+  define: {
+    'process.env.ENABLE_ENTERPRISE': process.env.ENABLE_ENTERPRISE
+  },
   analyze: {
     analyzerMode: 'server',
     analyzerPort: 8888,
@@ -29,7 +33,7 @@ export default defineConfig({
     defaultSizes: 'parsed' // stat  // gzip
   },
   mfsu: {
-    exclude: ['lodash', 'ml-pca']
+    exclude: ['lodash', 'ml-pca', ...extraMfsuExclude]
   },
   base: process.env.npm_config_base || '/',
   ...(isProduction
@@ -73,6 +77,7 @@ export default defineConfig({
   antd: {
     style: 'less'
   },
+  title: 'Fedimoss AITHER',
   hash: true,
   access: {},
   model: {},

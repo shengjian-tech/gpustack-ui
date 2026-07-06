@@ -1,5 +1,5 @@
-import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import { extractErrorMessage, promptList } from '@/pages/playground/config';
+import { useOverlayScroller } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import _ from 'lodash';
 import { useEffect, useRef, useState } from 'react';
@@ -54,7 +54,7 @@ export default function useTextImage(props: any) {
   };
 
   const setImageSize = (parameters: any) => {
-    let size: Record<string, string | number> = {
+    const size: Record<string, string | number> = {
       span: 12
     };
     if (parameters.n === 1) {
@@ -102,7 +102,7 @@ export default function useTextImage(props: any) {
         _.toNumber(item)
       );
 
-      let newImageList = Array(parameters.n)
+      const newImageList = Array(parameters.n)
         .fill({})
         .map((item, index: number) => {
           return {

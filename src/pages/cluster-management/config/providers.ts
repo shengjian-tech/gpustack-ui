@@ -1,4 +1,4 @@
-import icons from '@/components/icon-font/icons';
+import { icons } from '@gpustack/core-ui';
 import React from 'react';
 import { ProviderValueMap } from '.';
 

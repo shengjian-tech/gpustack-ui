@@ -1,9 +1,11 @@
-import DropdownButtons from '@/components/drop-down-buttons';
-import IconFont from '@/components/icon-font';
-import { HandlerOptions } from '@/hooks/use-chunk-fetch';
-import useDownloadStream from '@/hooks/use-download-stream';
 import { useBenchmarkTargetInstance } from '@/pages/llmodels/hooks/use-run-benchmark';
 import { DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import {
+  DropdownButtons,
+  type HandlerOptions,
+  IconFont,
+  useDownloadStream
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Progress, notification } from 'antd';
 import dayjs from 'dayjs';
@@ -100,7 +102,7 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
   ) => {
     api.open({
       duration: data.duration,
-      message: renderMessage(data.filename),
+      title: renderMessage(data.filename),
       key: data.filename,
       closeIcon: (
         <span>{intl.formatMessage({ id: 'common.button.cancel' })}</span>

@@ -1,5 +1,4 @@
 import { Spin } from 'antd';
-import 'overlayscrollbars/overlayscrollbars.css';
 import React, {
   forwardRef,
   useImperativeHandle,
@@ -48,16 +47,22 @@ const GroundLeft: React.FC<MessageProps> = forwardRef((props, ref) => {
     messageList,
     loading
   } = useChatCompletion(scroller);
-  const { handleOnValuesChange, formRef, paramsConfig, parameters } =
-    useInitLLmMeta(
-      { modelList, isChat: true },
-      {
-        defaultValues: llmInitialValues,
-        defaultParamsConfig: ChatParamsConfig,
-        metaKeys: LLM_METAKEYS
-      }
-    );
-
+  const {
+    handleOnValuesChange,
+    handleOnModelChange,
+    formRef,
+    setParams,
+    paramsConfig,
+    parameters
+  } = useInitLLmMeta(
+    { modelList, isChat: true },
+    {
+      defaultValues: llmInitialValues,
+      defaultParamsConfig: ChatParamsConfig,
+      metaKeys: LLM_METAKEYS
+    }
+  );
+  console.log('parameters', parameters);
   useImperativeHandle(ref, () => {
     return {
       viewCode() {
@@ -75,6 +80,7 @@ const GroundLeft: React.FC<MessageProps> = forwardRef((props, ref) => {
       ? [{ role: Roles.System, content: systemMessage }]
       : [];
     const list = generateMessagesByListContent([...messageList]);
+    console.log('viewCodeContent+++', parameters);
     return generateLLMCode({
       api: CHAT_API,
       parameters: {
@@ -169,6 +175,7 @@ const GroundLeft: React.FC<MessageProps> = forwardRef((props, ref) => {
         <DataForm
           ref={formRef}
           onValuesChange={handleOnValuesChange}
+          onModelChange={handleOnModelChange}
           paramsConfig={paramsConfig}
           initialValues={llmInitialValues}
           modelList={modelList}

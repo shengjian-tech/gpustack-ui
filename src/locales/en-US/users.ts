@@ -12,6 +12,11 @@ export default {
   'users.form.active.description': 'Enable or disable this user account',
   'users.form.fullname': 'Full Name',
   'users.form.source': 'Source',
+  'users.form.source.local': 'Local',
+  'users.form.source.tip.switchToLocal':
+    'Switching to Local requires a new password. The user will sign in via the standard login form.',
+  'users.form.source.tip.switchToExternal':
+    "Switching to an external source clears the user's local password. They will sign in via the configured identity provider.",
   'users.table.user': 'users',
   'users.form.admin': 'Admin',
   'users.form.user': 'User',
@@ -28,6 +33,8 @@ export default {
   'users.password.modify.title': 'Modify Password',
   'users.password.modify.description':
     "For your account's security, please change your initial password.",
+  'users.password.modify.tips':
+    'Regularly updating your password helps keep your account secure.',
   'users.password.confirm': 'Confirm New Password',
   'users.password.confirm.empty': 'Please confirm the new password.',
   'users.password.confirm.error': 'The two passwords entered do not match.',

@@ -19,9 +19,18 @@ export default {
   'backend.mode.form': 'Form Mode',
   'backend.mode.yaml': 'YAML Mode',
   'backend.form.healthCheckPath': 'Health Check Path',
+  'backend.form.defaultEntrypoint': 'Default Image Entrypoint',
   'backend.form.defaultExecuteCommand': 'Default Execution Command',
   'backend.form.defaultExecuteCommand.tips': `'{{'model_path'}}', '{{'port'}}', '{{'worker_ip'}}' and '{{'model_name'}}' are placeholders that will be substituted with the actual values during deployment.`,
   'backend.form.defaultBackendParameters': 'Default Backend Parameters',
+  'backend.form.flagFormat': 'Flag Format',
+  'backend.form.flagFormat.tips':
+    'The format applied between an option and its value. Leave empty to keep each parameter as entered, without normalizing it.',
+  'backend.form.flagFormat.space': 'Space Separated (--key value)',
+  'backend.form.flagFormat.equal': 'Equal Sign (--key=value)',
+  'backend.form.commonParameters': 'Common Backend Parameters',
+  'backend.form.commonParameters.tips':
+    'Shown as suggestions in the backend parameters input during deployment.',
   'backend.form.versionConfig': 'Versions Config',
   'backend.form.addParameter': 'Add Parameter',
   'backend.form.noVersion': 'No versions added',

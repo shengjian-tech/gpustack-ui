@@ -1,10 +1,8 @@
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useTableFetch from '@/hooks/use-table-fetch';
-import NoResult from '@/pages/_components/no-result';
 import PageBox from '@/pages/_components/page-box';
 import { useQueryClusterList } from '@/pages/cluster-management/services/use-query-cluster-list';
+import { FilterBar, IconFont, NoResult } from '@gpustack/core-ui';
 import { useIntl, useSearchParams } from '@umijs/max';
 import { ConfigProvider, Table } from 'antd';
 import _ from 'lodash';
@@ -13,7 +11,16 @@ import { GPU_DEVICES_API, queryGpuDevicesList } from '../apis';
 import { GPUDeviceItem } from '../config/types';
 import useGPUColumns from '../hooks/use-gpu-columns';
 
-const GPUList = () => {
+// Optional ``clusterId`` pins the list to a single cluster (used by
+// the cluster-detail page) and hides the cluster-filter dropdown so
+// the user can't change scope away from the cluster they're already
+// inside.
+interface GPUListProps {
+  clusterId?: number;
+  source?: 'clusterDetail';
+}
+
+const GPUList: React.FC<GPUListProps> = ({ clusterId, source }) => {
   const {
     dataSource,
     queryParams,
@@ -28,7 +35,8 @@ const GPUList = () => {
     key: PaginationKey.GPUs,
     fetchAPI: queryGpuDevicesList,
     polling: true,
-    API: GPU_DEVICES_API
+    API: GPU_DEVICES_API,
+    defaultQueryParams: clusterId ? { cluster_id: clusterId } : undefined
   });
   const [searchParams] = useSearchParams();
   const page = searchParams.get('page');
@@ -102,7 +110,12 @@ const GPUList = () => {
           handleInputChange={handleNameChange}
           handleSelectChange={handleClusterChange}
           selectOptions={clusterList}
-          showSelect={true}
+          showSelect={source !== 'clusterDetail'}
+          widths={
+            source !== 'clusterDetail'
+              ? { select: 230, input: 230 }
+              : { input: 300 }
+          }
         ></FilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
           <Table

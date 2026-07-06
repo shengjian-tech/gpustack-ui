@@ -13,6 +13,11 @@ export default {
     'Включить или отключить эту учетную запись пользователя',
   'users.form.fullname': 'Полное имя',
   'users.form.source': 'Источник',
+  'users.form.source.local': 'Локальный',
+  'users.form.source.tip.switchToLocal':
+    'Переключение на «Локальный» требует ввода нового пароля. После этого пользователь будет входить через стандартную форму входа.',
+  'users.form.source.tip.switchToExternal':
+    'Переключение на внешний источник удаляет локальный пароль пользователя. После этого вход будет выполняться через настроенного провайдера идентификации.',
   'users.table.user': 'пользователи',
   'users.form.admin': 'Администратор',
   'users.form.user': 'Пользователь',
@@ -29,6 +34,8 @@ export default {
   'users.password.modify.title': 'Смена пароля',
   'users.password.modify.description':
     'В целях безопасности измените первоначальный пароль.',
+  'users.password.modify.tips':
+    'Регулярное обновление пароля помогает защитить вашу учётную запись.',
   'users.password.confirm': 'Подтвердите новый пароль',
   'users.password.confirm.empty': 'Подтвердите новый пароль',
   'users.password.confirm.error': 'Пароли не совпадают',

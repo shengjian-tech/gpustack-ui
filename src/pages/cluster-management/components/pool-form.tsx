@@ -2,20 +2,21 @@ import {
   regionInstanceTypeListAtom,
   regionOSImageListAtom
 } from '@/atoms/clusters';
-import CollapsibleContainer, {
-  CollapsibleContainerProps
-} from '@/components/collapse-container';
-import IconFont from '@/components/icon-font';
-import LabelSelector from '@/components/label-selector';
-import AutoComplete from '@/components/seal-form/auto-complete';
-import SealInputNumber from '@/components/seal-form/input-number';
-import SealInput from '@/components/seal-form/seal-input';
-import SealSelect from '@/components/seal-form/seal-select';
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import useAppUtils from '@/hooks/use-app-utils';
 import { CardContainer } from '@/pages/llmodels/components/gpu-card';
 import { DeleteOutlined } from '@ant-design/icons';
+import {
+  AutoComplete,
+  Input as CInput,
+  InputNumber as CInputNumber,
+  CollapseContainer,
+  IconFont,
+  LabelSelector,
+  Select as SealSelect,
+  useAppUtils,
+  type CollapseContainerProps
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { Button, Form } from 'antd';
@@ -143,7 +144,7 @@ type AddModalProps = {
   onFinish: (values: FormData) => void;
   onDelete?: () => void;
   showDelete?: boolean;
-  collapseProps?: CollapsibleContainerProps;
+  collapseProps?: CollapseContainerProps;
 };
 
 const InstanceSpecData: React.FC<{ instanceSpec: Record<string, any> }> = ({
@@ -155,7 +156,7 @@ const InstanceSpecData: React.FC<{ instanceSpec: Record<string, any> }> = ({
         .filter(([key, value]) => value)
         .map(([key, value]) => (
           <Form.Item key={key} name={['instance_spec', key]} hidden>
-            <SealInput.Input />
+            <CInput.Input />
           </Form.Item>
         ))}
     </>
@@ -178,7 +179,6 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
   const [form] = Form.useForm();
   const intl = useIntl();
   const { getRuleMessage } = useAppUtils();
-  const labels = Form.useWatch('labels', form);
   const title = Form.useWatch('name', form);
   const [instanceSpec, setInstanceSpec] = useState<Record<string, any>>({});
 
@@ -305,7 +305,7 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
   }));
 
   return (
-    <CollapsibleContainer
+    <CollapseContainer
       {...restCollapseProps}
       title={title}
       collapsible={collapsible}
@@ -350,12 +350,12 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
               }
             ]}
           >
-            <SealInput.Input
+            <CInput.Input
               label={intl.formatMessage({
                 id: 'common.table.name'
               })}
               required
-            ></SealInput.Input>
+            ></CInput.Input>
           </Form.Item>
           <Form.Item<FormData>
             name="instance_type"
@@ -394,12 +394,12 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
               }
             ]}
           >
-            <SealInputNumber
+            <CInputNumber
               label={intl.formatMessage({
                 id: 'clusters.workerpool.replicas'
               })}
               required
-            ></SealInputNumber>
+            ></CInputNumber>
           </Form.Item>
           <Form.Item<FormData>
             name="batch_size"
@@ -413,7 +413,7 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
               }
             ]}
           >
-            <SealInputNumber
+            <CInputNumber
               description={intl.formatMessage({
                 id: 'clusters.workerpool.batchSize.desc'
               })}
@@ -421,7 +421,7 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
                 id: 'clusters.workerpool.batchSize'
               })}
               required
-            ></SealInputNumber>
+            ></CInputNumber>
           </Form.Item>
 
           <Form.Item<FormData>
@@ -480,18 +480,17 @@ const PoolForm: React.FC<AddModalProps> = forwardRef((props, ref) => {
           >
             <LabelSelector
               label={intl.formatMessage({ id: 'resources.table.labels' })}
-              labels={labels || {}}
               btnText={intl.formatMessage({ id: 'common.button.addLabel' })}
             ></LabelSelector>
           </Form.Item>
           <VolumesConfig disabled={action === PageAction.EDIT}></VolumesConfig>
           <Form.Item<FormData> name="os_image" hidden>
-            <SealInput.Input></SealInput.Input>
+            <CInput.Input></CInput.Input>
           </Form.Item>
           <InstanceSpecData instanceSpec={instanceSpec} />
         </Container>
       </Form>
-    </CollapsibleContainer>
+    </CollapseContainer>
   );
 });
 

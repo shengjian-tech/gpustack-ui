@@ -61,6 +61,8 @@ export default {
   'models.table.layers': 'Katmanlar',
   'models.form.backend': 'Altyapı',
   'models.form.backend_parameters': 'Altyapı Parametreleri',
+  'models.instance.params.configured': 'User Configured',
+  'models.instance.params.autoInjected': 'Otomatik Enjekte Edilen Parametreler',
   'models.search.gguf.tips':
     'GGUF modelleri llama-box kullanır (Linux, macOS ve Windows destekler).',
   'models.search.vllm.tips':
@@ -153,6 +155,7 @@ export default {
   'models.table.apiAccessInfo.modelName': 'Model Adı',
   'models.table.apiAccessInfo.apikey': 'API Anahtarı',
   'models.table.apiAccessInfo.openaiCompatible': 'OpenAI Uyumlu',
+  'models.table.apiAccessInfo.anthropicCompatible': 'Anthropic Uyumlu',
   'models.table.apiAccessInfo.jinaCompatible': 'Jina Uyumlu',
   'models.table.apiAccessInfo.gotoCreate': 'Oluşturmaya Git',
   'models.search.parts': '{n} parça',
@@ -281,10 +284,29 @@ export default {
     'Henüz etkinleştirilmedi. Dağıtımdan sonra etkinleştirilecektir. ',
   'models.table.instance.benchmark': 'Kıyaslama Çalıştır',
   'models.table.modelView': 'Model List',
-  'models.table.instanceView': 'Instance List'
+  'models.table.instanceView': 'Instance List',
+  'models.table.category': 'Category',
+  'models.instance.currentRun': 'Current Run',
+  'models.instance.previousRun': 'Previous Run',
+  'models.instance.startHistory': 'Run History',
+  'models.instance.startHistory.tips':
+    'Shows logs from the run before the last error-triggered restart.',
+  'models.form.lora.label': 'LoRA Adapters',
+  'models.form.lora.add': 'Add LoRA Adapter',
+  'models.form.lora.select': 'Select LoRA',
+  'models.form.lora.name': 'LoRA name',
+  'models.form.lora.rule.empty': 'Input cannot be empty',
+  'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
 // 1. 'models.table.modelView': 'Model List',
 // 2. 'models.table.instanceView': 'Instance List',
+// 3. 'models.table.category': 'Category',
+// 4. 'models.form.lora.label': 'LoRA Adapter',
+// 5. 'models.form.lora.add': 'Add LoRA Adapter',
+// 6. 'models.form.lora.select': 'Select LoRA',
+// 7. 'models.form.lora.name': 'LoRA name',
+// 8. 'models.form.lora.rule.empty': 'Input cannot be empty',
+// 9. 'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 // ========== End of To-Do List ==========

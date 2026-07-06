@@ -5,17 +5,18 @@ import { fomatNodeJsParams, formatCurlArgs, formatPyParams } from './utils';
 export const generateSpeechToTextCurlCode = ({
   api: url,
   modelProxy,
+  routeID,
   parameters
 }: Record<string, any>) => {
   const host = window.location.origin;
   // replace url OPENAI_COMPATIBLE with GPUSTACK
-  const api = modelProxy ? `${MODEL_PROXY}/\${YOUR_API_PATH}` : url;
+  const api = modelProxy ? `${MODEL_PROXY}/${routeID}/\${YOUR_API_PATH}` : url;
 
   // ========================= Curl =========================
   const curlCode = `
 curl ${host}${api} \\
 -H "Content-Type: multipart/form-data" \\
--H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\${modelProxy ? `\n-H "X-GPUStack-Model: ${parameters.model}" \\` : ''}
+-H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\
 -F model="${parameters.model}" \\
 -F file="@/path/to/file/audio.mp3;type=audio/mpeg" \\
 ${formatCurlArgs(_.omit(parameters, 'model'), true)}`
@@ -85,16 +86,17 @@ main();`.trim();
 export const generateTextToSpeechCurlCode = ({
   api: url,
   modelProxy,
+  routeID,
   parameters
 }: Record<string, any>) => {
   const host = window.location.origin;
-  const api = modelProxy ? `${MODEL_PROXY}/\${YOUR_API_PATH}` : url;
+  const api = modelProxy ? `${MODEL_PROXY}/${routeID}/\${YOUR_API_PATH}` : url;
 
   // ========================= Curl =========================
   const curlCode = `
 curl ${host}${api} \\
 -H "Content-Type: application/json" \\
--H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\${modelProxy ? `\n-H "X-GPUStack-Model: ${parameters.model}" \\` : ''}
+-H "Authorization: Bearer $\{YOUR_GPUSTACK_API_KEY}" \\
 ${formatCurlArgs(parameters, false)} \\\n--output output.${parameters.response_format}`.trim();
 
   return curlCode;
@@ -110,6 +112,19 @@ export const TextToSpeechCode = ({
   const curlCode = generateTextToSpeechCurlCode({ api: url, parameters });
 
   // ========================= Python =========================
+  const extraBody = _.pickBy(
+    parameters,
+    (value: any, key: string) =>
+      !['model', 'response_format', 'input', 'voice'].includes(key) &&
+      value !== '' &&
+      value !== undefined
+  );
+
+  const pythonParams = {
+    ..._.pick(parameters, ['model', 'response_format', 'input', 'voice']),
+    extra_body: Object.keys(extraBody).length > 0 ? extraBody : undefined
+  };
+
   const pythonCode = `
 from pathlib import Path
 from openai import OpenAI\n
@@ -119,7 +134,7 @@ client = OpenAI(
   api_key="YOUR_GPUSTACK_API_KEY"
 )
 
-response = client.audio.speech.create(\n${formatPyParams({ ...parameters })})\n
+response = client.audio.speech.create(\n${formatPyParams(pythonParams)})\n
 with open(output_file_path, "wb") as f:
     for chunk in response.iter_bytes(): 
         f.write(chunk)

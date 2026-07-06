@@ -1,5 +1,5 @@
-import icons from '@/components/icon-font/icons';
 import HotKeys from '@/config/hotkeys';
+import { icons } from '@gpustack/core-ui';
 import React from 'react';
 import { modelCategoriesMap, modelSourceMap } from './index';
 

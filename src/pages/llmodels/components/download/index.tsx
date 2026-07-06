@@ -1,11 +1,9 @@
-import ModalFooter from '@/components/modal-footer';
-import GSDrawer from '@/components/scroller-modal/gs-drawer';
 import { ProviderValueMap } from '@/pages/cluster-management/config';
+import { ColumnWrapper, GSDrawer, ModalFooter } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import ColumnWrapper from '../../../_components/column-wrapper';
 import { modelSourceMap } from '../../config';
 import { FormData } from '../../config/types';
 import HFModelFile from '../model-source/hf-model-file';
@@ -191,6 +189,7 @@ const DownloadModel: React.FC<AddModalProps> = (props) => {
                   onCollapse={setCollapsed}
                   collapsed={collapsed}
                   modelSource={props.source}
+                  isGGUF={isGGUF}
                   setIsGGUF={handleSetIsGGUF}
                 ></ModelCard>
                 {isGGUF && (

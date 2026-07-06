@@ -62,6 +62,8 @@ export default {
   'models.table.layers': 'レイヤー',
   'models.form.backend': 'バックエンド',
   'models.form.backend_parameters': 'バックエンドパラメータ',
+  'models.instance.params.configured': 'User Configured',
+  'models.instance.params.autoInjected': '自動注入パラメータ',
   'models.search.gguf.tips':
     'GGUFモデルはllama-boxを使用します（Linux、macOS、Windowsをサポート）。',
   'models.search.vllm.tips':
@@ -154,6 +156,7 @@ export default {
   'models.table.apiAccessInfo.modelName': 'モデル名',
   'models.table.apiAccessInfo.apikey': 'APIキー',
   'models.table.apiAccessInfo.openaiCompatible': 'OpenAI互換',
+  'models.table.apiAccessInfo.anthropicCompatible': 'Anthropic互換',
   'models.table.apiAccessInfo.jinaCompatible': 'Jina互換',
   'models.table.apiAccessInfo.gotoCreate': '作成に移動',
   'models.search.parts': '{n} 部分',
@@ -281,7 +284,19 @@ export default {
     'Not enabled yet. Will be enabled after deployment. ',
   'models.table.instance.benchmark': 'Run Benchmark',
   'models.table.modelView': 'Model List',
-  'models.table.instanceView': 'Instance List'
+  'models.table.instanceView': 'Instance List',
+  'models.table.category': 'Category',
+  'models.instance.currentRun': 'Current Run',
+  'models.instance.previousRun': 'Previous Run',
+  'models.instance.startHistory': 'Run History',
+  'models.instance.startHistory.tips':
+    'Shows logs from the run before the last error-triggered restart.',
+  'models.form.lora.label': 'LoRA Adapters',
+  'models.form.lora.add': 'Add LoRA Adapter',
+  'models.form.lora.select': 'Select LoRA',
+  'models.form.lora.name': 'LoRA name',
+  'models.form.lora.rule.empty': 'Input cannot be empty',
+  'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
@@ -383,5 +398,12 @@ export default {
 // 77. 'models.form.enableModelRoute': 'Enable Model Route',
 // 78.  'models.form.enableModelRoute.tips': 'Enable Model Route',
 // 79.  'models.table.modelView': 'Model View',
-// 80.  'models.table.instanceView': 'Instance View'
+// 80.  'models.table.instanceView': 'Instance View',
+// 81. 'models.table.category': 'Category',
+// 82. 'models.form.lora.label': 'LoRA Adapter',
+// 83. 'models.form.lora.add': 'Add LoRA Adapter',
+// 84. 'models.form.lora.select': 'Select LoRA',
+// 85. 'models.form.lora.name': 'LoRA name',
+// 86. 'models.form.lora.rule.empty': 'Input cannot be empty',
+// 87. 'models.form.lora.rule.duplicate': 'LoRA name cannot be duplicated'
 // ========== End of To-Do List ==========

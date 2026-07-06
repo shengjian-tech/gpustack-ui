@@ -1,21 +1,60 @@
-import IconFont from '@/components/icon-font';
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import CollapsePanel from '@/pages/_components/collapse-panel';
-import { useWrapperContext } from '@/pages/_components/column-wrapper/use-wrapper-context';
-import ScrollSpyTabs from '@/pages/_components/scroll-spy-tabs';
-import useFinishFailed from '@/pages/_components/scroll-spy-tabs/use-finish-failed';
-import useScrollActiveChange from '@/pages/_components/scroll-spy-tabs/use-scroll-active-change';
 import { modelCategoriesMap } from '@/pages/llmodels/config';
+import {
+  CollapsePanel,
+  IconFont,
+  ScrollSpyTabs,
+  useFinishFailed,
+  useScrollActiveChange,
+  useWrapperContext
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import FormContext from '../config/form-context';
-import { FormData, RouteItem as ListItem } from '../config/types';
+import {
+  FormData,
+  RouteItem as ListItem,
+  RouteTargetFormItem
+} from '../config/types';
 import useEditTargets from '../hooks/use-edit-targets';
 import Basic from './basic';
 import Targets from './targets';
+
+const isSameTarget = (
+  left?: RouteTargetFormItem | null,
+  right?: RouteTargetFormItem | null
+) => {
+  if (!left || !right) {
+    return false;
+  }
+  if (left.model_id && left.model_id === right.model_id) {
+    return left.overridden_model_name === right.overridden_model_name;
+  }
+  if (left.provider_id && left.provider_id === right.provider_id) {
+    return left.overridden_model_name === right.overridden_model_name;
+  }
+  return false;
+};
+
+const normalizeTarget = (
+  target: RouteTargetFormItem | null | undefined
+): RouteTargetFormItem => {
+  const normalizedTarget = {
+    id: target?.id,
+    weight: target?.weight ?? 0,
+    model_id: target?.model_id,
+    provider_id: target?.provider_id,
+    overridden_model_name: target?.overridden_model_name,
+    fallback_status_codes: target?.fallback_status_codes
+  };
+
+  console.log('normalizeTarget', target, normalizedTarget);
+
+  return _.omitBy(normalizedTarget, _.isUndefined) as RouteTargetFormItem;
+};
 
 interface ProviderFormProps {
   ref?: any;
@@ -23,14 +62,10 @@ interface ProviderFormProps {
   action: PageActionType;
   realAction?: string;
   currentData?: ListItem & {
-    routeTargets?: {
-      weight?: number;
-      model_id?: number;
-      provider_id?: number;
-      provider_model_name?: string;
-    }[];
+    routeTargets?: RouteTargetFormItem[];
   }; // Used when action is EDIT
   onFinish: (values: FormData) => Promise<void>;
+  onFinishFailed?: (errorInfo: any) => void;
   onFallbackChange?: (changed: boolean) => void;
 }
 
@@ -52,8 +87,15 @@ const requiredFields = {
 
 const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
   const intl = useIntl();
-  const { action, realAction, currentData, open, onFinish, onFallbackChange } =
-    props;
+  const {
+    action,
+    realAction,
+    currentData,
+    open,
+    onFinish,
+    onFinishFailed,
+    onFallbackChange
+  } = props;
   const { getScrollElementScrollableHeight } = useWrapperContext();
   const [form] = Form.useForm();
   const scrollTabsRef = useRef<any>(null);
@@ -87,24 +129,15 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
 
   const formatTargets = (values: FormData) => {
     let targetList = [...(values.targets || [])];
-    let fallbackTarget = values.fallback_target;
+    const fallbackTarget = values.fallback_target;
 
     if (fallbackTarget) {
-      const exsitinged = targetList.find((ep) => {
-        if (fallbackTarget!.model_id) {
-          return ep.model_id === fallbackTarget!.model_id;
-        }
-        return (
-          ep.provider_id === fallbackTarget!.provider_id &&
-          ep.provider_model_name === fallbackTarget!.provider_model_name
-        );
-      });
-      if (exsitinged) {
+      const existingTarget = targetList.find((target) =>
+        isSameTarget(target, fallbackTarget)
+      );
+      if (existingTarget) {
         targetList = targetList.map((ep) => {
-          if (
-            ep.model_id === fallbackTarget.model_id ||
-            ep.provider_model_name === fallbackTarget.provider_model_name
-          ) {
+          if (isSameTarget(ep, fallbackTarget)) {
             return {
               ...ep,
               fallback_status_codes: ['4xx', '5xx']
@@ -114,7 +147,7 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
         });
       }
 
-      if (!exsitinged) {
+      if (!existingTarget) {
         targetList.push({
           ...fallbackTarget,
           weight: 0,
@@ -123,7 +156,7 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
       }
     }
 
-    return targetList;
+    return targetList.map((target) => normalizeTarget(target));
   };
 
   const handleOnFinish = (values: FormData) => {
@@ -142,21 +175,19 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
       return;
     }
 
-    const initDataList = async (
-      targets: {
-        weight?: number;
-        model_id?: number;
-        provider_id?: number;
-        provider_model_name?: string;
-      }[]
-    ) => {
+    const initDataList = async (targets: RouteTargetFormItem[]) => {
       // init targets form list
       targetsRef.current?.initDataList(
         targets?.map((ep) => ({
           weight: ep.weight,
           value: ep.model_id
-            ? ['deployments', ep.model_id]
-            : [ep.provider_id, ep.provider_model_name]
+            ? [
+                'deployments',
+                ep.overridden_model_name
+                  ? `${ep.model_id}_lora_${ep.overridden_model_name}`
+                  : ep.model_id
+              ]
+            : [ep.provider_id, ep.overridden_model_name]
         })) || []
       );
     };
@@ -178,8 +209,13 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
       if (fallbackTarget) {
         targetsRef.current?.initFallbackValues({
           value: fallbackTarget.model_id
-            ? ['deployments', fallbackTarget.model_id]
-            : [fallbackTarget.provider_id, fallbackTarget.provider_model_name]
+            ? [
+                'deployments',
+                fallbackTarget.overridden_model_name
+                  ? `${fallbackTarget.model_id}_lora_${fallbackTarget.overridden_model_name}`
+                  : fallbackTarget.model_id
+              ]
+            : [fallbackTarget.provider_id, fallbackTarget.overridden_model_name]
         });
       }
     };
@@ -210,6 +246,11 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
     updateActiveKey
   });
 
+  const handleFinishFailed = (errorInfo: any) => {
+    handleOnFinishFailed(errorInfo);
+    onFinishFailed?.(errorInfo);
+  };
+
   useImperativeHandle(ref, () => ({
     submit: () => {
       form.submit();
@@ -238,7 +279,7 @@ const AccessForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
         <Form
           form={form}
           onFinish={handleOnFinish}
-          onFinishFailed={handleOnFinishFailed}
+          onFinishFailed={handleFinishFailed}
           initialValues={{
             categories: [modelCategoriesMap.llm],
             meta: {}

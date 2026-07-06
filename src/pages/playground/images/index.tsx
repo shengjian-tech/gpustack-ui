@@ -1,17 +1,19 @@
 import breakpoints from '@/config/breakpoints';
 import HotKeys from '@/config/hotkeys';
 import useWindowResize from '@/hooks/use-window-resize';
-import { ExtraContent } from '@/layouts/extraRender';
 import { modelCategoriesMap } from '@/pages/llmodels/config';
 import { DiffOutlined, HighlightOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
-import { Divider, Segmented, Tabs, TabsProps } from 'antd';
-import classNames from 'classnames';
+import { Segmented, Tabs, TabsProps } from 'antd';
 import _ from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { PageContainerInner } from '../../_components/page-box';
+import {
+  HeaderLeft,
+  HeaderRight,
+  usePageContentStyle
+} from '../../_components/page-box';
 import { queryModelsList } from '../apis';
 import ViewCodeButtons from '../components/view-code-buttons';
 import '../style/play-ground.less';
@@ -137,6 +139,7 @@ const TextToImages: React.FC = () => {
               className="m-l-24 font-600"
               value={activeKey}
               onChange={(key) => setActiveKey(key)}
+              style={{ fontSize: 13 }}
             ></Segmented>
           }
         </div>
@@ -154,31 +157,42 @@ const TextToImages: React.FC = () => {
     }
   );
 
+  usePageContentStyle({ padding: 0 });
+
   return (
-    <PageContainerInner
-      header={header}
-      extra={[
+    <>
+      <HeaderLeft>
+        <div className="flex items-center">
+          <span className="font-600 flex-center">
+            {intl.formatMessage({ id: 'menu.playground.text2images' })}
+          </span>
+          <Segmented
+            shape="round"
+            style={{
+              backgroundColor: 'var(--ant-color-fill-secondary)'
+            }}
+            size="middle"
+            className="m-l-24 font-400"
+            options={optionsList}
+            value={activeKey}
+            onChange={(key) => setActiveKey(key)}
+          ></Segmented>
+        </div>
+      </HeaderLeft>
+      <HeaderRight>
         <ViewCodeButtons
           handleViewCode={handleViewCode}
           handleToggleCollapse={handleToggleCollapse}
           activeKey={activeKey}
           key="view-code-buttons"
-        ></ViewCodeButtons>,
-        <Divider
-          key="divider"
-          orientation="vertical"
-          style={{ height: 16, marginInline: 16 }}
-        />,
-        <ExtraContent key="extra-content" />
-      ]}
-      className={classNames('playground-container chat')}
-    >
+        ></ViewCodeButtons>
+      </HeaderRight>
       <div className="play-ground">
         <div className="chat">
           <Tabs items={items} activeKey={activeKey}></Tabs>
         </div>
       </div>
-    </PageContainerInner>
+    </>
   );
 };
 

@@ -1,52 +1,109 @@
 import {
   AddWorkerDockerNotes,
-  GPUDriverMap
+  GPUDriverMap,
+  GPUsConfigs
 } from '@/pages/resources/config/gpu-driver';
 import { useIntl } from '@umijs/max';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ProviderValueMap } from '../../config';
 import SupportedGPUs from '../support-gpus';
 import { useAddWorkerContext } from './add-worker-context';
 import { AddWorkerStepProps, StepNamesMap } from './config';
 import { Title } from './constainers';
 import StepCollapse from './step-collapse';
 
+const buildWorkerCommand = (
+  driverKey: string,
+  itemHint?: { label?: string; link?: string }
+) => ({
+  label: itemHint?.label || GPUsConfigs[driverKey]?.label || driverKey,
+  link: itemHint?.link || '',
+  notes: AddWorkerDockerNotes[driverKey] || []
+});
+
 const SelectVendor: React.FC<AddWorkerStepProps> = ({ disabled }) => {
-  const { stepList, registerField, updateField } = useAddWorkerContext();
+  const { stepList, registerField, updateField, provider } =
+    useAddWorkerContext();
   const intl = useIntl();
 
   const stepIndex = stepList.indexOf(StepNamesMap.SelectGPU) + 1;
-  const [currentGPU, setCurrentGPU] = React.useState<string>(
-    GPUDriverMap.NVIDIA
+
+  // K8s clusters render one worker DaemonSet per requested GPU runtime and
+  // derive each DaemonSet's nodeSelector from the vendor's PCI-presence label
+  // at manifest time, so multiple vendors can be registered without any
+  // per-cluster override config. Multi-select is therefore always available
+  // for the Kubernetes provider; other providers stay single-select.
+  const multiCapable = provider === ProviderValueMap.Kubernetes;
+
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  // No vendor is gated anymore — every card stays selectable.
+  const availableKeys = undefined;
+
+  // Cache vendor metadata (label/link from SupportedGPUs items) so we can
+  // rebuild workerCommand on toggle without re-clicking the card.
+  const itemMetaRef = useRef<Record<string, { label: string; link: string }>>(
+    {}
   );
 
-  const handleSelectProvider = (value: string, item: any) => {
-    if (value === currentGPU) return;
-    setCurrentGPU(value);
+  useEffect(() => {
+    const unregister1 = registerField('currentGPU');
+    const unregister2 = registerField('workerCommand');
+    const unregister3 = registerField('selectedGPUs');
+    return () => {
+      unregister1();
+      unregister2();
+      unregister3();
+    };
+  }, []);
 
-    updateField('currentGPU', value);
-    updateField('workerCommand', item);
+  const buildSelectedKeys = (key: string) => {
+    const prev = [...selectedKeys];
+    const has = prev.includes(key);
+    if (has) {
+      // Clicking a selected card always toggles it off.
+      return prev.filter((v) => v !== key);
+    }
+    // K8s clusters support multiple GPU runtimes, so accumulate picks.
+    // Other providers stay single-select and replace the current pick.
+    if (multiCapable) return [...prev, key];
+    return [key];
+  };
+
+  const updateFieldsOnSelect = (keys: string[]) => {
+    const primary = keys[0] || '';
+    updateField('currentGPU', primary);
+    updateField('selectedGPUs', keys);
+    updateField(
+      'workerCommand',
+      primary ? buildWorkerCommand(primary, itemMetaRef.current[primary]) : null
+    );
+  };
+
+  const handleSelect = (key: string, item: any) => {
+    if (item) {
+      itemMetaRef.current[key] = {
+        label: item.label,
+        link: item.link
+      };
+    }
+    const keys = buildSelectedKeys(key);
+    updateFieldsOnSelect(keys);
+    setSelectedKeys(keys);
   };
 
   useEffect(() => {
-    const unregisterField = registerField('currentGPU');
-    return () => {
-      unregisterField();
-    };
-  }, []);
-
-  useEffect(() => {
-    const unregisterField = registerField('workerCommand');
-    return () => {
-      unregisterField();
-    };
-  }, []);
-
-  useEffect(() => {
-    updateField('currentGPU', GPUDriverMap.NVIDIA);
-    updateField('workerCommand', {
+    // Default to NVIDIA for every provider, including K8s. Users can still
+    // deselect it (e.g. for CPU-only workers) or add more vendors on K8s.
+    handleSelect(GPUDriverMap.NVIDIA, {
       label: 'NVIDIA',
-      link: 'https://docs.gpustack.ai/latest/installation/requirements/#nvidia-gpu',
-      notes: AddWorkerDockerNotes[GPUDriverMap.NVIDIA]
+      hiddenTitle: true,
+      value: GPUDriverMap.NVIDIA,
+      description: '',
+      key: GPUDriverMap.NVIDIA,
+      locale: false,
+      notes: AddWorkerDockerNotes[GPUDriverMap.NVIDIA],
+      link: 'https://docs.gpustack.ai/latest/installation/requirements/#nvidia-gpu'
     });
   }, []);
 
@@ -58,12 +115,27 @@ const SelectVendor: React.FC<AddWorkerStepProps> = ({ disabled }) => {
         <Title>
           {stepIndex}.{' '}
           {intl.formatMessage({ id: 'clusters.addworker.selectGPU' })}
+          {multiCapable && (
+            <span
+              style={{
+                marginLeft: 8,
+                fontWeight: 400,
+                fontSize: 13,
+                color: 'var(--ant-color-text-secondary)'
+              }}
+            >
+              {intl.formatMessage({
+                id: 'clusters.addworker.selectGPU.subtitle'
+              })}
+            </span>
+          )}
         </Title>
       }
     >
       <SupportedGPUs
-        onSelect={handleSelectProvider}
-        current={currentGPU}
+        onSelect={handleSelect}
+        current={selectedKeys}
+        availableKeys={availableKeys}
         clickable={true}
       />
     </StepCollapse>

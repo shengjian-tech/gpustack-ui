@@ -96,6 +96,34 @@ const AddWorkerSteps: React.FC<AddWorkerProps> = (props) => {
     );
   }, [clusterList, stepList, StepNamesMap]);
 
+  // Downstream steps (check env, run command, ...) only make sense after a
+  // GPU vendor has been chosen. If the user toggled off every vendor in
+  // multi-select, gate them shut so the wrong panel can't be opened.
+  // Exception: for K8s clusters, Run Command is always accessible (CPU-only
+  // workers don't need a GPU vendor).
+  const selectedGPUs =
+    (summary.get('selectedGPUs') as string[] | undefined) || [];
+  const currentGPU = (summary.get('currentGPU') as string | undefined) || '';
+  const noVendorSelected = !currentGPU && selectedGPUs.length === 0;
+  const isK8s = provider === ProviderValueMap.Kubernetes;
+  // For non-K8s providers, all downstream steps are gated by vendor selection.
+  // For K8s, both CheckEnv and RunCommand are always accessible — CheckEnv
+  // shows a ready-nodes check when no vendor is selected (CPU-only workers).
+  const downstreamDisabled = disabled || (noVendorSelected && !isK8s);
+
+  React.useEffect(() => {
+    // If the user just deselected everything on a non-K8s provider, collapse
+    // any downstream panel back to the GPU step so they aren't left looking at
+    // a stale disabled-but-open command. For K8s, CheckEnv stays open with a
+    // ready-nodes check, so no collapsing needed.
+    if (!noVendorSelected || isK8s) return;
+    setCollapseKey((prev) =>
+      prev.has(StepNamesMap.SelectGPU)
+        ? prev
+        : new Set([StepNamesMap.SelectGPU])
+    );
+  }, [noVendorSelected, isK8s]);
+
   return (
     <AddWorkerContext.Provider
       value={{
@@ -123,21 +151,28 @@ const AddWorkerSteps: React.FC<AddWorkerProps> = (props) => {
           !stepList.includes(StepNamesMap.SelectCluster)) && (
           <>
             <SelectVendor disabled={disabled}></SelectVendor>
-            <CheckEnvironment disabled={disabled}></CheckEnvironment>
+            {(isK8s || !noVendorSelected) && (
+              <CheckEnvironment disabled={disabled}></CheckEnvironment>
+            )}
 
             {provider === ProviderValueMap.Kubernetes && (
-              <K8sRunCommand disabled={disabled}></K8sRunCommand>
+              <K8sRunCommand disabled={downstreamDisabled}></K8sRunCommand>
             )}
 
             {provider === ProviderValueMap.Docker && (
               <>
-                <SpecifyArguments disabled={disabled}></SpecifyArguments>
-                <DockerRunCommand disabled={disabled}></DockerRunCommand>
+                <SpecifyArguments
+                  disabled={downstreamDisabled}
+                ></SpecifyArguments>
+                <DockerRunCommand
+                  disabled={downstreamDisabled}
+                ></DockerRunCommand>
               </>
             )}
           </>
         )}
         {actionSource === 'modal' && (
+          //  show in cluster create page inner
           <AddedMessage addedCount={addedCount}></AddedMessage>
         )}
       </Container>

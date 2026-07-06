@@ -1,11 +1,13 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import DropdownButtons from '@/components/drop-down-buttons';
-import RowChildren from '@/components/seal-table/components/row-children';
-import StatusTag from '@/components/status-tag';
 import ProviderLogo from '@/pages/maas-provider/components/provider-logo';
 import { DeleteOutlined } from '@ant-design/icons';
+import {
+  AutoTooltip,
+  DropdownButtons,
+  RowChildren,
+  StatusTag
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
-import { Col, Row } from 'antd';
+import { Col, Row, Tag } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import styled from 'styled-components';
@@ -16,6 +18,15 @@ const CellContent = styled.div`
   display: flex;
   align-items: center;
   height: 100%;
+`;
+
+const FilesTag = styled(Tag)`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-inline: 4px 0;
+  transform: scale(0.9);
+  border-radius: 12px;
 `;
 
 interface ProviderModelProps {
@@ -67,7 +78,7 @@ const RouteItem: React.FC<TargetItemProps> = ({
         <AutoTooltip ghost minWidth={20}>
           {data.model_id
             ? modelList?.find((m) => m.value === data.model_id)?.label
-            : data.provider_model_name}
+            : data.overridden_model_name}
         </AutoTooltip>
       </span>
     );
@@ -75,14 +86,23 @@ const RouteItem: React.FC<TargetItemProps> = ({
   return (
     <div style={{ borderRadius: 'var(--ant-table-header-border-radius)' }}>
       <RowChildren>
-        <Row gutter={16} style={{ width: '100%' }}>
+        <Row
+          gutter={16}
+          style={{ width: '100%', color: 'var(--ant-color-text-secondary)' }}
+        >
           <Col span={5}>
             <CellContent
               style={{
+                gap: 4,
                 paddingInline: 'var(--ant-table-cell-padding-inline)'
               }}
             >
               <AutoTooltip ghost>{data.name}</AutoTooltip>
+              {!!data.overridden_model_name && !!data.model_id && (
+                <FilesTag color="purple" variant="outlined">
+                  <span style={{ opacity: 1 }}>LoRA</span>
+                </FilesTag>
+              )}
             </CellContent>
           </Col>
           <Col span={5} style={{ paddingLeft: 64 }}>

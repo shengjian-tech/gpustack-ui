@@ -46,22 +46,28 @@ export default {
   'common.button.enabled': 'Enabled',
   'common.button.disabled': 'Disabled',
   'common.button.upgrade': 'Upgrade',
+  'common.enterprise.feature': 'Available in GPUStack Enterprise',
   'common.input.holder': 'Please enter',
   'common.validate.value': '{name} value is required',
   'common.button.edit': 'Edit',
   'common.button.authorize': 'Role Authorization',
   'common.button.confirm': 'Confirm',
   'common.button.viewlog': 'View Logs',
+  'common.button.viewevent': 'View Events',
+  'common.button.recreate': 'Recreate',
   'common.table.operation': 'Operations',
+  'common.table.creator': 'Creator',
   'common.table.createTime': 'Created',
   'common.table.updateTime': 'Updated',
   'common.table.description': 'Description',
+  'common.table.displayName': 'Display Name',
   'common.table.name': 'Name',
   'common.table.status': 'Status',
   'common.table.name.list': '{type} Name',
   'common.search.name.placeholder': 'filter by name',
   'common.search.id.placeholder': 'filter by ID',
   'common.filter.byId': 'filter by ID',
+  'common.filter.byCreator': 'Filter by creator',
   'common.table.type': 'Type',
   'common.table.default': 'Default Value',
   'common.copy.success': 'Copied success!',
@@ -163,6 +169,7 @@ export default {
   'common.time.hour': 'hour',
   'common.time.minute': 'minutes',
   'common.issue.report': 'Report an issue',
+  'common.github.star.tooltip': 'Star us on GitHub',
   'common.social.discord': 'Join Our Discord',
   'common.table.mark': 'Comment',
   'common.table.rollback.mark': 'Rollback Comment',
@@ -191,6 +198,8 @@ export default {
   'common.table.user': 'User',
   'common.settings.instructions': 'Instructions',
   'common.settings.language': 'Language',
+  'common.settings.language.tips':
+    'Set the display language for the interface.',
   'common.delete.confirm':
     'Are you sure you want to delete the selected {type}?',
   'common.delete.single.confirm':
@@ -223,7 +232,6 @@ export default {
   'common.text.latest': 'Latest',
   'common.text.new': 'New',
   'common.text.changelog': 'Release Notes',
-  'common.button.recreate': 'Recreate',
   'common.button.delrecreate': 'Delete (Recreate)',
   'common.options.all': 'All',
   'common.options.none': 'None',
@@ -245,6 +253,11 @@ export default {
   'common.appearance.tips': 'Default follows system preference.',
   'common.button.forgotpassword': 'Forgot password?',
   'common.appearance.theme': 'Theme',
+  'common.appearance.description':
+    'Customize how the interface looks on your device.',
+  'common.security': 'Security',
+  'common.security.description':
+    'Manage the password used to sign in to your account.',
   'common.page.wentwrong': 'Something went wrong.',
   'common.page.refresh.tips':
     'The page may need to be updated. Try refreshing it!',
@@ -254,7 +267,15 @@ export default {
   'common.select.count': '{count} selected',
   'common.login.auth': 'Authenticating...',
   'common.login.auth.failed': 'Authentication failed',
+  'common.login.error.source_conflict':
+    'An account with this username already exists from a different authentication source. Please contact an administrator to link or convert it.',
+  'common.login.error.auth_failed':
+    'Authentication with the identity provider failed. Please try again or contact your administrator.',
   'common.login.password': 'Log in with Password',
+  'common.login.username.holder': 'Please enter username',
+  'common.login.password.holder': 'Please enter password',
+  'common.login.newpassword.holder': 'Please enter new password',
+  'common.login.confirm.holder': 'Please enter password again',
   'common.external.login': 'Log in with {type}',
   'common.sso.noConfig':
     'Single sign-on is not enabled on this system. Please contact your administrator.',
@@ -276,5 +297,14 @@ export default {
   'common.status.enabled': 'Enabled',
   'common.status.disabled': 'Disabled',
   'common.button.duplicate': 'Duplicate',
-  'common.option.other': 'Other'
+  'common.option.other': 'Other',
+  'common.file.size.limit': 'File size must not exceed {size}.',
+  'common.file.format.limit': 'Invalid file format. Allowed: {formats}.',
+  'common.image.limit.width': 'Image width must be {width}.',
+  'common.image.limit.height': 'Image height must be {height}.',
+  'common.remaining': 'Remaining {count}',
+  'common.max': 'Max {count}',
+  'common.max.count': '{label} Count',
+  'common.validate.group': 'Please complete the {group} configuration',
+  'common.preferences': 'Preferences'
 };

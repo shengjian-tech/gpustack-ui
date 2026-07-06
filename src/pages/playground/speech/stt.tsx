@@ -1,18 +1,21 @@
 import { setRouteCache } from '@/atoms/route-cache';
-import AlertInfo from '@/components/alert-info';
-import AudioAnimation from '@/components/audio-animation';
-import AudioPlayer from '@/components/audio-player';
-import CopyButton from '@/components/copy-button';
-import IconFont from '@/components/icon-font';
-import UploadAudio from '@/components/upload-audio';
 import routeCachekey from '@/config/route-cachekey';
 import { HEADER_HEIGHT } from '@/config/settings';
-import useOverlayScroller from '@/hooks/use-overlay-scroller';
 import { useCancelToken } from '@/hooks/use-request-token';
 import { readAudioFile } from '@/utils/load-audio-file';
 import { SendOutlined } from '@ant-design/icons';
+import {
+  AlertInfo,
+  AudioAnimation,
+  AudioPlayer,
+  CopyButton,
+  IconFont,
+  UploadAudio,
+  useOverlayScroller
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Spin, Tooltip } from 'antd';
+import _ from 'lodash';
 import React, {
   forwardRef,
   useCallback,
@@ -100,7 +103,7 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
     onError: (error) => {
       setTokenResult({
         error: true,
-        errorMessage: error
+        errorMessage: error?.message || _.toString(error)
       });
     }
   });
@@ -161,10 +164,9 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
         await nonStreamSTT.generate(params, getCanceltToken());
       }
     } catch (error: any) {
-      console.log('error:', error);
       setTokenResult({
         error: true,
-        errorMessage: error?.message || 'Unknown error'
+        errorMessage: error?.message || _.toString(error)
       });
     } finally {
       setLoading(false);
@@ -298,7 +300,7 @@ const GroundSTT: React.FC<MessageProps> = forwardRef((props, ref) => {
     <div
       className="ground-left-wrapper"
       style={{
-        height: `calc(100vh - ${HEADER_HEIGHT}px)`
+        height: `calc(100vh - var(--app-banner-height, 0px) - ${HEADER_HEIGHT}px)`
       }}
     >
       <div className="ground-left">

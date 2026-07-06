@@ -1,8 +1,8 @@
 import { BulbOutlined } from '@ant-design/icons';
+import { CommandViewer } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Modal } from 'antd';
 import React, { useEffect, useState } from 'react';
-import CommandViewer from '../../_components/command-viewer';
 
 type ViewModalProps = {
   title?: string;
@@ -94,7 +94,7 @@ const ViewCodeModal: React.FC<ViewModalProps> = (props) => {
                     <Button
                       type="link"
                       size="small"
-                      href="#/api-keys"
+                      href="#/access-control/api-keys"
                       target="_blank"
                       style={{ paddingInline: 2 }}
                     >

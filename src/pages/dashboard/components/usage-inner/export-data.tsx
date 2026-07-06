@@ -1,7 +1,5 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import ModalFooter from '@/components/modal-footer';
-import ScrollerModal from '@/components/scroller-modal';
-import { exportJsonToExcel } from '@/utils/excel-reader';
+import { AutoTooltip, ModalFooter, ScrollerModal } from '@gpustack/core-ui';
+import { exportJsonToExcel } from '@gpustack/core-ui/excel';
 import { useIntl } from '@umijs/max';
 import { Table, TableColumnType } from 'antd';
 import dayjs from 'dayjs';
@@ -10,7 +8,6 @@ import { DASHBOARD_USAGE_API } from '../../apis';
 import { TableRow } from '../../config/types';
 import FilterBar from './filter-bar';
 import useUsageData from './use-usage-data';
-
 const ExportData: React.FC<{
   open: boolean;
   onCancel: () => void;
@@ -108,27 +105,34 @@ const ExportData: React.FC<{
   const handleSubmit = () => {
     const fileName = `usage-data_${query.start_date || ''}_${query.end_date || ''}.xlsx`;
     exportJsonToExcel({
-      jsonData: result.data?.items || [],
       fileName: fileName,
-      fields: exportTableColumns
-        .map((col) => col.dataIndex)
-        .filter(Boolean) as string[],
-      fieldLabels: {
-        user_id: 'User',
-        model_id: 'Model',
-        date: 'Date',
-        prompt_token_count: 'Prompt Tokens',
-        completion_token_count: 'Completion Tokens',
-        request_count: 'API Requests'
-      },
-      formatMap: {
-        user_id: (value: string) => {
-          return userList.find((item) => item.value === value)?.label || value;
-        },
-        model_id: (value: string, record: any) => {
-          return getModelName(record);
+      sheets: [
+        {
+          jsonData: result.data?.items || [],
+          sheetName: 'usage_data',
+          fields: exportTableColumns
+            .map((col) => col.dataIndex)
+            .filter(Boolean) as string[],
+          fieldLabels: {
+            user_id: 'User',
+            model_id: 'Model',
+            date: 'Date',
+            prompt_token_count: 'Prompt Tokens',
+            completion_token_count: 'Completion Tokens',
+            request_count: 'API Requests'
+          },
+          formatMap: {
+            user_id: (value: string) => {
+              return (
+                userList.find((item) => item.value === value)?.label || value
+              );
+            },
+            model_id: (value: string, record: any) => {
+              return getModelName(record);
+            }
+          }
         }
-      }
+      ]
     });
   };
 

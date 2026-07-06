@@ -18,6 +18,17 @@ export interface ListItem {
   enable_model_route?: boolean;
   replicas: number;
   s3Address: string;
+  lora_list: Array<{
+    huggingface_filename: string;
+    local_path: string;
+    lora_name: string;
+    lora_repo_name: string;
+    model_file_id: string;
+    model_scope_file_path: string;
+    path: string;
+    source: string;
+  }>;
+  owner_principal_id?: number;
   name: string;
   description: string;
   id: number;
@@ -25,7 +36,13 @@ export interface ListItem {
   local_path?: string;
   created_at: string;
   updated_at: string;
-  access_policy: 'public' | 'authed' | 'allowed_users';
+  // Built-in values are 'public' | 'authed' | 'allowed_users';
+  // additional values (e.g. 'allowed_principals') may be contributed
+  // by plugins via `accessControl.prependedPolicies` or by
+  // overriding the default via `accessControl.allowedUsersOverride`.
+  // The `(string & {})` tail keeps literal autocomplete for the
+  // built-ins while still accepting plugin-defined values.
+  access_policy: 'public' | 'authed' | 'allowed_users' | (string & {});
   generic_proxy?: boolean;
   gpu_selector?: {
     gpu_ids: string[];
@@ -42,6 +59,16 @@ export type SourceType =
   | 'local_path'
   | 'ollama_library';
 
+export interface LoraListItem {
+  lora_name: string;
+  lora_repo_name: string;
+  source: 'huggingface' | 'model_scope';
+  huggingface_filename: string;
+  model_scope_file_path: string;
+  local_path: string;
+  path: string;
+  model_file_id: number;
+}
 export interface FormData {
   image_name?: string;
   run_command?: string;
@@ -60,6 +87,7 @@ export interface FormData {
   s3_address: string;
   ollama_library_model_name: string;
   distributed_inference_across_workers?: boolean;
+  lora_list: LoraListItem[];
   local_path?: string;
   model_scope_model_id?: string;
   model_scope_file_path?: string;
@@ -117,6 +145,9 @@ export interface DistributedServers {
 export interface ModelInstanceListItem {
   backend?: string;
   cluster_id: number;
+  // Inherited from the parent Model's owner_principal_id on the
+  // wire so per-row tenant filtering works without joining.
+  owner_principal_id?: number | null;
   backend_version?: string;
   source: string;
   categories?: string[];
@@ -125,6 +156,7 @@ export interface ModelInstanceListItem {
   ollama_library_model_name: string;
   distributed_servers?: DistributedServers;
   computed_resource_claim?: ComputedResourceClaim;
+  injected_backend_parameters?: string[];
   s3_address: string;
   worker_id: number;
   gpu_indexes?: number[];
@@ -316,6 +348,8 @@ export interface BackendGroupItem {
   isBuiltIn: boolean;
   backend_source: string;
   enabled: boolean;
+  common_parameters?: string[];
+  parameter_format?: 'space' | 'equal' | null;
   versions: {
     label: string;
     value: string;
@@ -335,6 +369,8 @@ export interface BackendOption {
   backend_source: string;
   default_env?: Record<string, any>;
   enabled: boolean;
+  common_parameters?: string[];
+  parameter_format?: 'space' | 'equal' | null;
   versions: {
     label: string;
     value: string;
@@ -345,8 +381,25 @@ export interface BackendOption {
 }
 
 export interface AccessControlFormData {
-  access_policy: 'public' | 'authed' | 'allowed_users';
-  users: { id: number }[];
+  // See `RouteItem.access_policy` for why plugin-defined values are
+  // accepted alongside the built-ins. The OSS "specific users" entry
+  // now writes `allowed_principals` (with a user-only grant list);
+  // `allowed_users` remains accepted as the deprecated released value.
+  access_policy: 'public' | 'authed' | 'allowed_users' | (string & {});
+  // Omitted when the caller isn't managing the user list (the
+  // principal-based override, or authed/public) so the server leaves
+  // existing grants untouched; an explicit (possibly empty) list
+  // replaces the route's USER-kind grants.
+  users?: { id: number }[];
+  // Full grant set (any kind) submitted by the principal-based override
+  // on save — replaces the route's entire grant set. OSS leaves it unset
+  // (it manages users via `users`).
+  principals?: {
+    principal_type: string;
+    principal_id: number;
+    principal_name?: string;
+    principal_display_name?: string;
+  }[];
 }
 
 export interface BackendItem {
@@ -357,6 +410,8 @@ export interface BackendItem {
   is_built_in: boolean;
   backend_source: string;
   enabled: boolean;
+  common_parameters?: string[];
+  parameter_format?: 'space' | 'equal' | null;
   versions: {
     version: string;
     env?: Record<string, any>;
@@ -374,4 +429,26 @@ export interface DraftModelItem {
   local_path: string;
   name: string;
   algorithm: string;
+}
+
+export interface InstanceRestartCount {
+  main_worker_id: number;
+  workers: {
+    worker_id: number;
+    name: string;
+    restarts: {
+      previous: boolean;
+      started_at: string;
+      containers: string[];
+    }[];
+    error?: string | null;
+  }[];
+}
+
+export interface ModelLoraAdapterResult {
+  lora_list: Array<{
+    is_local: boolean;
+    lora_repo_name: string;
+    source: 'huggingface' | 'model_scope' | 'local_path';
+  }>;
 }

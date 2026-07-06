@@ -1,9 +1,11 @@
-import LabelSelector from '@/components/label-selector';
-import { LabelSelectorContext } from '@/components/label-selector/context';
-import SealCascader from '@/components/seal-form/seal-cascader';
-import SealSelect from '@/components/seal-form/seal-select';
-import TooltipList from '@/components/tooltip-list';
-import useAppUtils from '@/hooks/use-app-utils';
+import {
+  LabelSelector,
+  LabelSelectorProvider,
+  Cascader as SealCascader,
+  Select as SealSelect,
+  TooltipList,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form, InputNumber } from 'antd';
 import _ from 'lodash';
@@ -74,7 +76,6 @@ const ScheduleTypeForm: React.FC = () => {
   const { getRuleMessage } = useAppUtils();
   const form = Form.useFormInstance();
   const scheduleType = Form.useWatch('scheduleType', form);
-  const workerSelector = Form.useWatch('worker_selector', form);
   const GPUsPerReplicas = Form.useWatch(
     ['gpu_selector', 'gpus_per_replica'],
     form
@@ -122,10 +123,6 @@ const ScheduleTypeForm: React.FC = () => {
     if (!hasEmptyValue || allowEmpty) {
       onValuesChange?.({}, form.getFieldsValue());
     }
-  };
-
-  const handleWorkerLabelsChange = (labels: Record<string, any>) => {
-    form.setFieldValue('worker_selector', labels);
   };
 
   const handleSelectorOnBlur = () => {
@@ -178,13 +175,20 @@ const ScheduleTypeForm: React.FC = () => {
               <SealCascader
                 required
                 showSearch
-                expandTrigger="hover"
+                expandTrigger="click"
                 multiple={
                   form.getFieldValue('backend') !== backendOptionsMap.voxBox
                 }
                 classNames={{
                   popup: {
                     root: 'cascader-popup-wrapper gpu-selector'
+                  }
+                }}
+                styles={{
+                  popup: {
+                    listItem: {
+                      maxWidth: 'unset'
+                    }
                   }
                 }}
                 maxTagCount={1}
@@ -258,9 +262,7 @@ const ScheduleTypeForm: React.FC = () => {
               }
             ></SealSelect>
           </Form.Item>
-          <LabelSelectorContext.Provider
-            value={{ options: workerLabelOptions }}
-          >
+          <LabelSelectorProvider value={{ options: workerLabelOptions }}>
             <Form.Item<FormData>
               name="worker_selector"
               rules={[
@@ -295,8 +297,6 @@ const ScheduleTypeForm: React.FC = () => {
                 label={intl.formatMessage({
                   id: 'resources.form.workerSelector'
                 })}
-                labels={workerSelector}
-                onChange={handleWorkerLabelsChange}
                 onBlur={handleSelectorOnBlur}
                 onDelete={handleDeleteWorkerSelector}
                 description={
@@ -308,7 +308,7 @@ const ScheduleTypeForm: React.FC = () => {
                 }
               ></LabelSelector>
             </Form.Item>
-          </LabelSelectorContext.Provider>
+          </LabelSelectorProvider>
         </>
       )}
     </>

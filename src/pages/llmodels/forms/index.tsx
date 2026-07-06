@@ -1,9 +1,11 @@
-import IconFont from '@/components/icon-font';
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import CollapsePanel from '@/pages/_components/collapse-panel';
-import { useWrapperContext } from '@/pages/_components/column-wrapper/use-wrapper-context';
-import ScrollSpyTabs from '@/pages/_components/scroll-spy-tabs';
+import {
+  CollapsePanel,
+  IconFont,
+  ScrollSpyTabs,
+  useWrapperContext
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
@@ -25,6 +27,7 @@ import {
   BackendOption,
   DeployFormKey,
   FormData,
+  LoraListItem,
   SourceType
 } from '../config/types';
 import { backendOptionsMap } from '../constants/backend-parameters';
@@ -63,6 +66,7 @@ interface DataFormProps {
   onOk: (values: FormData) => void;
   onBackendChange?: (value: string) => void;
   onClusterChange?: (value: number) => void;
+  onFinishFailed?: (errorInfo: any) => void;
 }
 
 const TABKeysMap = {
@@ -83,12 +87,12 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
     sourceDisable = true,
     sourceList,
     clusterList = [],
-    fields = ['source'],
     clearCacheFormValues,
     onBackendChange,
     onSourceChange,
     onValuesChange,
     onClusterChange,
+    onFinishFailed,
     onOk
   } = props;
   const { getScrollElementScrollableHeight } = useWrapperContext();
@@ -99,6 +103,7 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
   const [form] = Form.useForm();
   const intl = useIntl();
   const [activeKey, setActiveKey] = React.useState<string[]>([]);
+  const [submitAttempted, setSubmitAttempted] = React.useState(false);
   const { modelContextData, fetchContextLength } = useQueryContextLength();
   const localPath = Form.useWatch('local_path', form);
   const modelScopeModelId = Form.useWatch('model_scope_model_id', form);
@@ -212,13 +217,22 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
 
   // generate the data is available for the backend including the gpu_ids
   const handleOk = async (formdata: FormData) => {
-    let data = _.cloneDeep(formdata);
+    const data = _.cloneDeep(formdata);
     data.categories = data.categories ? [data.categories] : [];
+    if (data.lora_list && data.lora_list.length > 0) {
+      data.lora_list = data.lora_list.map((item: LoraListItem) => ({
+        ...item,
+        huggingface_filename: data.huggingface_filename || '',
+        model_scope_file_path: data.model_scope_file_path || '',
+        local_path: data.local_path || ''
+      }));
+    }
     const gpuSelector = generateGPUIds(data);
     const allValues = {
       ..._.omit(data, ['scheduleType']),
       ...gpuSelector
     };
+    console.log('submit form data:', allValues);
     onOk(allValues);
   };
 
@@ -272,6 +286,9 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
   };
 
   const handleOnFinishFailed = (errorInfo: any) => {
+    setSubmitAttempted(true);
+    onFinishFailed?.(errorInfo);
+    console.log('Failed:', errorInfo);
     const { errorFields } = errorInfo;
     if (errorFields && errorFields.length > 0) {
       const collapseKeys: string[] = [];
@@ -388,6 +405,7 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
         workerLabelOptions: workerLabelOptions,
         initialValues: initialValues,
         modelContextData: modelContextData,
+        submitAttempted: submitAttempted,
         clearCacheFormValues: clearCacheFormValues,
         onValuesChange: onValuesChange,
         onBackendChange: handleBackendChange
@@ -445,7 +463,6 @@ const DataForm: React.FC<DataFormProps> = forwardRef((props, ref) => {
           }}
         >
           <BasicForm
-            fields={fields}
             sourceList={sourceList}
             clusterList={clusterList}
             sourceDisable={sourceDisable}

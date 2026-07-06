@@ -1,18 +1,20 @@
-import CheckboxField from '@/components/seal-form/checkbox-field';
-import SealInput from '@/components/seal-form/seal-input';
-import useAppUtils from '@/hooks/use-app-utils';
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import CategorySelect from '@/pages/_components/category-select';
 import DocLink from '@/pages/_components/doc-link';
 import { categoryOptions } from '@/pages/llmodels/config';
+import { CheckboxField, Input as CInput, useAppUtils } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
+import { useContext } from 'react';
 import { genericReferLink } from '../config';
+import FormContext from '../config/form-context';
 import { FormData } from '../config/types';
 
 const Basic = () => {
   const intl = useIntl();
   const form = Form.useFormInstance<FormData>();
   const { getRuleMessage } = useAppUtils();
+  const { action } = useContext(FormContext);
   return (
     <>
       <Form.Item
@@ -25,11 +27,12 @@ const Basic = () => {
           }
         ]}
       >
-        <SealInput.Input
+        <CInput.Input
           required
           label={intl.formatMessage({ id: 'common.table.name' })}
         />
       </Form.Item>
+      <PluginExtraFields name="CreateOrgScopeField" context={{ action }} />
       <Form.Item
         name="categories"
         normalize={(value) => (value ? [value] : [])}
@@ -56,12 +59,12 @@ const Basic = () => {
         ></CategorySelect>
       </Form.Item>
       <Form.Item name="description" style={{ marginBottom: 8 }}>
-        <SealInput.TextArea
+        <CInput.TextArea
           scaleSize={true}
           label={intl.formatMessage({
             id: 'common.table.description'
           })}
-        ></SealInput.TextArea>
+        ></CInput.TextArea>
       </Form.Item>
       <Form.Item<FormData>
         name="generic_proxy"

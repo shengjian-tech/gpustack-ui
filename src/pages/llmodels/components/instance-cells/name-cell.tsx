@@ -1,5 +1,3 @@
-import AutoTooltip from '@/components/auto-tooltip';
-import IconFont from '@/components/icon-font';
 import { convertFileSize } from '@/utils';
 import {
   HddFilled,
@@ -7,18 +5,21 @@ import {
   PieChartFilled,
   ThunderboltFilled
 } from '@ant-design/icons';
+import { AutoTooltip, IconFont } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Tooltip } from 'antd';
 import _ from 'lodash';
 import React, { useEffect } from 'react';
 import { ModelInstanceListItem } from '../../config/types';
 import '../../style/instance-item.less';
-
 export interface NameCellProps {
   record: ModelInstanceListItem;
   modelData: any;
   defaultOpenId?: string;
   showWorkerInfo?: boolean;
+  styles?: {
+    label?: React.CSSProperties;
+  };
 }
 
 const calcTotalVram = (vram: Record<string, number>) => {
@@ -110,12 +111,15 @@ const NameCell: React.FC<NameCellProps> = ({
   record,
   modelData,
   defaultOpenId,
-  showWorkerInfo = true
+  showWorkerInfo = true,
+  styles
 }) => {
   return (
-    <span className="flex-center instance-name">
+    <span className="instance-name flex-center" style={{ gap: 4 }}>
       <AutoTooltip title={record.name} ghost>
-        <span className="m-r-5">{record.name}</span>
+        <span className="m-r-5" style={styles?.label}>
+          {record.name}
+        </span>
       </AutoTooltip>
       {!!record.worker_id && showWorkerInfo && (
         <WorkerInfo

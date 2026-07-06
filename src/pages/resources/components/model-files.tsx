@@ -1,13 +1,8 @@
 import { modelsExpandKeysAtom } from '@/atoms/models';
-import DeleteModal from '@/components/delete-modal';
-import IconFont from '@/components/icon-font';
-import { FilterBar } from '@/components/page-tools';
 import { PageAction } from '@/config';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
-import useAppUtils from '@/hooks/use-app-utils';
 import useBodyScroll from '@/hooks/use-body-scroll';
 import useTableFetch from '@/hooks/use-table-fetch';
-import NoResult from '@/pages/_components/no-result';
 import PageBox from '@/pages/_components/page-box';
 import { createModel } from '@/pages/llmodels/apis';
 import DeployModal from '@/pages/llmodels/components/deployment/deploy-modal';
@@ -22,6 +17,13 @@ import { backendOptionsMap } from '@/pages/llmodels/constants/backend-parameters
 import useCheckBackend from '@/pages/llmodels/hooks/use-check-backend';
 import { useGenerateWorkerOptions } from '@/pages/llmodels/hooks/use-form-initial-values';
 import useRecognizeAudio from '@/pages/llmodels/hooks/use-recognize-audio';
+import {
+  DeleteModal,
+  FilterBar,
+  IconFont,
+  NoResult,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table, message } from 'antd';
@@ -119,6 +121,28 @@ const ModelFiles = () => {
     return isGGUF || isOllama;
   };
 
+  const getModelInfo = (record: ListItem) => {
+    if (record.source === modelSourceMap.huggingface_value) {
+      return {
+        source: modelSourceMap.huggingface_value,
+        huggingface_repo_id: record.huggingface_repo_id,
+        huggingface_filename: record.huggingface_filename
+      };
+    }
+
+    if (record.source === modelSourceMap.modelscope_value) {
+      return {
+        source: modelSourceMap.modelscope_value,
+        model_scope_model_id: record.model_scope_model_id,
+        model_scope_file_path: record.model_scope_file_path
+      };
+    }
+    return {
+      source: modelSourceMap.local_path_value,
+      local_path: record.resolved_paths?.[0]
+    };
+  };
+
   const generateInitialValues = (record: ListItem, gpuOptions: any[]) => {
     const isGGUF = checkIsGGUF(record);
     const audioModelTag = identifyModelTask(
@@ -126,7 +150,7 @@ const ModelFiles = () => {
       record.resolved_paths?.[0]
     );
 
-    let name = _.toLower(
+    const name = _.toLower(
       _.split(
         record.huggingface_repo_id ||
           record.ollama_library_model_name ||
@@ -144,8 +168,7 @@ const ModelFiles = () => {
       cluster_id: workersList?.find(
         (worker) => worker.value === record.worker_id
       )?.cluster_id,
-      source: modelSourceMap.local_path_value,
-      local_path: record.resolved_paths?.[0],
+      ...getModelInfo(record),
       worker_selector: targetWorker
         ? {
             'worker-name': targetWorker
@@ -337,7 +360,8 @@ const ModelFiles = () => {
               current: queryParams.page,
               total: dataSource.total,
               hideOnSinglePage: queryParams.perPage === 10,
-              onChange: handlePageChange
+              onChange: handlePageChange,
+              size: 'middle'
             }}
           ></Table>
         </ConfigProvider>

@@ -24,63 +24,130 @@ export const ManufacturerMap = {
   [GPUDriverMap.THEAD]: 'vendor.thead'
 };
 
+export const manfacturerValueMap = {
+  NVIDIA: 'nvidia',
+  AMD: 'amd',
+  ASCEND: 'ascend',
+  HYGON: 'hygon',
+  MOORE_THREADS: 'moorthreads',
+  ILUVATAR: 'iluvatar',
+  CAMBRICON: 'cambricon',
+  METAX: 'metax',
+  THEAD: 'thead'
+};
+
 export const GPUsConfigs: Record<
   string,
-  { label: string; value: string; runtime: string; driver: string }
+  {
+    label: string;
+    value: string;
+    runtime: string;
+    driver: string;
+    gpuVendor?: string;
+    locales: {
+      label: string;
+      locale?: boolean;
+    };
+  }
 > = {
   [GPUDriverMap.NVIDIA]: {
-    label: 'Nvidia', // this label is used in echo command, do not translate
+    label: 'NVIDIA', // this label is used in echo command, do not translate
     value: GPUDriverMap.NVIDIA,
     runtime: 'nvidia',
-    driver: 'nvidia-smi'
+    driver: 'nvidia-smi',
+    gpuVendor: 'nvidia',
+    locales: {
+      label: 'NVIDIA',
+      locale: false
+    }
   },
   [GPUDriverMap.AMD]: {
     label: 'AMD',
     value: GPUDriverMap.AMD,
     runtime: 'amd',
-    driver: 'amd-smi static'
+    driver: 'amd-smi static',
+    gpuVendor: 'amd',
+    locales: {
+      label: 'AMD',
+      locale: false
+    }
   },
   [GPUDriverMap.ASCEND]: {
     label: 'Ascend',
     value: GPUDriverMap.ASCEND,
     runtime: 'ascend',
-    driver: 'npu-smi info'
+    driver: 'npu-smi info',
+    gpuVendor: 'ascend',
+    locales: {
+      label: 'vendor.ascend',
+      locale: true
+    }
   },
   [GPUDriverMap.HYGON]: {
     label: 'Hygon',
     value: GPUDriverMap.HYGON,
-    runtime: '', // TODO: confirm runtime name
-    driver: 'hy-smi'
+    runtime: 'hygon', // TODO: confirm runtime name
+    driver: 'hy-smi',
+    gpuVendor: 'hygon',
+    locales: {
+      label: 'vendor.hygon',
+      locale: true
+    }
   },
   [GPUDriverMap.MOORE_THREADS]: {
     label: 'Moore Threads',
     value: GPUDriverMap.MOORE_THREADS,
     runtime: 'mthreads',
-    driver: 'mthreads-gmi'
+    driver: 'mthreads-gmi',
+    gpuVendor: 'mthreads',
+    locales: {
+      label: 'vendor.moorthreads',
+      locale: true
+    }
   },
   [GPUDriverMap.ILUVATAR]: {
     label: 'Iluvatar',
     value: GPUDriverMap.ILUVATAR,
     runtime: 'iluvatar',
-    driver: 'ixsmi'
+    driver: 'ixsmi',
+    gpuVendor: 'iluvatar',
+    locales: {
+      label: 'vendor.iluvatar',
+      locale: true
+    }
   },
   [GPUDriverMap.CAMBRICON]: {
     label: 'Cambricon',
     value: GPUDriverMap.CAMBRICON,
     runtime: 'cambricon',
-    driver: 'cnmon info'
+    driver: 'cnmon info',
+    gpuVendor: 'cambricon',
+    locales: {
+      label: 'vendor.cambricon',
+      locale: true
+    }
   },
   [GPUDriverMap.METAX]: {
     label: 'Metax',
     value: GPUDriverMap.METAX,
     runtime: 'metax',
-    driver: 'mx-smi'
+    driver: 'mx-smi',
+    gpuVendor: 'metax',
+    locales: {
+      label: 'vendor.metax',
+      locale: true
+    }
   },
   [GPUDriverMap.THEAD]: {
     label: 'T-Head PPU',
     value: GPUDriverMap.THEAD,
-    runtime: '', // TODO: confirm runtime name
-    driver: 'ppu-smi'
+    runtime: 'thead', // TODO: confirm runtime name
+    driver: 'ppu-smi',
+    gpuVendor: 'thead',
+    locales: {
+      label: 'vendor.thead',
+      locale: true
+    }
   }
 };
 
@@ -129,7 +196,7 @@ export const dockerEnvCommandMap = {
   [GPUDriverMap.HYGON]: generateHygonDockerEnvCommand(
     GPUsConfigs[GPUDriverMap.HYGON]
   ),
-  [GPUDriverMap.ILUVATAR]: generateHygonDockerEnvCommand(
+  [GPUDriverMap.ILUVATAR]: generateNvidiaDockerEnvCommand(
     GPUsConfigs[GPUDriverMap.ILUVATAR]
   ),
   [GPUDriverMap.CAMBRICON]: generateHygonDockerEnvCommand(
@@ -154,6 +221,7 @@ interface AddWorkerCommandParams {
   containerName?: string;
   gpustackDataVolume?: string;
   cacheDir?: string;
+  dtkVersion?: string;
 }
 
 const generateEnvArgs = (params: any) => {
@@ -286,12 +354,27 @@ const registerTHeadWorker = (params: AddWorkerCommandParams) => {
 
 const registerHygonWorker = (params: AddWorkerCommandParams) => {
   const config = GPUsConfigs[params.gpu];
-  const commonArgs = setNormalArgs(params);
+  // DTK 26.04 relocates the ROCm runtime under /opt/dtk/.hyhal and needs the
+  // mirrored-deployment seam to leave ROCM_PATH untouched; DTK 25.04 keeps the
+  // classic /opt/dtk layout.
+  const isDTK2604 = params.dtkVersion === '26.04';
+  const rocmPath = isDTK2604 ? '/opt/dtk/.hyhal' : '/opt/dtk';
+  const commonArgs = setNormalArgs(
+    isDTK2604
+      ? {
+          ...params,
+          extraEnv: {
+            GPUSTACK_RUNTIME_DEPLOY_MIRRORED_DEPLOYMENT_IGNORE_ENVIRONMENTS:
+              'ROCM_PATH'
+          }
+        }
+      : params
+  );
   const imageArgs = setImageArgs(params);
   return `${commonArgs}
       --volume /opt/hyhal:/opt/hyhal:ro \\
       --volume /opt/dtk:/opt/dtk:ro \\
-      --env ROCM_PATH=/opt/dtk \\
+      --env ROCM_PATH=${rocmPath} \\
       --env ROCM_SMI_LIB_PATH=/opt/hyhal/lib \\
       ${imageArgs}
       ${setWorkerIPArg(params)}`;
@@ -354,8 +437,5 @@ export const AddWorkerDockerNotes: Record<string, string[]> = {
   [GPUDriverMap.ILUVATAR]: ['clusters.addworker.corexNotes'],
   [GPUDriverMap.CAMBRICON]: ['clusters.addworker.cambriconNotes'],
   [GPUDriverMap.METAX]: ['clusters.addworker.metaxNotes'],
-  [GPUDriverMap.THEAD]: [
-    'clusters.addworker.theadNotes',
-    'clusters.addworker.theadNotes-02'
-  ]
+  [GPUDriverMap.THEAD]: ['clusters.addworker.theadNotes-02']
 };

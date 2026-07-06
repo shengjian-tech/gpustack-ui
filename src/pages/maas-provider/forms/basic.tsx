@@ -1,14 +1,18 @@
-import Password from '@/components/seal-form/password';
-import SealInput from '@/components/seal-form/seal-input';
-import SealSelect from '@/components/seal-form/seal-select';
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import { PageAction } from '@/config';
-import useAppUtils from '@/hooks/use-app-utils';
+import {
+  Input as CInput,
+  Password,
+  Select as SealSelect,
+  useAppUtils
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import ProviderLogo from '../components/provider-logo';
 import { useFormContext } from '../config/form-context';
 import { maasProviderOptions } from '../config/providers';
 import { FormData } from '../config/types';
+import providerTypeStyles from '../styles/provider-type.less';
 import ProviderConfigs from './provider-configs';
 
 const Basic: React.FC<{
@@ -30,10 +34,26 @@ const Basic: React.FC<{
   };
 
   const filterOption = (input: string, option?: any) => {
+    console.log('filterOption input, option: ', input, option);
     return (
       option?.label?.toLowerCase().includes(input.toLowerCase()) ||
-      option?.value?.toLowerCase().includes(input.toLowerCase())
+      option?.value?.toLowerCase().includes(input.toLowerCase()) ||
+      option?.description?.toLowerCase().includes(input.toLowerCase())
     );
+  };
+
+  const renderLogoPrefix = () => {
+    const hasProvider = maasProviderOptions.some(
+      (option) => option.value === providerType
+    );
+    if (hasProvider) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'end', height: '100%' }}>
+          <ProviderLogo provider={providerType as string} />
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -49,13 +69,14 @@ const Basic: React.FC<{
           }
         ]}
       >
-        <SealInput.Input
+        <CInput.Input
           required
           label={intl.formatMessage({
             id: 'common.table.name'
           })}
         />
       </Form.Item>
+      <PluginExtraFields name="CreateOrgScopeField" context={{ action }} />
       <Form.Item<FormData>
         name={['config', 'type']}
         rules={[
@@ -70,9 +91,10 @@ const Basic: React.FC<{
             filterOption: filterOption
           }}
           required
+          className={providerTypeStyles.providerType}
+          prefix={renderLogoPrefix()}
           options={maasProviderOptions}
           optionRender={optionRender}
-          labelRender={optionRender}
           label={intl.formatMessage({
             id: 'common.table.type'
           })}
@@ -98,12 +120,12 @@ const Basic: React.FC<{
         />
       </Form.Item>
       <Form.Item<FormData> name="description">
-        <SealInput.TextArea
+        <CInput.TextArea
           scaleSize={true}
           label={intl.formatMessage({
             id: 'common.table.description'
           })}
-        ></SealInput.TextArea>
+        ></CInput.TextArea>
       </Form.Item>
     </>
   );

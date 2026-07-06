@@ -6,6 +6,7 @@ export default {
   'resources.button.update': '更新标签',
   'resources.nodes': '节点',
   'resources.worker': '节点',
+  'resources.container': '容器',
   'resources.table.hostname': '主机名',
   'resources.table.key.tips': '存在相同的 key.',
   'resources.form.label': '标签',
@@ -95,6 +96,7 @@ export default {
   'resources.worker.download.privatekey': '下载私钥',
   'resources.modelfiles.form.exsting': '已下载',
   'resources.modelfiles.form.added': '已添加',
+  'resources.modelfiles.form.isLora': '是否 LoRA',
   'resources.worker.maintenance.title': '系统维护',
   'resources.worker.maintenance.enable': '进入维护模式',
   'resources.worker.maintenance.disable': '退出维护模式',
@@ -104,5 +106,10 @@ export default {
     '进入维护模式后，节点将停止调度新的模型实例部署任务，正在运行的实例不会受到影响。',
   'resources.worker.noCluster.tips': '当前无可用集群，请先创建集群再添加节点。',
   'resources.metrics.details': '监控',
-  'resoureces.worker.upgrade.tips': '请升级到与 GPUStack Server 版本一致。'
+  'resoureces.worker.upgrade.tips': '请升级到与 GPUStack Server 版本一致。',
+  'resources.worker.version': '节点版本：{version}',
+  'resources.server.version': 'Server 版本：{version}',
+  'resources.worker.currentVersion': '当前版本：{version}',
+  'resources.worker.targetVersion': '目标版本：{version}',
+  'resources.driver.version': '驱动版本：{version}'
 };

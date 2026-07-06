@@ -1,15 +1,14 @@
-import AlertBlockInfo from '@/components/alert-info/block';
-import ModalFooter from '@/components/modal-footer';
 import { PageActionType } from '@/config/types';
-import FormDrawer from '@/pages/_components/form-drawer';
 import { RouteItem } from '@/pages/model-routes/config/types';
+import { getGPUStackPlugin } from '@/plugins';
+import { AlertBlockInfo, FormDrawer, ModalFooter } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import _ from 'lodash';
 import { useEffect, useRef, useState } from 'react';
 import { updateModelAccessUser } from '../../apis';
 import { AccessControlFormData } from '../../config/types';
-import AccessControlForm from './form';
+import AccessControlForm, { ALLOWED_PRINCIPALS_POLICY } from './form';
 
 const AccessControlModal: React.FC<
   Global.ScrollerModalProps<RouteItem, AccessControlFormData>
@@ -25,11 +24,55 @@ const AccessControlModal: React.FC<
 
   const handleOnFinish = async (values: AccessControlFormData) => {
     try {
-      const data = {
-        access_policy: values.access_policy,
-        users:
-          values.access_policy === 'allowed_users' ? values.users || [] : []
-      };
+      // Everything saves through the single `/access` POST as
+      // `principals` (one request, one success toast):
+      //   * principal-based override active → its staged full grant set.
+      //   * user picker → selected users mapped to USER-kind grants,
+      //     plus any non-user grants preserved from the GET snapshot
+      //     (so a user-only UI never wipes org/group grants it can't
+      //     see — though in practice the picker only runs where none
+      //     exist).
+      //   * otherwise (authed/public) → send neither, so the server
+      //     leaves existing grants untouched.
+      const override = getGPUStackPlugin()?.accessControl?.allowedUsersOverride;
+      const usesPrincipals =
+        !!override && values.access_policy === override.policyValue;
+      const usesUserList =
+        !override && values.access_policy === ALLOWED_PRINCIPALS_POLICY;
+
+      // Guard the load race: on an existing route, `principals` is
+      // undefined until the GET seeds it. Saving in that window would
+      // submit an empty grant set and wipe existing grants — bail out
+      // (the modal stays open; the user can retry once loaded).
+      if (
+        currentData?.id &&
+        (usesPrincipals || usesUserList) &&
+        !values.principals
+      ) {
+        return;
+      }
+
+      let data: AccessControlFormData;
+      if (usesPrincipals) {
+        data = {
+          access_policy: values.access_policy,
+          principals: values.principals || []
+        };
+      } else if (usesUserList) {
+        const preserved = (values.principals || []).filter(
+          (p) => p.principal_type !== 'user'
+        );
+        const userGrants = (values.users || []).map((u) => ({
+          principal_type: 'user',
+          principal_id: u.id
+        }));
+        data = {
+          access_policy: values.access_policy,
+          principals: [...preserved, ...userGrants]
+        };
+      } else {
+        data = { access_policy: values.access_policy };
+      }
       await updateModelAccessUser({
         id: currentData?.id as number,
         data: data

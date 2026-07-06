@@ -1,6 +1,5 @@
-import BaseSelect from '@/components/seal-form/base/select';
-import { modelCategoriesMap } from '@/pages/llmodels/config';
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons';
+import { BaseSelect } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, Input, Space } from 'antd';
 import _ from 'lodash';
@@ -13,12 +12,18 @@ export interface RightActionsProps {
   handleQueryChange: (value: any, option?: any) => void;
   modelList?: Global.BaseOption<number, { categories: string[] }>[];
   datasetList?: Global.BaseOption<string | number>[];
+  toggleFilters: () => void;
+  count?: number;
+  onClear: () => void;
 }
 
 const RightActions: React.FC<RightActionsProps> = ({
   handleInputChange,
   handleSearch,
   handleQueryChange,
+  toggleFilters,
+  count,
+  onClear,
   modelList,
   datasetList
 }) => {
@@ -33,14 +38,12 @@ const RightActions: React.FC<RightActionsProps> = ({
 
   const handleGPUChange = debounceUpdateFilter;
 
-  const modelOptions = modelList
-    ?.filter((item) => {
-      return item.categories?.includes(modelCategoriesMap.llm);
-    })
-    .map((item) => ({
-      label: item.label,
-      value: item.label
-    }));
+  const handleSearchByModelDebounce = _.debounce((value: any) => {
+    handleQueryChange({
+      page: 1,
+      model_name: value
+    });
+  }, 350);
 
   return (
     <Space>
@@ -56,6 +59,19 @@ const RightActions: React.FC<RightActionsProps> = ({
         style={{ width: 200 }}
         allowClear
         onChange={handleInputChange}
+      ></Input>
+      <Input
+        prefix={
+          <SearchOutlined
+            style={{ color: 'var(--ant-color-text-placeholder)' }}
+          ></SearchOutlined>
+        }
+        placeholder={intl.formatMessage({
+          id: 'benchmark.table.filter.bymodel'
+        })}
+        style={{ width: 180 }}
+        allowClear
+        onChange={handleSearchByModelDebounce}
       ></Input>
       <Input
         prefix={
@@ -90,20 +106,6 @@ const RightActions: React.FC<RightActionsProps> = ({
         onChange={(value, option) =>
           handleQueryChange({
             profile: value,
-            page: 1
-          })
-        }
-      ></BaseSelect>
-      <BaseSelect
-        allowClear
-        placeholder={intl.formatMessage({
-          id: 'benchmark.table.filter.bymodel'
-        })}
-        style={{ width: 180 }}
-        options={modelOptions}
-        onChange={(value, option) =>
-          handleQueryChange({
-            model_name: value,
             page: 1
           })
         }

@@ -1,6 +1,5 @@
 // @ts-nocheck
 import avatarImg from '@/assets/images/avatar.png';
-import IconFont from '@/components/icon-font';
 import externalLinks from '@/constants/external-links';
 import {
   DiscordOutlined,
@@ -12,6 +11,7 @@ import {
   ReadOutlined,
   SettingOutlined
 } from '@ant-design/icons';
+import { IconFont } from '@gpustack/core-ui';
 import { getAllLocales, history } from '@umijs/max';
 import { Avatar, Menu, Spin } from 'antd';
 import _ from 'lodash';
@@ -256,7 +256,7 @@ export const getRightRenderContent = (opts: {
               </span>
             ),
             onClick: () => {
-              history.push('/profile');
+              history.push('/preferences');
             }
           },
           {

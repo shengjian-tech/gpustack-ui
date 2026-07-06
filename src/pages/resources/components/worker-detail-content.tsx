@@ -1,4 +1,3 @@
-import { FilterBar } from '@/components/page-tools';
 import useTableFetch from '@/hooks/use-table-fetch';
 import { queryClusterList } from '@/pages/cluster-management/apis';
 import {
@@ -7,6 +6,7 @@ import {
 } from '@/pages/llmodels/apis';
 import { InstanceStatusMap } from '@/pages/llmodels/config';
 import { ModelInstanceListItem } from '@/pages/llmodels/config/types';
+import { FilterBar } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { ConfigProvider, Empty, Table } from 'antd';
 import React, { useEffect, useState } from 'react';
@@ -107,6 +107,7 @@ const WorkerDetailContent: React.FC<{ worker_id: number | undefined }> = ({
           rowKey="id"
           onChange={handleTableChange}
           pagination={{
+            size: 'middle',
             showSizeChanger: true,
             pageSize: queryParams.perPage,
             current: queryParams.page,

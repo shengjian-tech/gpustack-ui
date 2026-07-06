@@ -1,4 +1,4 @@
-import CollapsibleContainer from '@/components/collapse-container';
+import { CollapseContainer } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button } from 'antd';
 import React from 'react';
@@ -16,6 +16,7 @@ interface StepItemProps {
 const Box = styled.div`
   border: 1px solid var(--ant-color-border);
   border-radius: 4px;
+  overflow: hidden;
   &.step-collapse-open {
     border-color: var(--ant-color-primary);
   }
@@ -72,7 +73,7 @@ const StepCollapse: React.FC<StepItemProps> = ({
         collapseKey?.has(name) ? 'step-collapse-open' : 'step-collapse'
       }
     >
-      <CollapsibleContainer
+      <CollapseContainer
         collapsible={true}
         open={collapseKey?.has(name)}
         iconPlacement="right"
@@ -114,7 +115,7 @@ const StepCollapse: React.FC<StepItemProps> = ({
             </Button>
           )}
         </ButtonWrapper>
-      </CollapsibleContainer>
+      </CollapseContainer>
     </Box>
   );
 };

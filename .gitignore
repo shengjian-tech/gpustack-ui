@@ -13,3 +13,6 @@
 .swc
 .DS_Store
 .idea
+.claude/settings.local.json
+/dist.zip
+.cache

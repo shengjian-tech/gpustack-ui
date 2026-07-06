@@ -1,6 +1,7 @@
 export default {
   'resources.title': 'Ресурсы',
   'resources.nodes': 'Ноды',
+  'resources.container': 'Контейнер',
   'resources.button.create': 'Добавить воркер',
   'resources.button.edit': 'Редактировать воркер',
   'resources.button.edittags': 'Редактировать метки',
@@ -96,6 +97,7 @@ export default {
   'resources.worker': 'Рабочий узел',
   'resources.modelfiles.form.exsting': 'Загружено',
   'resources.modelfiles.form.added': 'Добавлено',
+  'resources.modelfiles.form.isLora': 'Is LoRA',
   'resources.worker.maintenance.title': 'System Maintenance',
   'resources.worker.maintenance.enable': 'Enter Maintenance Mode',
   'resources.worker.maintenance.disable': 'Exit Maintenance Mode',
@@ -108,7 +110,12 @@ export default {
     'No available clusters. Please create a cluster before adding a node.',
   'resources.metrics.details': 'Monitoring',
   'resoureces.worker.upgrade.tips':
-    'Please upgrade to match the GPUStack Server version.'
+    'Please upgrade to match the GPUStack Server version.',
+  'resources.worker.version': 'Worker Version: {version}',
+  'resources.server.version': 'Server Version: {version}',
+  'resources.worker.currentVersion': 'Current Version: {version}',
+  'resources.worker.targetVersion': 'Target Version: {version}',
+  'resources.driver.version': 'Driver Version: {version}'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
