@@ -1,8 +1,8 @@
 import { clusterListAtom, workerListAtom } from '@/atoms/models';
-import { createAxiosToken } from '@/hooks/use-chunk-request';
 import { queryModelFilesList } from '@/pages/resources/apis';
 import { ListItem as WorkerListItem } from '@/pages/resources/config/types';
 import { convertFileSize } from '@/utils';
+import { createAxiosToken } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { useAtomValue } from 'jotai';
 import _ from 'lodash';
@@ -201,7 +201,14 @@ export const useCheckCompatibility = () => {
           cluster_id: data.cluster_id,
           model_specs: [
             {
-              ..._.omit(data, ['scheduleType']),
+              // scaling_schedule has no bearing on resource/compatibility
+              // evaluation; drop it so in-progress (possibly incomplete) rules
+              // never fail the evaluate request.
+              ..._.omit(data, [
+                'scheduleType',
+                'manualGpuMode',
+                'scaling_schedule'
+              ]),
               categories: Array.isArray(data.categories)
                 ? data.categories
                 : data.categories
@@ -401,6 +408,24 @@ export const useCheckCompatibility = () => {
     );
   };
 
+  // Evaluation needs a model reference. The basic form seeds a default cluster
+  // on open, which can fire onValuesChange before the user has picked a model —
+  // skip evaluation until the current source's model field is filled.
+  const noModelSelected = (allValues: any) => {
+    switch (allValues.source) {
+      case modelSourceMap.huggingface_value:
+        return !allValues.huggingface_repo_id;
+      case modelSourceMap.modelscope_value:
+        return !allValues.model_scope_model_id;
+      case modelSourceMap.ollama_library_value:
+        return !allValues.ollama_library_model_name;
+      case modelSourceMap.local_path_value:
+        return !allValues.local_path;
+      default:
+        return false;
+    }
+  };
+
   const handleOnValuesChange = async (params: {
     changedValues: any;
     allValues: any;
@@ -410,6 +435,7 @@ export const useCheckCompatibility = () => {
     if (
       _.isEqual(cacheFormValuesRef.current, allValues) ||
       noLocalPathValue(allValues) ||
+      noModelSelected(allValues) ||
       !allValues.replicas
     ) {
       console.log('No changes detected, skipping evaluation.');

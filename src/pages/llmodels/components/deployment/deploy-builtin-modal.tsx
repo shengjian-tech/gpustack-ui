@@ -1,11 +1,15 @@
 import { PageActionType } from '@/config/types';
-import { createAxiosToken } from '@/hooks/use-chunk-request';
 import { ClusterStatusValueMap } from '@/pages/cluster-management/config';
-import { ColumnWrapper, GSDrawer, ModalFooter } from '@gpustack/core-ui';
+import {
+  ColumnWrapper,
+  createAxiosToken,
+  GSDrawer,
+  ModalFooter
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Button, message } from 'antd';
 import _ from 'lodash';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { queryCatalogItemSpec } from '../../apis';
 import {
@@ -39,6 +43,12 @@ const ModesTipsMap: Record<string, string> = {
   throughput: 'models.form.mode.throughput.tips'
 };
 
+// Stable empty defaults: inline `[]` literals would be a new reference on every
+// render, invalidating the context value and the form's `fields` prop.
+const EMPTY_SIZE_OPTIONS: Global.BaseOption<number>[] = [];
+const EMPTY_QUANTIZATION_OPTIONS: Global.BaseOption<string>[] = [];
+const EMPTY_FIELDS: string[] = [];
+
 const pickFieldsFromSpec = [
   'env',
   'size',
@@ -67,7 +77,7 @@ const FormWrapper = styled.div`
   display: flex;
   flex: 1;
   height: 100%;
-  maxwidth: 100%;
+  max-width: 100%;
 `;
 
 const AddModal: React.FC<AddModalProps> = (props) => {
@@ -180,8 +190,6 @@ const AddModal: React.FC<AddModalProps> = (props) => {
 
   const handleSourceChange = (source: string) => {
     const defaultSpec = _.get(sourceGroupMap.current, `${source}.0`, {});
-    initFormDataBySource(defaultSpec);
-
     // set form value
     initFormDataBySource(defaultSpec);
     handleCheckFormData();
@@ -341,8 +349,6 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       quantization: ''
     });
 
-    console.log('mode change data:', data);
-
     form.current.setFieldsValue({
       ...data
     });
@@ -381,18 +387,19 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     // basic form.
     if (!clusterId) return;
 
+    // The GPU options don't depend on the backend options, so start that
+    // request before awaiting instead of queueing it behind two round trips.
+    form.current?.getGPUOptionList?.({
+      clusterId: clusterId
+    });
     backendOptionsCache.current = await form.current?.getBackendOptions?.({
       cluster_id: clusterId
     });
     fetchSpecData(clusterId);
-    form.current?.getGPUOptionList?.({
-      clusterId: clusterId
-    });
   };
 
-  const showExtraButton = useMemo(() => {
-    return warningStatus.show && warningStatus.type !== 'success';
-  }, [warningStatus.show, warningStatus.type]);
+  const showExtraButton =
+    warningStatus.show && warningStatus.type !== 'success';
 
   useEffect(() => {
     getClusterList();
@@ -434,8 +441,8 @@ const AddModal: React.FC<AddModalProps> = (props) => {
     >
       <CatalogFormContext.Provider
         value={{
-          sizeOptions: [],
-          quantizationOptions: [],
+          sizeOptions: EMPTY_SIZE_OPTIONS,
+          quantizationOptions: EMPTY_QUANTIZATION_OPTIONS,
           modeList: modeList,
           onModeChange: handleOnModeChange
         }}
@@ -485,7 +492,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
           >
             <>
               <DataForm
-                fields={[]}
+                fields={EMPTY_FIELDS}
                 source={source}
                 action={action}
                 onOk={handleOk}

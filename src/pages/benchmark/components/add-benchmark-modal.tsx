@@ -1,6 +1,5 @@
 import { PageActionType } from '@/config/types';
-import useSubmitLock from '@/hooks/use-submit-lock';
-import { FormDrawer } from '@gpustack/core-ui';
+import { FormDrawer, useSubmitLock } from '@gpustack/core-ui';
 import React, { useRef } from 'react';
 import { FormData, BenchmarkListItem as ListItem } from '../config/types';
 
@@ -36,11 +35,7 @@ const AddBenchmark: React.FC<AddModalProps> = ({
   };
 
   const handleOk = async (data: FormData) => {
-    await run(() =>
-      onOk({
-        ...data
-      })
-    );
+    await run(() => onOk(data));
   };
 
   const handleCancel = () => {

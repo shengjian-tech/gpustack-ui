@@ -1,13 +1,41 @@
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import { AutoTooltip, IconFont, ThemeTag } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
-import { Flex, Tag } from 'antd';
+import { Flex, Tag, Tooltip } from 'antd';
 import _ from 'lodash';
 import styled from 'styled-components';
 import { manufactureColorMap } from '../../templates/config';
+import { formatManufacturer } from '../../utils';
 import { formatMemoryDisplay } from '../config';
-import { InstanceTypeItem as InstanceTypeItemModel } from '../config/types';
+import {
+  AcceleratorProfileCount,
+  InstanceTypeItem as InstanceTypeItemModel,
+  InstanceTypeSnapshotSpec
+} from '../config/types';
+import { buildInstanceTypeSnapshotSpec } from '../utils/instance-description';
 
-const Vendors = ['intel'] as const;
+// The card's partition figure: the largest number of instances of a single
+// profile the fleet can still build. max, not Σ — the profiles of one card
+// compete for the same physical slices, so summing them multiply-counts the same
+// hardware. A server older than the ledger sends this dimension as a scalar
+// quantity string rather than a list, so fall back to reading it as one.
+const maxObtainablePartitionCount = (
+  counts?: AcceleratorProfileCount[] | null
+): number =>
+  Array.isArray(counts)
+    ? counts.reduce((max, entry) => Math.max(max, entry?.count ?? 0), 0)
+    : Number(counts) || 0;
+
+// The breakdown behind that figure. Since it is a max, the number belongs to
+// exactly one profile and is unattributable on its own — the tooltip is what
+// says which. Entries at zero are dropped: those are profiles the pool offers
+// but currently has no room for, and a missing count is zero, not unknown.
+const obtainablePartitionCounts = (
+  counts?: AcceleratorProfileCount[] | null
+): AcceleratorProfileCount[] =>
+  Array.isArray(counts)
+    ? counts.filter((entry) => !!entry?.name && (entry?.count ?? 0) > 0)
+    : [];
 
 const Title = styled.div`
   display: flex;
@@ -54,10 +82,29 @@ const Meta = styled.div<{ $columns?: number }>`
 
 interface InstanceTypeItemProps {
   item: InstanceTypeItemModel;
+  action?: React.ReactNode;
 }
 
 interface MetadataSectionProps {
-  spec: InstanceTypeItemModel['spec'];
+  // The flat snapshot / display model — built from a live item with
+  // buildInstanceTypeSnapshotSpec, or parsed back from a persisted
+  // `description` snapshot (readonly edit card).
+  spec: InstanceTypeSnapshotSpec;
+  // status.onceMaxRequest.acceleratorSliced (max sliceable percentage). Shown
+  // next to Max for sliceable types.
+  slicedMaxPercentage?: number;
+  // The largest number of instances of a single partition profile the fleet can
+  // still build — max(count) over status.remaining.acceleratorPartitioned.
+  //
+  // Not from onceMaxRequest: on this dimension the API caps every entry at 1,
+  // because a partition request is always one instance on one card, so it
+  // carries no magnitude at all. A cross-node aggregate either way: it says the
+  // fleet has room somewhere, not that any single node fits a given profile.
+  partitionedMax?: number;
+  // The same ledger the figure above is reduced from, kept whole so the cell can
+  // attribute it per profile in its tooltip. Absent on the readonly edit card,
+  // which renders a persisted snapshot and has no live ledger to show.
+  partitionProfileCounts?: AcceleratorProfileCount[] | null;
 }
 
 const MetaItem: React.FC<{
@@ -100,8 +147,14 @@ const CPUManufacturerTag: React.FC<{ manufacturer?: string }> = ({
   );
 };
 
-function getInstanceDerived(item: InstanceTypeItemModel) {
-  const spec = item.spec || {};
+// Derives the display fields from the flat snapshot spec (the UI document
+// format — built from a live item with buildInstanceTypeSnapshotSpec, or
+// parsed back from a persisted `description` snapshot). Observed hardware
+// (manufacturer / product / memory / cpu) originates from status.detail.
+function getInstanceDerived(
+  spec: InstanceTypeSnapshotSpec = {},
+  fallbackName?: string
+) {
   const acceleratable = spec.acceleratable;
 
   const cpuManufacturer = acceleratable
@@ -112,122 +165,148 @@ function getInstanceDerived(item: InstanceTypeItemModel) {
     acceleratable,
     isGPU: acceleratable,
     manufacturer: acceleratable ? spec.manufacturer || '' : 'cpu', // GPU manufacturer or 'cpu' for non-acceleratable types
-    displayName: acceleratable ? spec.product || item.name : 'CPU Only',
+    displayName: acceleratable
+      ? spec.displayName || spec.product || fallbackName
+      : spec.displayName || 'CPU-only',
     ramUnit: spec.unitResourcesParsed?.ram?.value,
     os: _.capitalize(spec.os) || '',
     arch: spec.arch,
-    cpuManufacturer: Vendors.includes(cpuManufacturer as any)
-      ? _.capitalize(cpuManufacturer)
-      : _.toUpper(cpuManufacturer),
+    cpuManufacturer: formatManufacturer(cpuManufacturer),
     cpuUnitCores: spec.unitResourcesParsed?.cpu?.cores
   };
 }
 
+type MetaEntry = { icon: string; label?: string; value: React.ReactNode };
+
+// All rows share a single grid so columns — and therefore icons — line up
+// vertically. Each item is 3 cells (icon/label/value); every item past the
+// first adds a leading dot cell, so a row of k items spans 4k-1 cells. A short
+// row is padded with a spanning spacer so the next row restarts at column 1.
+const renderMetaRow = (items: MetaEntry[], columns: number, rowKey: string) => {
+  const cells = items.map((item, index) => (
+    <MetaItem
+      key={`${rowKey}-${item.icon}`}
+      showDot={index > 0}
+      icon={item.icon}
+      label={item.label}
+      value={item.value}
+    />
+  ));
+  const remaining = columns - (4 * items.length - 1);
+  if (remaining > 0) {
+    cells.push(
+      <span
+        key={`${rowKey}-spacer`}
+        style={{ gridColumn: `span ${remaining}` }}
+      />
+    );
+  }
+  return cells;
+};
+
 export const InstanceMetadataSection: React.FC<MetadataSectionProps> = ({
-  spec
+  spec,
+  slicedMaxPercentage,
+  partitionedMax,
+  partitionProfileCounts
 }) => {
   const intl = useIntl();
 
-  const { ramUnit, cpuUnitCores, isGPU, os, arch } = getInstanceDerived({
-    spec
-  } as InstanceTypeItemModel);
+  const { ramUnit, cpuUnitCores, isGPU, arch } = getInstanceDerived(spec);
+
+  // One "Sliceable" cell covers both ways a card can be divided — the card
+  // doesn't distinguish soft from hardware slicing. Its value carries the soft
+  // ratio ceiling and/or the pool-level partition count, whichever apply.
+  const slicedCapabilities = [
+    (slicedMaxPercentage ?? 0) > 0 ? `${slicedMaxPercentage}%` : null,
+    (partitionedMax ?? 0) > 0 ? `x ${partitionedMax}` : null
+  ].filter(Boolean);
+  const showSliceable = !!spec.sliceable && slicedCapabilities.length > 0;
+
+  const cpuItem: MetaEntry = {
+    icon: 'icon-cpu',
+    label: 'CPU',
+    value: cpuUnitCores || '-'
+  };
+  const ramItem: MetaEntry = {
+    icon: 'icon-ram-02',
+    label: intl.formatMessage({ id: 'gpuservice.instance.ram' }),
+    value: ramUnit ? `${ramUnit} GB` : '-'
+  };
+  const memoryItem: MetaEntry = {
+    icon: 'icon-gpu1',
+    label: intl.formatMessage({ id: 'gpuservice.instance.memory' }),
+    value: formatMemoryDisplay(spec?.memory ?? undefined) ?? '-'
+  };
+  const archItem: MetaEntry = {
+    icon: 'icon-cube',
+    label: intl.formatMessage({ id: 'gpuservice.instance.arch' }),
+    value: _.toUpper(arch) || '-'
+  };
+  const maxItem: MetaEntry = {
+    icon: 'icon-database',
+    label: intl.formatMessage({ id: 'common.max' }, { count: '' }),
+    value: `${spec.maxComputeUnitCount || 0}`
+  };
+  // The capabilities computed above have to reach the value, not merely decide
+  // whether the cell renders: `x 6` IS the figure this cell exists to show, and
+  // the ratio ceiling beside it likewise. The tooltip attributes the count to the
+  // profile it belongs to, which a max cannot say on its own. The dashed underline
+  // is the affordance that says a tooltip is there at all — same treatment as the
+  // device-index cell in resources/hooks/use-worker-columns.
+  const partitionBreakdown = obtainablePartitionCounts(partitionProfileCounts);
+  const slicedValue = slicedCapabilities.join(' ');
+  const slicedItem: MetaEntry = {
+    icon: 'icon-sliced',
+    label: intl.formatMessage({ id: 'gpuservice.instance.sliceable' }),
+    value:
+      partitionBreakdown.length > 0 ? (
+        <Tooltip
+          title={partitionBreakdown
+            .map((entry) => `${entry.name} × ${entry.count}`)
+            .join(', ')}
+        >
+          <span
+            style={{
+              cursor: 'pointer',
+              paddingBottom: 2,
+              borderBottom: '1px dashed var(--ant-blue-6)'
+            }}
+          >
+            {slicedValue}
+          </span>
+        </Tooltip>
+      ) : (
+        slicedValue
+      )
+  };
+
+  // GPU: 3 items/row → 11 cols. CPU: 2 items/row → 7 cols.
+  const columns = isGPU ? 11 : 7;
+  const rows: MetaEntry[][] = isGPU
+    ? [
+        [ramItem, memoryItem, cpuItem],
+        showSliceable ? [archItem, maxItem, slicedItem] : [archItem, maxItem]
+      ]
+    : [[ramItem], [archItem, maxItem]];
 
   return (
-    <Meta $columns={isGPU ? 11 : 7}>
-      {isGPU && (
-        <>
-          {/* row 1: Memory | Max | RAM */}
-          <MetaItem
-            show={isGPU}
-            showDot={false}
-            icon="icon-gpu1"
-            label={intl.formatMessage({ id: 'gpuservice.instance.memory' })}
-            value={formatMemoryDisplay(spec?.memory ?? undefined) ?? '-'}
-          />
-          <MetaItem
-            showDot={true}
-            icon="icon-ram-02"
-            label={intl.formatMessage({ id: 'gpuservice.instance.ram' })}
-            value={ramUnit ? `${ramUnit} GB` : '-'}
-          />
-          <MetaItem
-            icon="icon-database"
-            label={intl.formatMessage(
-              {
-                id: 'common.max'
-              },
-              { count: '' }
-            )}
-            value={`${spec.maxComputeUnitCount || 0}`}
-          />
-          {/* row 2: OS | Arch | CPU */}
-          <MetaItem
-            showDot={false}
-            icon="icon-server02"
-            label={intl.formatMessage({ id: 'gpuservice.instance.os' })}
-            value={os || '-'}
-          />
-          <MetaItem
-            icon="icon-cube"
-            label={intl.formatMessage({ id: 'gpuservice.instance.arch' })}
-            value={_.toUpper(arch) || '-'}
-          />
-          <MetaItem
-            show={isGPU}
-            showDot={true}
-            icon="icon-cpu"
-            label="CPU"
-            value={
-              <Flex gap={4} align="center">
-                <span>{cpuUnitCores || '-'}</span>
-              </Flex>
-            }
-          />
-        </>
-      )}
-
-      {!isGPU && (
-        <>
-          {/* row 1: RAM | Max */}
-          <MetaItem
-            showDot={false}
-            icon="icon-ram-02"
-            label={intl.formatMessage({ id: 'gpuservice.instance.ram' })}
-            value={ramUnit ? `${ramUnit} GB` : '-'}
-          />
-          <MetaItem
-            icon="icon-database"
-            label={intl.formatMessage(
-              {
-                id: 'common.max'
-              },
-              { count: '' }
-            )}
-            value={`${spec.maxComputeUnitCount || 0}`}
-          />
-          {/* row 2: OS | Arch */}
-          <MetaItem
-            showDot={false}
-            icon="icon-server02"
-            label={intl.formatMessage({ id: 'gpuservice.instance.os' })}
-            value={os || '-'}
-          />
-          <MetaItem
-            icon="icon-cube"
-            label={intl.formatMessage({ id: 'gpuservice.instance.arch' })}
-            value={_.toUpper(arch) || '-'}
-          />
-        </>
-      )}
+    <Meta $columns={columns}>
+      {rows.map((row, index) => renderMetaRow(row, columns, `row-${index}`))}
     </Meta>
   );
 };
 
-const InstanceTypeItem: React.FC<InstanceTypeItemProps> = ({ item }) => {
-  const specData = item.spec || {};
+const InstanceTypeItem: React.FC<InstanceTypeItemProps> = ({
+  item,
+  action
+}) => {
+  // Fold the live (API-shaped) item into the flat display model: definition
+  // fields from spec, observed hardware from status.detail.
+  const specData = buildInstanceTypeSnapshotSpec(item);
 
   const { acceleratable, manufacturer, displayName, cpuManufacturer } =
-    getInstanceDerived(item);
+    getInstanceDerived(specData, item.name);
 
   const manufacturerColor = manufactureColorMap[manufacturer] ?? 'purple';
   const showManufacturerTag = acceleratable && !!manufacturer;
@@ -259,7 +338,7 @@ const InstanceTypeItem: React.FC<InstanceTypeItemProps> = ({ item }) => {
               disabled={false}
               style={{ fontWeight: 400 }}
             >
-              {manufacturer?.toUpperCase()}
+              {formatManufacturer(manufacturer)}
             </ThemeTag>
           )}
           {showCpuManufacturerTag && (
@@ -271,9 +350,23 @@ const InstanceTypeItem: React.FC<InstanceTypeItemProps> = ({ item }) => {
               {cpuManufacturer}
             </ThemeTag>
           )}
+          <PluginExtraFields
+            name="InstanceTypeBillingBadge"
+            context={{ instanceType: item }}
+          />
+          {action && <div style={{ marginLeft: 8 }}>{action}</div>}
         </Flex>
       </Title>
-      <InstanceMetadataSection spec={specData}></InstanceMetadataSection>
+      <InstanceMetadataSection
+        spec={specData}
+        slicedMaxPercentage={
+          Number(item.status?.onceMaxRequest?.acceleratorSliced) || 0
+        }
+        partitionedMax={maxObtainablePartitionCount(
+          item.status?.remaining?.acceleratorPartitioned
+        )}
+        partitionProfileCounts={item.status?.remaining?.acceleratorPartitioned}
+      ></InstanceMetadataSection>
     </Flex>
   );
 };

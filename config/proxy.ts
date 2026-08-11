@@ -14,7 +14,7 @@ const proxyTableList = [
 export default function createProxyTable(target?: string) {
   const proxyTable = proxyTableList.reduce(
     (obj: Record<string, object>, api) => {
-      const newTarget = target || 'https://aicloud.shengjian.net';
+      const newTarget = target || 'http://60.190.245.34:7860/'; //  https://aicloud.shengjian.net
       obj[`/${api}`] = {
         target: newTarget,
         changeOrigin: true,

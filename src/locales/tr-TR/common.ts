@@ -38,6 +38,7 @@ export default {
   'common.button.create.now': 'Şimdi oluştur',
   'common.button.add.now': 'Şimdi ekle',
   'common.button.refresh': 'Yenile',
+  'common.button.reload': 'Yeniden yükle',
   'common.button.delete': 'Sil',
   'common.button.create': 'Oluştur',
   'common.button.clone': 'Klonla',
@@ -224,6 +225,12 @@ export default {
   'common.title.delete.confirm': 'Silme onayı',
   'common.title.stop.confirm': 'Durdurma onayı',
   'common.title.start.confirm': 'Başlatma onayı',
+  'common.title.activate.confirm': 'Etkinleştirme onayı',
+  'common.title.deactivate.confirm': 'Devre dışı bırakma onayı',
+  'common.activate.single.confirm':
+    'Etkinleştirmek istediğinizden emin misiniz? \n <span style="font-size: 13px;font-weight: 700">{name}</span>',
+  'common.deactivate.single.confirm':
+    'Devre dışı bırakmak istediğinizden emin misiniz? \n <span style="font-size: 13px;font-weight: 700">{name}</span>',
   'common.title.recreate.confirm': 'Yeniden oluşturma onayı',
   'common.button.addLabel': 'Etiket Ekle',
   'common.button.addSelector': 'Seçici Ekle',

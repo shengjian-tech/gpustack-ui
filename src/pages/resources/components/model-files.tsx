@@ -1,7 +1,6 @@
 import { modelsExpandKeysAtom } from '@/atoms/models';
 import { PageAction } from '@/config';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
-import useBodyScroll from '@/hooks/use-body-scroll';
 import useTableFetch from '@/hooks/use-table-fetch';
 import PageBox from '@/pages/_components/page-box';
 import { createModel } from '@/pages/llmodels/apis';
@@ -22,7 +21,8 @@ import {
   FilterBar,
   IconFont,
   NoResult,
-  useAppUtils
+  useAppUtils,
+  useBodyScroll
 } from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
@@ -233,6 +233,7 @@ const ModelFiles = () => {
     if (type !== 'Table') return;
     return (
       <NoResult
+        minHeight="calc(100vh - 300px)"
         loading={dataSource.loading}
         loadend={dataSource.loadend}
         dataSource={dataSource.dataList}
@@ -339,6 +340,7 @@ const ModelFiles = () => {
         ></FilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
           <Table
+            className={'scroll-table'}
             rowKey="id"
             tableLayout="fixed"
             sortDirections={TABLE_SORT_DIRECTIONS}

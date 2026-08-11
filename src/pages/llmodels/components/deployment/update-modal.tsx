@@ -180,8 +180,11 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
     const isVoxBox = [backendOptionsMap.voxBox].includes(formdata.backend);
 
     submitData = {
-      ..._.omit(formdata, ['scheduleType']),
+      ..._.omit(formdata, ['scheduleType', 'manualGpuMode']),
       worker_selector:
+        // Manual picks the GPUs itself — whole cards via gpu_selector or an
+        // InstanceType pool via gpu_type_selector — so neither carries a
+        // stale worker_selector.
         formdata.scheduleType === ScheduleValueMap.Manual
           ? null
           : formdata.worker_selector,
@@ -192,6 +195,16 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
           }
         : {})
     };
+    // Don't persist a disabled schedule — send null so the model carries no
+    // scaling config unless the user explicitly enabled it.
+    if (!submitData.scaling_schedule?.enabled) {
+      submitData.scaling_schedule = null;
+    } else {
+      // The top "Replicas" input IS the baseline while scheduling is on; copy
+      // it into the schedule. `replicas` stays as this value and the backend
+      // drives it to the effective count.
+      submitData.scaling_schedule.baseline_replicas = submitData.replicas ?? 0;
+    }
     setLoading(true);
     try {
       await onOk(submitData);

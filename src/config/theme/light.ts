@@ -26,8 +26,8 @@ export default {
       cellPaddingInline: 16,
       cellPaddingBlock: 6,
       cellFontSize: 14,
-      rowSelectedHoverBg: 'rgb(249 249 249)',
-      rowHoverBg: 'rgb(249 249 249)',
+      rowSelectedHoverBg: 'rgb(247 247 247)',
+      rowHoverBg: 'rgb(247 247 247)',
       rowSelectedBg: 'transparent',
       headerSortActiveBg: 'transparent',
       headerSortHoverBg: 'transparent',
@@ -46,6 +46,13 @@ export default {
     },
     DatePicker: {
       fontSizeLG: 14
+    },
+    Alert: {
+      withDescriptionPadding: '12px 16px',
+      withDescriptionIconSize: 18
+    },
+    Card: {
+      headerHeight: 50
     },
     Menu: {
       iconSize: 16,
@@ -116,7 +123,7 @@ export default {
     borderRadiusLG: 6,
     borderRadius: 4,
     borderRadiusSM: 3,
-    colorBgContainer: '#fff',
+    colorBgContainer: '#fdfdfd',
     fontSize: 14,
     motion: true
   }

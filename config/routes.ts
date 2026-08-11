@@ -99,6 +99,15 @@ const baseRoutes = [
         redirect: '/models/deployments'
       },
       {
+        name: 'userModels',
+        path: '/models/user-models',
+        key: 'userModels',
+        icon: 'icon-models',
+        selectedIcon: 'icon-models-filled',
+        defaultIcon: 'icon-models',
+        component: './llmodels/user-models'
+      },
+      {
         name: 'modelCatalog',
         path: '/models/catalog',
         key: 'modelsCatalog',
@@ -107,16 +116,6 @@ const baseRoutes = [
         defaultIcon: 'icon-layers',
         access: 'canSeeOrgAdmin',
         component: './llmodels/catalog'
-      },
-      {
-        name: 'userModels',
-        path: '/models/user-models',
-        key: 'userModels',
-        icon: 'icon-models',
-        selectedIcon: 'icon-models-filled',
-        defaultIcon: 'icon-models',
-        access: 'canSeeUser',
-        component: './llmodels/user-models'
       },
       {
         name: 'deployment',
@@ -211,6 +210,16 @@ const baseRoutes = [
         component: './gpu-service/instances'
       },
       {
+        name: 'instanceTypes',
+        path: '/gpu-service/instance-types',
+        key: 'gpuServiceInstanceTypes',
+        icon: 'icon-outline-gpu',
+        access: 'canSeeOrgAdmin',
+        selectedIcon: 'icon-filled-gpu',
+        defaultIcon: 'icon-outline-gpu',
+        component: './gpu-service/instance-types'
+      },
+      {
         name: 'templates',
         path: '/gpu-service/templates',
         key: 'gpuServiceTemplates',
@@ -272,7 +281,7 @@ const baseRoutes = [
         selectedIcon: 'icon-cluster2-filled',
         defaultIcon: 'icon-cluster2-outline',
         component: './cluster-management/clusters',
-        subMenu: ['/resources/clusters/detail', '/resources/clusters/create']
+        subMenu: ['/resources/clusters/create']
       },
       {
         name: 'workers',
@@ -300,16 +309,6 @@ const baseRoutes = [
         selectedIcon: 'icon-credential-filled',
         defaultIcon: 'icon-credential-outline',
         component: './cluster-management/credentials'
-      },
-      {
-        name: 'clusterDetail',
-        path: '/resources/clusters/detail',
-        key: 'clusterDetail',
-        icon: 'icon-cluster2-outline',
-        selectedIcon: 'icon-cluster2-filled',
-        defaultIcon: 'icon-cluster2-outline',
-        hideInMenu: true,
-        component: './cluster-management/cluster-detail'
       }
     ]
   },

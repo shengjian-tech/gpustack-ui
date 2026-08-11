@@ -31,6 +31,16 @@ const filterOptions = {
       label: 'Error',
       value: 'error',
       color: 'var(--ant-color-error)'
+    },
+    {
+      label: 'Pending',
+      value: 'pending',
+      color: 'var(--ant-color-info)'
+    },
+    {
+      label: 'Starting',
+      value: 'starting',
+      color: 'var(--ant-color-info)'
     }
   ]
 };
@@ -42,8 +52,8 @@ const InstanceView = forwardRef((props, ref) => {
     queryParams,
     modalRef,
     handleTableChange,
-    cancelChunkRequest,
-    createTableListChunkRequest,
+    cancelRequestsOnPageInactive,
+    resumeRequestsOnPageActive,
     handleDelete,
     handleDeleteBatch,
     fetchData,
@@ -57,7 +67,9 @@ const InstanceView = forwardRef((props, ref) => {
     deleteAPI: deleteModelInstance,
     watch: true,
     API: MODEL_INSTANCE_API,
-    contentForDelete: 'menu.models.instances'
+    contentForDelete: 'menu.models.instances',
+    // the models page routes pause/resume by which view tab is active
+    pauseOnHidden: false
   });
   const intl = useIntl();
   const { dataList: modelList, fetchData: fetchModelList } =
@@ -81,15 +93,6 @@ const InstanceView = forwardRef((props, ref) => {
     }
   });
 
-  const cancelRequestsOnPageInactive = useMemoizedFn(() => {
-    cancelChunkRequest();
-  });
-
-  const resumeRequestsOnPageActive = useMemoizedFn(() => {
-    fetchData({} as any, true);
-    createTableListChunkRequest();
-  });
-
   useImperativeHandle(ref, () => ({
     resumeRequestsOnPageActive,
     cancelRequestsOnPageInactive
@@ -99,6 +102,7 @@ const InstanceView = forwardRef((props, ref) => {
     if (type !== 'Table') return;
     return (
       <NoResult
+        minHeight="calc(100vh - 300px)"
         loading={dataSource.loading}
         loadend={dataSource.loadend}
         dataSource={dataSource.dataList}

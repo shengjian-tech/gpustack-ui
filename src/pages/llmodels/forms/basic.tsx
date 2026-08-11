@@ -13,7 +13,7 @@ import {
 } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { DeployFormKeyMap, sourceOptions } from '../config';
 import { useFormContext } from '../config/form-context';
@@ -24,6 +24,7 @@ import CustomBackend from './custom-backend';
 import LocalPathSource from './local-path-source';
 import ModeField from './mode-field';
 import OnlineSource from './online-source';
+
 const ClusterOption = styled.span`
   display: flex;
   padding: 8px 0;
@@ -77,6 +78,7 @@ interface BasicFormProps {
       provider: string;
       state: string;
       is_default: boolean;
+      gpu_instance_enabled?: boolean;
       owner_principal_id?: number;
       workers: number;
       ready_workers: number;
@@ -84,6 +86,7 @@ interface BasicFormProps {
     }
   >[];
   handleClusterChange: (value: number) => void;
+  onClusterSeed: (value: number) => void;
   onSourceChange?: (value: string) => void;
 }
 
@@ -93,6 +96,7 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
     clusterList,
     sourceDisable,
     handleClusterChange,
+    onClusterSeed,
     onSourceChange
   } = props;
   const intl = useIntl();
@@ -116,7 +120,6 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
   // cluster dropdown to that org's own clusters — the backend derives the
   // deployment's owner from the chosen cluster, so this keeps them aligned.
   const scopeOrgId = Form.useWatch('organization_id', form);
-  const prevScopeRef = useRef<number | null | undefined>(undefined);
 
   const clusterOptions = useMemo(() => {
     return clusterList
@@ -139,37 +142,62 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
       });
   }, [clusterList, scopeOrgId]);
 
-  // On a genuine org change (not the initial value — the modal's open
-  // handler seeds the first cluster), drop a now-out-of-scope cluster and
-  // re-pick within the new org so GPU/backend options refetch for it.
+  // Keep the cluster selection consistent with the available (scoped)
+  // options. The modal's open handler seeds a cluster, but that seed can be
+  // empty (options not loaded yet) or point outside the current scope (the
+  // scope id and the option list both settle after mount, and an org switch
+  // re-scopes the list) — leaving the field blank even though a valid option
+  // exists. Whenever the scope or the options change, drop an invalid/empty
+  // selection and fall back to the scope's default cluster (then a Ready one,
+  // then the first) so GPU/backend options refetch for it. A selection that's
+  // still valid is left untouched, so a user's (or edit's) choice is kept.
+  // Use the seed callback (not handleClusterChange) so this auto-pick refreshes
+  // options without firing an evaluate request before a model is selected.
   useEffect(() => {
-    if (prevScopeRef.current === undefined) {
-      prevScopeRef.current = scopeOrgId;
+    // Options derive from clusterList: an empty source list means clusters
+    // are still loading — leave the field alone until they arrive.
+    if (!clusterList?.length) {
       return;
     }
-    if (prevScopeRef.current === scopeOrgId) {
-      return;
-    }
-    prevScopeRef.current = scopeOrgId;
-
+    // Scope off the live form value, not the `useWatch` snapshot: the scope
+    // field's default lands in a child effect that flushes before this one,
+    // while the watch still reports the previous render's null — scoping off
+    // the watch would seed a cluster from the unscoped list here and only
+    // re-scope a render later.
+    const liveScopeOrgId = form.getFieldValue('organization_id') ?? null;
+    const scoped = clusterList.filter(
+      (item) =>
+        liveScopeOrgId == null || item.owner_principal_id === liveScopeOrgId
+    );
     const current = form.getFieldValue('cluster_id');
-    const stillValid = clusterOptions?.some((c) => c.value === current);
-    if (stillValid) {
+    if (!scoped.length) {
+      // Clusters are loaded but the picked org owns none. Any leftover
+      // selection points at another org's cluster (seeded before the scope
+      // settled) and would make requests fail with "Cluster not found" —
+      // clear it so the required rule surfaces instead. Create only: an
+      // edit's cluster is existing data, not a seed.
+      if (action === PageAction.CREATE && current != null) {
+        form.setFieldValue('cluster_id', undefined);
+      }
+      return;
+    }
+    const stillValid = scoped.some((c) => c.value === current);
+    if (current != null && stillValid) {
       return;
     }
     const next =
-      clusterOptions?.find((c) => c.is_default)?.value ??
-      clusterOptions?.find((c) => c.state === ClusterStatusValueMap.Ready)
-        ?.value ??
-      clusterOptions?.[0]?.value ??
+      scoped.find((c) => c.is_default)?.value ??
+      scoped.find((c) => c.state === ClusterStatusValueMap.Ready)?.value ??
+      scoped[0]?.value ??
       null;
-    form.setFieldValue('cluster_id', next ?? null);
-    if (next != null) {
-      handleClusterChange?.(next as number);
+    if (next == null || next === current) {
+      return;
     }
-    // The prevScopeRef guard above makes this a no-op unless scopeOrgId
-    // actually changed, so listing the other deps is safe (no extra runs).
-  }, [scopeOrgId, clusterOptions, form, handleClusterChange]);
+    form.setFieldValue('cluster_id', next);
+    onClusterSeed?.(next);
+    // `clusterOptions` is the re-run trigger for scope changes: it recomputes
+    // whenever the watched org scope or the cluster list settles.
+  }, [clusterOptions, clusterList, action, form, onClusterSeed]);
 
   const clusterOptionRender = (option: any) => {
     const { data } = option;
@@ -288,9 +316,11 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
       >
         <CInput.Number
           style={{ width: '100%' }}
-          label={intl.formatMessage({
-            id: 'models.form.replicas'
-          })}
+          // The Replicas field keeps its label/description unchanged even when
+          // scheduled scaling is on. While scheduling is on this value doubles
+          // as the baseline (idle) replica count — that's explained by a note in
+          // the Scheduled Scaling section rather than by relabeling this field.
+          label={intl.formatMessage({ id: 'models.form.replicas' })}
           required
           description={intl.formatMessage(
             { id: 'models.form.replicas.tips' },

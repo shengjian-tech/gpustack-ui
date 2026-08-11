@@ -196,27 +196,36 @@ export const status: any = {
 };
 
 export const MyModelsStatusValueMap = {
-  Inactive: 'stopped',
-  Degrade: 'not_ready',
-  Active: 'ready'
+  Stopped: 'stopped',
+  NotReady: 'not_ready',
+  Ready: 'ready'
 };
 
 export const MyModelsStatusMap = {
-  [MyModelsStatusValueMap.Inactive]: StatusMaps.inactive,
-  [MyModelsStatusValueMap.Degrade]: StatusMaps.error,
-  [MyModelsStatusValueMap.Active]: StatusMaps.success
+  [MyModelsStatusValueMap.Stopped]: StatusMaps.inactive,
+  [MyModelsStatusValueMap.NotReady]: StatusMaps.error,
+  [MyModelsStatusValueMap.Ready]: StatusMaps.success
 };
 
 export const MyModelsStatusLabelMap = {
-  [MyModelsStatusValueMap.Inactive]: 'models.mymodels.status.inactive',
-  [MyModelsStatusValueMap.Degrade]: 'models.mymodels.status.degrade',
-  [MyModelsStatusValueMap.Active]: 'models.mymodels.status.active'
+  [MyModelsStatusValueMap.Stopped]: 'models.mymodels.status.inactive',
+  [MyModelsStatusValueMap.NotReady]: 'models.mymodels.status.degrade',
+  [MyModelsStatusValueMap.Ready]: 'models.mymodels.status.active'
 };
 
 export const ScheduleValueMap = {
   Auto: 'auto',
   Manual: 'manual',
   SpecificGPUType: 'specific_gpu_type'
+};
+
+// Manual scheduling picks the GPUs one of two ways, chosen by a tab: whole
+// cards out of the cluster's inventory (gpu_selector), or a whole / sliced /
+// partitioned GPU out of an InstanceType pool (gpu_type_selector, "vGPU").
+// UI-only field — the payload it maps to is one selector or the other.
+export const ManualGPUModeMap = {
+  FullGPU: 'full_gpu',
+  VGPU: 'vgpu'
 };
 
 export const scheduleList = [
@@ -396,6 +405,7 @@ export const DO_NOT_TRIGGER_CHECK_COMPATIBILITY = [
   'backend_version',
   'ollama_library_model_name',
   'scheduleType',
+  'manualGpuMode',
   'placement_strategy',
   'backend',
   'gpu_selector.gpu_ids',
@@ -417,6 +427,7 @@ export const defaultFormValues = {
   categories: null,
   env: {},
   scheduleType: ScheduleValueMap.Auto,
+  manualGpuMode: ManualGPUModeMap.FullGPU,
   placement_strategy: 'spread',
   gpu_ids: null,
   gpu_selector: {},

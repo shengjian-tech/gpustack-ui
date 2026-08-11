@@ -1,11 +1,18 @@
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import { Input as CInput, LabelSelector } from '@gpustack/core-ui';
+import {
+  CardRadioGroup,
+  Input as CInput,
+  LabelSelector,
+  type CardRadioOption
+} from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
+import { useMemoizedFn } from 'ahooks';
 import { Form } from 'antd';
 import _ from 'lodash';
 import React, { useEffect, useId, useMemo } from 'react';
 import styled from 'styled-components';
+import { useFormContext } from '../config/form-context';
 import { useStepsContext } from '../config/steps-context';
 import { ClusterListItem as ListItem } from '../config/types';
 import ImageCredential from './image-credential';
@@ -68,17 +75,6 @@ export const OperatorImageForm: React.FC = () => {
   );
 };
 
-// The presence of `gpuInstanceOptions` on `k8s_options` is the source of truth
-// for whether GPU instances are enabled. Both the cluster-type selector
-// (rendered up top) and the static-address field (rendered in the advanced
-// section) watch this same path so they stay in sync without sharing local
-// state.
-const GPU_INSTANCE_OPTIONS_PATH = ['k8s_options', 'gpuInstanceOptions'];
-
-// Visual parity with @gpustack/core-ui's SwitchCard so the selector blends
-// in with surrounding form fields: same border, radius, padding, and
-// typography. The only differences are the two-column grid layout and an
-// active state (blue border + tinted background) to mark the selection.
 const ClusterTypeWrap = styled.div`
   margin-bottom: 24px;
 `;
@@ -94,122 +90,53 @@ const ClusterTypeLabel = styled.div`
   }
 `;
 
-const ClusterTypeGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-`;
-
-const ClusterTypeCard = styled.div<{ $active: boolean }>`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--ant-border-radius-lg);
-  border: 1px solid
-    ${(p) =>
-      p.$active ? 'var(--ant-color-primary)' : 'var(--ant-color-border)'};
-  background: ${(p) =>
-    p.$active ? 'var(--ant-color-primary-bg)' : 'transparent'};
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    background-color 0.2s;
-  &:hover,
-  &:focus-visible {
-    border-color: var(--ant-color-primary);
-  }
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--ant-control-outline);
-  }
-  .body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .title {
-    color: var(--ant-color-text);
-    font-size: 14px;
-    font-weight: 500;
-  }
-  .description {
-    color: var(--ant-color-text-secondary);
-  }
-`;
-
-const RadioDot = styled.span<{ $active: boolean }>`
-  position: relative;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-top: 3px;
-  border-radius: 50%;
-  border: 1.5px solid
-    ${(p) =>
-      p.$active ? 'var(--ant-color-primary)' : 'var(--ant-color-border)'};
-  background: ${(p) =>
-    p.$active ? 'var(--ant-color-primary)' : 'transparent'};
-  transition: all 0.2s;
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #fff;
-    opacity: ${(p) => (p.$active ? 1 : 0)};
-    transition: opacity 0.2s;
-  }
-`;
+// The badge's own look; its corner placement comes from CardRadioGroup's
+// `badge` slot (see the styles override below).
+const experimentalBadgeStyle: React.CSSProperties = {
+  padding: '2px 4px',
+  borderRadius: 2,
+  fontSize: 10,
+  fontWeight: 400,
+  lineHeight: 1,
+  backgroundColor: 'var(--ant-blue-1)'
+};
 
 // Card-based selector for cluster type. The two options are mutually exclusive
 // and the choice maps directly to the presence/absence of `gpuInstanceOptions`
-// on the form — "model" clears it, "gpu" seeds it to {} (preserving any
-// already-entered static address). No standalone form field is registered;
-// state is read via useWatch with `preserve: true` so it tracks updates made
-// through setFieldValue.
+// on the submitted payload. No standalone form field is registered; the click
+// only updates the shared `clusterType` state (see FormContext) — the payload's
+// `gpuInstanceOptions` shape is derived from it at submit (see cluster-form's
+// normalizeOutgoing), and the static-address field mounts/unmounts off it.
 export const ClusterTypeSelector: React.FC = () => {
   const intl = useIntl();
-  const form = Form.useFormInstance();
   const { presetClusterType } = useStepsContext();
   const labelId = useId();
-  const gpuInstanceOptions = Form.useWatch(GPU_INSTANCE_OPTIONS_PATH, {
-    form,
-    preserve: true
+  // Cluster type is shared, explicit state (see FormContext): the click is the
+  // source of truth. This replaced a Form.useWatch on an unregistered path that
+  // did not re-render reliably when cleared to undefined.
+  const { clusterType, setClusterType } = useFormContext();
+  const value: 'model' | 'gpu' = clusterType ?? 'model';
+
+  const handleSelect = useMemoizedFn((next: 'model' | 'gpu') => {
+    if (next === value) return;
+    setClusterType?.(next);
   });
-  const value: 'model' | 'gpu' = gpuInstanceOptions ? 'gpu' : 'model';
 
-  const handleSelect = (next: 'model' | 'gpu') => {
-    if (!form || next === value) return;
-    if (next === 'gpu') {
-      form.setFieldValue(
-        GPU_INSTANCE_OPTIONS_PATH,
-        form.getFieldValue(GPU_INSTANCE_OPTIONS_PATH) ?? {}
-      );
-    } else {
-      form.setFieldValue(GPU_INSTANCE_OPTIONS_PATH, undefined);
-    }
-  };
-
-  const options: {
-    key: 'model' | 'gpu';
-    title: string;
-    description: string;
-  }[] = [
+  const options: CardRadioOption<'model' | 'gpu'>[] = [
     {
-      key: 'model',
-      title: intl.formatMessage({ id: 'clusters.modelService.title' }),
+      value: 'model',
+      label: intl.formatMessage({ id: 'clusters.modelService.title' }),
       description: intl.formatMessage({ id: 'clusters.modelService.tip' })
     },
     {
-      key: 'gpu',
-      title: intl.formatMessage({ id: 'clusters.gpuInstances.title' }),
-      description: intl.formatMessage({ id: 'clusters.gpuInstances.tip' })
+      value: 'gpu',
+      label: intl.formatMessage({ id: 'clusters.gpuInstances.title' }),
+      description: intl.formatMessage({ id: 'clusters.gpuInstances.tip' }),
+      badge: (
+        <span style={experimentalBadgeStyle}>
+          {intl.formatMessage({ id: 'common.tag.experimental' })}
+        </span>
+      )
     }
   ];
 
@@ -220,38 +147,21 @@ export const ClusterTypeSelector: React.FC = () => {
   }, [presetClusterType]);
 
   return (
-    <ClusterTypeWrap>
+    // CardRadioGroup renders the radiogroup role itself but takes no aria
+    // props, so the visible label is associated from this wrapper.
+    <ClusterTypeWrap role="group" aria-labelledby={labelId}>
       <ClusterTypeLabel id={labelId}>
         {intl.formatMessage({ id: 'clusters.clusterType.title' })}
         <span className="required">*</span>
       </ClusterTypeLabel>
-      <ClusterTypeGrid role="radiogroup" aria-labelledby={labelId}>
-        {options.map((opt) => {
-          const active = value === opt.key;
-          return (
-            <ClusterTypeCard
-              key={opt.key}
-              $active={active}
-              role="radio"
-              aria-checked={active}
-              tabIndex={0}
-              onClick={() => handleSelect(opt.key)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleSelect(opt.key);
-                }
-              }}
-            >
-              <RadioDot $active={active} />
-              <div className="body">
-                <div className="title">{opt.title}</div>
-                <div className="description">{opt.description}</div>
-              </div>
-            </ClusterTypeCard>
-          );
-        })}
-      </ClusterTypeGrid>
+      <CardRadioGroup<'model' | 'gpu'>
+        value={value}
+        onChange={handleSelect}
+        options={options}
+        columns={2}
+        ghost
+        styles={{ badge: { top: 2, right: 2 } }}
+      />
     </ClusterTypeWrap>
   );
 };
@@ -261,14 +171,13 @@ export const ClusterTypeSelector: React.FC = () => {
 // default container registry and the worker config (节点配置).
 export const GpuInstancesStaticAddressForm: React.FC = () => {
   const intl = useIntl();
-  // See note in ClusterTypeSelector: watch the full store so this field's
-  // visibility tracks the selector even before it has mounted its own
-  // Form.Item.
-  const enabled = !!Form.useWatch(GPU_INSTANCE_OPTIONS_PATH, {
-    preserve: true
-  });
+  // Visibility tracks the shared cluster-type state (see FormContext), so this
+  // field mounts/unmounts deterministically with the selector. Its Form.Item is
+  // the only thing keeping gpuInstanceOptions alive, so unmounting it here (with
+  // the form's preserve={false}) also clears that path from the store.
+  const { clusterType } = useFormContext();
 
-  if (!enabled) {
+  if (clusterType !== 'gpu') {
     return null;
   }
 

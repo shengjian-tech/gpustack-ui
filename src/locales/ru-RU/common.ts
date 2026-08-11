@@ -38,6 +38,7 @@ export default {
   'common.button.create.now': 'Создать сейчас',
   'common.button.add.now': 'Добавить сейчас',
   'common.button.refresh': 'Обновить',
+  'common.button.reload': 'Перезагрузить',
   'common.button.delete': 'Удалить',
   'common.button.create': 'Создать',
   'common.button.clone': 'Клонировать',
@@ -219,6 +220,12 @@ export default {
   'common.title.delete.confirm': 'Подтверждение удаления',
   'common.title.stop.confirm': 'Подтверждение остановки',
   'common.title.start.confirm': 'Подтверждение запуска',
+  'common.title.activate.confirm': 'Подтверждение активации',
+  'common.title.deactivate.confirm': 'Подтверждение деактивации',
+  'common.activate.single.confirm':
+    'Вы уверены, что хотите активировать <span style="font-size: 13px;font-weight: 700">{name}</span>?',
+  'common.deactivate.single.confirm':
+    'Вы уверены, что хотите деактивировать <span style="font-size: 13px;font-weight: 700">{name}</span>?',
   'common.title.recreate.confirm': 'Подтверждение пересоздания',
   'common.button.addLabel': 'Добавить метку',
   'common.button.addSelector': 'Добавить селектор',

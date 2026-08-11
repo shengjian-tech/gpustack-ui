@@ -2,12 +2,7 @@ import { modelsExpandKeysAtom, modelsSessionAtom } from '@/atoms/models';
 import { PageAction } from '@/config';
 import { TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import { PageActionType } from '@/config/types';
-import useBodyScroll from '@/hooks/use-body-scroll';
-import useExpandedRowKeys from '@/hooks/use-expanded-row-keys';
-import useTableRowSelection from '@/hooks/use-table-row-selection';
-import useWatchList from '@/hooks/use-watch-list';
 import useNoResourceResult from '@/pages/llmodels/hooks/use-no-resource-result';
-import { MODEL_ROUTE_TARGETS } from '@/pages/model-routes/apis';
 import { TargetStatusValueMap } from '@/pages/model-routes/config';
 import useOpenPlayground from '@/pages/model-routes/hooks/use-open-playground';
 import useGranfanaLink from '@/pages/resources/hooks/use-grafana-link';
@@ -19,7 +14,10 @@ import {
   DropdownButtons,
   PageTools,
   Table as SealTable,
-  TableOrder
+  TableOrder,
+  useBodyScroll,
+  useExpandedRowKeys,
+  useTableRowSelection
 } from '@gpustack/core-ui';
 import { useIntl, useNavigate, useSearchParams } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
@@ -106,6 +104,7 @@ interface ModelsProps {
   loadend: boolean;
   total: number;
   filterValues?: Record<string, any>;
+  targetList?: any[];
 }
 
 const getFormattedData = (record: any, extraData = {}) => ({
@@ -143,7 +142,8 @@ const Models: React.FC<ModelsProps> = ({
   queryParams,
   loading,
   loadend,
-  total
+  total,
+  targetList = []
 }) => {
   const { generateFormValues, clusterList, workerList } =
     useDeploymentsContext();
@@ -169,7 +169,6 @@ const Models: React.FC<ModelsProps> = ({
     expandedRowKeys
   } = useExpandedRowKeys(expandAtom);
   const { handleOpenPlayGround } = useOpenPlayground();
-  const { watchDataList: targetList } = useWatchList(MODEL_ROUTE_TARGETS);
   const { openViewLogsModal, openViewLogsModalStatus, closeViewLogsModal } =
     useViewInstanceLogs();
 
@@ -456,6 +455,9 @@ const Models: React.FC<ModelsProps> = ({
           modelData={options.parent}
           workerList={workerList}
           handleChildSelect={handleChildSelect}
+          gridTemplate={options.gridTemplate}
+          prefixWidth={options.prefixWidth}
+          columns={options.columns}
         ></Instances>
       );
     },
@@ -628,6 +630,7 @@ const Models: React.FC<ModelsProps> = ({
         ></PageTools>
         <SealTable
           columns={columns}
+          emptyMinHeight="calc(100vh - 300px)"
           sortDirections={TABLE_SORT_DIRECTIONS}
           dataSource={dataSource}
           rowSelection={rowSelection}

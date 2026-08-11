@@ -3,6 +3,7 @@ export default {
   'dashboard.deployments': '部署',
   'dashboard.clusters': '集群',
   'dashboard.workers.desc': '分布式任务处理器',
+  'dashboard.models': '模型',
   'dashboard.models.desc': '已部署的模型实例',
   'dashboard.totalgpus.desc': '加速计算单元',
   'dashboard.allocategpus': '已分配 GPU 数量',

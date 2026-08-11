@@ -1,3 +1,5 @@
+import { PrefixBucket, StageRow } from './types';
+
 export interface ComputedResourceClaim {
   is_unified_memory: boolean;
   offload_layers: any;
@@ -71,6 +73,25 @@ export interface Snapshot {
   gpus: Record<string, GPUData>;
 }
 export interface BenchmarkDetail {
+  // Dataset shape, stages, execution caps and the advanced knobs: the detail
+  // endpoint returns the same row the form wrote, so the config side of the
+  // record is declared here rather than reached through a cast. The Configuration
+  // tab renders every one of these.
+  dataset_input_stdev?: number;
+  dataset_input_min?: number;
+  dataset_input_max?: number;
+  dataset_output_stdev?: number;
+  dataset_output_min?: number;
+  dataset_output_max?: number;
+  prefix_buckets?: PrefixBucket[];
+  stages?: StageRow[];
+  max_seconds?: number;
+  max_errors?: number;
+  max_error_rate?: number;
+  stop_on_saturation?: boolean;
+  turns?: number;
+  warmup?: number;
+  cooldown?: number;
   profile: string;
   dataset_seed: number;
   raw_metrics: {
@@ -87,12 +108,53 @@ export interface BenchmarkDetail {
   tokens_per_second_mean: number;
   output_tokens_per_second_mean: number;
   input_tokens_per_second_mean: number;
+  // load / auto-tune / SLA / best operating points
+  load_type?: string;
+  auto_tune?: boolean;
+  lower_bound?: number;
+  upper_bound?: number;
+  max_points?: number;
+  max_total_seconds?: number;
+  sla_avg_ttft_ms?: number;
+  sla_avg_tpot_ms?: number;
+  sla_p95_ttft_ms?: number;
+  sla_p95_tpot_ms?: number;
+  sla_p99_ttft_ms?: number;
+  sla_p99_tpot_ms?: number;
+  sla_avg_latency_ms?: number;
+  sla_p95_latency_ms?: number;
+  sla_p99_latency_ms?: number;
+  sla_met_rate?: number;
+  peak_rate?: number;
+  recommended_rate?: number;
+  // Test-coverage validity, computed on the backend (language-neutral codes +
+  // params; the UI localizes them).
+  validity?: {
+    // Absent while `in_progress`: mid-sweep there is no verdict to give.
+    sufficient?: boolean;
+    warnings?: { code: string; params?: Record<string, unknown> }[];
+    // Why the ramp stopped, straight from the engine that stopped it (absent for
+    // stage / legacy runs and for rows written before the runner reported it).
+    stop_reason?: string;
+    stopped_at?: number;
+    // Whether `sla_met_rate` is a measured boundary ("257 breaks it") or only a
+    // floor (">= 256, the search ended first"). Absent when no SLA was set.
+    sla_boundary_located?: boolean;
+    // The saturation probe's reading, the soft cap it produced, and how many times
+    // that cap gave way. Together they say whether the probe earned its cost:
+    // relaxed > 0 = it read low; stopped_at == bound = it clamped the overshoot
+    // point; stopped_at < bound = it never bound anything.
+    probe_ceiling?: number;
+    probe_bound?: number;
+    probe_relaxed?: number;
+    // Worker's partial syncs set this; the terminal sync drops it. While set,
+    // nothing in here may be rendered as a conclusion.
+    in_progress?: boolean;
+  };
   name: string;
   description: string;
   labels: Record<string, any>;
-  dataset_id: number;
   dataset_name: string;
-  dataset_source: string;
   dataset_input_tokens: number;
   dataset_output_tokens: number;
   cluster_id: number;

@@ -1,9 +1,14 @@
 import { PaginationKey } from '@/config/settings';
-import useSetChunkRequest from '@/hooks/use-chunk-request';
 import { usePaginationStatus } from '@/hooks/use-pagination-status';
-import { useTableMultiSort } from '@/hooks/use-table-sort';
-import useUpdateChunkedList from '@/hooks/use-update-chunk-list';
-import { TableOrder, TableProvider } from '@gpustack/core-ui';
+import { MODEL_ROUTE_TARGETS } from '@/pages/model-routes/apis';
+import {
+  TableOrder,
+  TableProvider,
+  useChunkRequest,
+  useTableMultiSort,
+  useUpdateChunkedList,
+  useWatchList
+} from '@gpustack/core-ui';
 import { useMemoizedFn } from 'ahooks';
 import _ from 'lodash';
 import qs from 'query-string';
@@ -28,9 +33,17 @@ const Models = forwardRef((props, ref) => {
     PaginationKey.Deployments
   );
   const { sortOrder, handleMultiSortChange } = useTableMultiSort();
-  const { setChunkRequest, createAxiosToken } = useSetChunkRequest();
-  const { setChunkRequest: setModelInstanceChunkRequest } =
-    useSetChunkRequest();
+  const { setChunkRequest, createAxiosToken } = useChunkRequest();
+  const { setChunkRequest: setModelInstanceChunkRequest } = useChunkRequest();
+  const {
+    watchDataList: targetList,
+    resumeRequestsOnPageActive: resumeTargetsWatch,
+    cancelRequestsOnPageInactive: cancelTargetsWatch
+  } = useWatchList(MODEL_ROUTE_TARGETS, {
+    // this page drives pause/resume from its own tab routing (see llmodels
+    // index): an extra listener here would revive the watch on an inactive tab
+    pauseOnHidden: false
+  });
   const [modelInstances, setModelInstances] = useState<any[]>([]);
   const [dataSource, setDataSource] = useState<{
     dataList: ListItem[];
@@ -241,7 +254,13 @@ const Models = forwardRef((props, ref) => {
       chunkInstanceRequedtRef.current = setModelInstanceChunkRequest({
         url: `${MODEL_INSTANCE_API}`,
         params: {},
-        handler: updateInstanceHandler
+        handler: updateInstanceHandler,
+        beforeReconnect() {
+          // treat the reconnect snapshot as the new baseline, otherwise
+          // instances deleted while the stream was down linger in the cache
+          // (their DELETE events are never re-sent)
+          cacheInsDataListRef.current = [];
+        }
       });
     } catch (error) {
       // ignore
@@ -255,6 +274,7 @@ const Models = forwardRef((props, ref) => {
     cacheInsDataListRef.current = [];
     chunkInstanceRequedtRef.current?.current?.cancel?.();
     instancesToken.current?.cancel?.();
+    cancelTargetsWatch();
   });
 
   const resumeRequestsOnPageActive = useMemoizedFn(async () => {
@@ -265,6 +285,7 @@ const Models = forwardRef((props, ref) => {
     await getAllModelInstances();
     await createModelsInstanceChunkRequest();
     await createModelsChunkRequest();
+    await resumeTargetsWatch();
   });
 
   const handleOnCancelViewLogs = useMemoizedFn(async () => {
@@ -443,6 +464,20 @@ const Models = forwardRef((props, ref) => {
     };
   }, []);
 
+  // watch events can still be lost (stream hiccup, reconnect gap); a low
+  // frequency relist keeps the instance cache eventually consistent, so a
+  // missed DELETE event can't leave a stale instance behind for good
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!isPageHidden.current) {
+        getAllModelInstances();
+      }
+    }, 60 * 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
   const setDisableExpand = useMemoizedFn((record: any) => {
     return !record?.replicas;
   });
@@ -483,6 +518,7 @@ const Models = forwardRef((props, ref) => {
         total={dataSource.total}
         deleteIds={dataSource.deletedIds}
         filterValues={filterValues}
+        targetList={targetList}
       ></TableList>
     </TableProvider>
   );

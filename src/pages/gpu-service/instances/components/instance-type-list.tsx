@@ -1,8 +1,10 @@
+import PluginExtraFields from '@/components/plugin-extra-fields';
 import { FileSkeletonRows } from '@/pages/llmodels/components/model-source/file-skeleton';
 import { TemplateCard } from '@gpustack/core-ui';
 import { Empty, Flex, Spin } from 'antd';
 import _ from 'lodash';
 import { InstanceTypeItem as InstanceTypeItemModel } from '../config/types';
+import styles from '../styles/instances.module.less';
 import InstanceTypeItem from './instance-type-item';
 
 interface InstanceTypeListProps {
@@ -40,15 +42,19 @@ const InstanceTypeList: React.FC<InstanceTypeListProps> = ({
 
   return (
     <Flex orientation="vertical" gap={16}>
+      <PluginExtraFields
+        name="InstanceTypeBillingProvider"
+        context={{ instanceTypes: dataList }}
+      />
       {dataList.map((item) => {
         const name = item.name;
         return (
           <TemplateCard
             key={name}
+            className={styles.instanceTypeCard}
             clickable
             ghost
             hoverable
-            height={106}
             active={value === name}
             disabled={item.disabled}
             onClick={() => handleSelect(item)}
