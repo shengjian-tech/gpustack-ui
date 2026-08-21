@@ -78,6 +78,21 @@ const ActionList = [
   }
 ];
 
+const replaceGpuStackLink = (message?: string) => {
+  if (!message) return message;
+
+  return message.replace(
+    /(<a\b[^>]*href=['"])(.*?)(['"][^>]*>)/gi,
+    (match, prefix, href, suffix) => {
+      if (href.includes('https://docs.gpustack.ai')) {
+        return `${prefix}https://fedimoss.com/${suffix}`;
+      }
+
+      return match;
+    }
+  );
+};
+
 const fieldList = [
   {
     label: 'resources.table.total',
@@ -473,7 +488,7 @@ const useWorkerColumns = ({
             statusValue={{
               status: status[record.state] as any,
               text: WorkerStatusMapValue[record.state],
-              message: record.state_message
+              message: replaceGpuStackLink(record.state_message)
             }}
           />
         )

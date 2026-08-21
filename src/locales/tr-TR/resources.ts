@@ -52,7 +52,7 @@ export default {
   'resources.worker.container.supported': 'macOS veya Windows desteklenmez.',
   'resources.worker.current.version': 'Mevcut sürüm: {version}.',
   'resources.worker.driver.install':
-    'GPUStack kurulumundan önce <a href="https://docs.gpustack.ai/latest/installation/installation-requirements/" target="_blank">gerekli sürücüleri ve kütüphaneleri</a> yükleyin.',
+    'GPUStack kurulumundan önce <a href="https://fedimoss.com/" target="_blank">gerekli sürücüleri ve kütüphaneleri</a> yükleyin.',
   'resources.worker.select.command':
     'Komutu oluşturmak için bir etiket seçin ve kopyala düğmesiyle kopyalayın.',
   'resources.worker.script.install': 'Betik Kurulumu',

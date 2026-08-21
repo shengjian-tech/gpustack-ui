@@ -128,7 +128,8 @@ const ClusterAdvanceConfig: React.FC<{
               size="small"
               type="link"
               target="_blank"
-              href="https://docs.gpustack.ai/latest/cli-reference/start/#config-file"
+              // href="https://docs.gpustack.ai/latest/cli-reference/start/#config-file"
+              href="https://fedimoss.com/"
             >
               {intl.formatMessage({ id: 'playground.audio.enablemic.doc' })}{' '}
               <IconFont

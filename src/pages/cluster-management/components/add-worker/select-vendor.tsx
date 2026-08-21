@@ -103,7 +103,7 @@ const SelectVendor: React.FC<AddWorkerStepProps> = ({ disabled }) => {
       key: GPUDriverMap.NVIDIA,
       locale: false,
       notes: AddWorkerDockerNotes[GPUDriverMap.NVIDIA],
-      link: 'https://docs.gpustack.ai/latest/installation/requirements/#nvidia-gpu'
+      link: 'https://fedimoss.com/' //'https://docs.gpustack.ai/latest/installation/requirements/#nvidia-gpu'
     });
   }, []);
 

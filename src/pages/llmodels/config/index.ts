@@ -457,7 +457,7 @@ export const getBackendParamsTips = (backend: string) => {
     return {
       backend: 'Ascend MindIE',
       releases: '',
-      link: 'https://docs.gpustack.ai/latest/user-guide/built-in-inference-backends/?h=parameters+reference#parameters-reference_2',
+      link: 'https://fedimoss.com/', //'https://docs.gpustack.ai/latest/user-guide/built-in-inference-backends/?h=parameters+reference#parameters-reference_2',
       version: '1.0.0'
     };
   }
@@ -466,15 +466,15 @@ export const getBackendParamsTips = (backend: string) => {
     return {
       backend: 'SGLang',
       releases: '',
-      link: 'https://docs.sglang.io/docs/advanced_features/server_arguments',
+      link: 'https://fedimoss.com/', //'https://docs.sglang.io/docs/advanced_features/server_arguments',
       version: 'v0.5.4'
     };
   }
 
   return {
     backend: 'vox-box',
-    releases: 'https://github.com/gpustack/vox-box/releases',
-    link: '',
+    releases: 'https://github.com/shengjian-tech/gpustack-ui', //'https://github.com/gpustack/vox-box/releases',
+    link: 'https://fedimoss.com/', //'https://docs.gpustack.ai/latest/user-guide/built-in-inference-backends/?h=parameters+reference#parameters-reference_2',
     version: 'v0.0.13'
   };
 };
