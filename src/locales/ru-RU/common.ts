@@ -47,7 +47,7 @@ export default {
   'common.button.enabled': 'Активно',
   'common.button.disabled': 'Отключено',
   'common.button.upgrade': 'Обновить',
-  'common.enterprise.feature': 'Available in GPUStack Enterprise',
+  'common.enterprise.feature': 'Available in FEDIMOSS Enterprise',
   'common.input.holder': 'Введите значение',
   'common.validate.value': 'Поле {name} обязательно',
   'common.button.edit': 'Редактировать',

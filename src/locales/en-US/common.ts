@@ -47,7 +47,7 @@ export default {
   'common.button.enabled': 'Enabled',
   'common.button.disabled': 'Disabled',
   'common.button.upgrade': 'Upgrade',
-  'common.enterprise.feature': 'Available in GPUStack Enterprise',
+  'common.enterprise.feature': 'Available in FEDIMOSS Enterprise',
   'common.input.holder': 'Please enter',
   'common.validate.value': '{name} value is required',
   'common.button.edit': 'Edit',
