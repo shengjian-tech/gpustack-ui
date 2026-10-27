@@ -12,6 +12,7 @@ import {
   AddWorkerDockerNotes,
   GPUDriverMap
 } from '@/pages/resources/config/gpu-driver';
+import { getDocumentationUrl, isAbsoluteUrl } from '@/utils/documentation';
 import { IconFont } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import styled from 'styled-components';
@@ -50,6 +51,28 @@ const Box = styled.div`
       background-color: var(--ant-blue-1);
     }
   }
+  /* Vertical rule drawn in the grid gap to the left of the CPU card, splitting
+     it off from the GPU vendors. The class sits on CardBox, which clips by
+     default — hence overflow: visible. */
+  .has-divider {
+    overflow: visible;
+    &::before {
+      content: '';
+      position: absolute;
+      /* 2px centred in the 16px grid gap: the gap spans -16..0, so its middle
+         is -8, and a 2px rule starts 1px before that. */
+      left: -9px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      border-radius: 1px;
+      /* Not colorSplit (~6% black, lost next to the cards' own borders) and
+         not colorBorder (a fixed grey that goes dim on the dark theme).
+         colorTextQuaternary is 25% of the text colour, so it inverts with the
+         theme and stays legible in both. */
+      background-color: var(--ant-color-text-quaternary);
+    }
+  }
   &.dark-theme {
     .template-card-wrapper {
       background-color: rgba(255, 255, 255, 0.05);
@@ -60,6 +83,17 @@ const Box = styled.div`
         background-color: var(--ant-color-bg-solid);
         border-color: var(--ant-color-primary);
       }
+    }
+    /* The CPU card is a text label rather than a logo, so it takes the theme's
+       text colour — near-white here — and would vanish once the rule above
+       flips the card to colorBgSolid, which the dark algorithm resolves to
+       rgba(255,255,255,0.95). Only the label needs fixing: colorBgSolid is
+       derived from colorTextBase, so colorBgBase is its paired on-top colour,
+       and the light surface stays as it is for the vendor cards, whose
+       dark-on-transparent logos depend on it. */
+    .has-divider .template-card-wrapper.active,
+    .has-divider .template-card-wrapper:hover {
+      color: var(--ant-color-bg-base);
     }
   }
 `;
@@ -84,18 +118,27 @@ interface SupportedHardwareProps {
   // Set of GPU driver keys that are valid to pick. When provided, items
   // outside this set render as disabled. Undefined means "no restriction".
   availableKeys?: Set<string>;
+  // Renders the CPU Node card beside the GPU vendors. Kubernetes only: the
+  // CPU worker DaemonSet is a K8s-manifest concept, and Docker's Add Worker
+  // installs onto a single host with nothing to opt out of.
+  includeCPU?: boolean;
 }
 
-const SupportedHardware: React.FC<SupportedHardwareProps> = ({
-  onSelect,
-  clickable,
-  current,
-  availableKeys
-}) => {
-  const intl = useIntl();
-  const { userSettings } = useUserSettings();
+/**
+ * The CPU Node card's key. Not a GPU driver key — it maps to the manifest
+ * endpoint's `disable_cpu_worker` flag rather than to a `runtime`.
+ */
+export const CPU_NODE_KEY = 'cpu';
 
-  const supportedHardPlatforms = [
+/**
+ * The vendor catalog rendered by the cards. Exported because a vendor can also
+ * be selected without a click — the register flow preselects the cluster's
+ * already-registered vendors — and that path needs the same label/link.
+ */
+export const useSupportedGPUList = () => {
+  const intl = useIntl();
+
+  return [
     {
       label: 'NVIDIA',
       hiddenTitle: true,
@@ -204,7 +247,26 @@ const SupportedHardware: React.FC<SupportedHardwareProps> = ({
         />
       )
     }
-  ];
+  ].map((item) => ({
+    ...item,
+    // Absolute links are fedimoss's own brand URL and must not be rebased onto
+    // the bundled `/help/` documentation.
+    link: isAbsoluteUrl(item.link)
+      ? item.link
+      : getDocumentationUrl(item.link, intl.locale)
+  }));
+};
+
+const SupportedHardware: React.FC<SupportedHardwareProps> = ({
+  onSelect,
+  clickable,
+  current,
+  availableKeys,
+  includeCPU
+}) => {
+  const intl = useIntl();
+  const { userSettings } = useUserSettings();
+  const supportedHardPlatforms = useSupportedGPUList();
 
   const platformsWithDisabled = availableKeys
     ? supportedHardPlatforms.map((p) => ({
@@ -213,13 +275,37 @@ const SupportedHardware: React.FC<SupportedHardwareProps> = ({
       }))
     : supportedHardPlatforms;
 
+  // Appended last so the 9 vendors keep their order and the 5-column grid
+  // fills to exactly two rows — which also puts the CPU card in the last cell,
+  // with the divider falling between it and the vendor beside it.
+  const platforms = includeCPU
+    ? [
+        ...platformsWithDisabled,
+        {
+          label: 'CPU Node',
+          hiddenTitle: true,
+          value: CPU_NODE_KEY,
+          key: CPU_NODE_KEY,
+          locale: false,
+          dividerBefore: true,
+          tooltip: intl.formatMessage({
+            id: 'clusters.addworker.cpuNode.tips'
+          }),
+          // Text only — the vendor cards are logos, so an icon here would read
+          // as a tenth brand rather than as the odd one out. Bold to carry the
+          // weight the logos have.
+          icon: <span style={{ fontSize: 15, fontWeight: 600 }}>CPU Node</span>
+        }
+      ]
+    : platformsWithDisabled;
+
   return (
     <Box className={userSettings?.theme === 'realDark' ? 'dark-theme' : ''}>
       <ProviderCatalog
         onSelect={onSelect}
         height={60}
         current={current}
-        dataList={platformsWithDisabled}
+        dataList={platforms}
         clickable={clickable}
         showTooltip={true}
         cols={5}

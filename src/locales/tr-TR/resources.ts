@@ -96,9 +96,18 @@ export default {
   'resource.register.windows.support': 'Win 10, Win 11',
   'resources.model.instance': 'Model Örneği',
   'resources.worker.download.privatekey': 'Özel Anahtarı İndir',
+  'resources.worker.ssh.view': 'SSH Erişimini Görüntüle',
+  'resources.worker.ssh.title': 'SSH Erişimi',
+  'resources.worker.ssh.host': 'Sunucu',
+  'resources.worker.ssh.port': 'Port',
+  'resources.worker.ssh.command': 'Bağlantı Komutu',
+  'resources.worker.ssh.privatekey': 'Özel Anahtar',
+  'resources.worker.ssh.pending': 'Henüz kullanilamiyor',
+  'resources.worker.ssh.tip':
+    'Kimlik doğrulama bu düğümün özel anahtarını kullanır. Anahtarı indirin, dosyaya chmod 600 uygulayın ve bağlanın.',
   'resources.modelfiles.form.exsting': 'İndirilmiş',
   'resources.modelfiles.form.added': 'Eklenmiş',
-  'resources.modelfiles.form.isLora': 'Is LoRA',
+  'resources.modelfiles.form.isLora': 'LoRA mı',
   'resources.worker.maintenance.title': 'Sistem Bakımı',
   'resources.worker.maintenance.enable': 'Bakım Moduna Gir',
   'resources.worker.maintenance.disable': 'Bakım Modundan Çık',
@@ -110,14 +119,19 @@ export default {
     'Kullanılabilir küme yok. Lütfen düğüm eklemeden önce bir küme oluşturun.',
   'resources.metrics.details': 'İzleme',
   'resoureces.worker.upgrade.tips':
-    'Please upgrade to match the GPUStack Server version.',
-  'resources.worker.version': 'Worker Version: {version}',
-  'resources.server.version': 'Server Version: {version}',
-  'resources.worker.currentVersion': 'Current Version: {version}',
-  'resources.worker.targetVersion': 'Target Version: {version}',
-  'resources.driver.version': 'Driver Version: {version}'
+    'İşçi düğüm sürümü, GPUStack Sunucu sürümüyle eşleşmiyor. Lütfen sürümleri aynı tutun.',
+  'resources.worker.version': 'İşçi Düğüm Sürümü: {version}',
+  'resources.server.version': 'Sunucu Sürümü: {version}',
+  'resources.worker.currentVersion': 'Geçerli Sürüm: {version}',
+  'resources.worker.targetVersion': 'Hedef Sürüm: {version}',
+  'resources.driver.version': 'Sürücü Sürümü: {version}',
+
+  'resources.worker.setLabels': 'Etiketleri ayarla',
+  'resources.worker.setLabels.count': '{count} worker seçildi',
+  'resources.worker.setLabels.hint':
+    'Seçili tüm worker’lara yeni etiketler ekler ve eşleşen anahtarların değerlerini günceller. Diğer etiketler korunur. Etiketleri silmek için worker’ları tek tek düzenleyin.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========
-// 1. 'resoureces.worker.upgrade.tips': 'Please upgrade to match the GPUStack Server version.'
+// 1. 'resoureces.worker.upgrade.tips': 'The Worker version does not match the GPUStack Server version. Please keep them consistent.'
 // ========== End of To-Do List ==========

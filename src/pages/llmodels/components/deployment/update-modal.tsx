@@ -9,9 +9,11 @@ import {
   DO_NOT_NOTIFY_RECREATE,
   ScheduleValueMap
 } from '../../config';
-import { FormData } from '../../config/types';
+import { ClusterOption, FormData } from '../../config/types';
 import { backendOptionsMap } from '../../constants/backend-parameters';
 import DataForm from '../../forms';
+import { rehydrateRoleGpuIds } from '../../forms/roles/transform';
+import { getScalingSchedulePayload } from '../../forms/scaling-schedule';
 import { useCheckCompatibility } from '../../hooks';
 import { generateGPUSelector } from '../../utils';
 import CompatibilityAlert from '../compatible-alert';
@@ -25,10 +27,7 @@ type AddModalProps = {
     isGGUF: boolean;
     realAction?: PageActionType;
   };
-  clusterList: Global.BaseOption<
-    number,
-    { provider: string; state: string | number }
-  >[];
+  clusterList: ClusterOption[];
   onOk: (values: FormData) => void | Promise<void>;
   onCancel: () => void;
 };
@@ -163,6 +162,11 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
       return;
     }
     submitloadingRef.current = true;
+    // Visible from the click, not from the request: `submit()` validates first,
+    // and on a PD form that is a large tree of conditional fields. Leaving the
+    // button idle until the request starts reads as the click not having
+    // registered — the reason to press Save again.
+    setLoading(true);
     formRef.current?.submit();
   };
 
@@ -172,7 +176,9 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
   };
 
   const onFinishFailed = () => {
+    // Validation rejected, so no request will run to clear the spinner.
     submitloadingRef.current = false;
+    setLoading(false);
   };
 
   const handleOk = async (formdata: FormData) => {
@@ -195,16 +201,10 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
           }
         : {})
     };
-    // Don't persist a disabled schedule — send null so the model carries no
-    // scaling config unless the user explicitly enabled it.
-    if (!submitData.scaling_schedule?.enabled) {
-      submitData.scaling_schedule = null;
-    } else {
-      // The top "Replicas" input IS the baseline while scheduling is on; copy
-      // it into the schedule. `replicas` stays as this value and the backend
-      // drives it to the effective count.
-      submitData.scaling_schedule.baseline_replicas = submitData.replicas ?? 0;
-    }
+    submitData.scaling_schedule = getScalingSchedulePayload(
+      submitData.scaling_schedule,
+      submitData.replicas
+    );
     setLoading(true);
     try {
       await onOk(submitData);
@@ -233,6 +233,15 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
       });
       const gpuSelector = generateGPUSelector(formData, gpuOptions);
       formRef.current?.setFieldsValue(gpuSelector);
+      // The roles need the same lift, and for the same reason: the drawer
+      // opens before this fetch returns, so their ids are still flat and the
+      // cascader has nothing to match them against. Only the model level was
+      // re-hydrated here, which is why a role's GPU selector opened blank over
+      // a selection that was really stored.
+      const roles = rehydrateRoleGpuIds(formData?.roles as any, gpuOptions);
+      if (roles) {
+        formRef.current?.setFieldsValue({ roles });
+      }
     };
 
     if (open && formData) {
@@ -253,6 +262,8 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
       });
     }
   }, [open, formData]);
+
+  console.log('realAction===', realAction, action);
 
   return (
     <GSDrawer
@@ -311,6 +322,7 @@ const UpdateModal: React.FC<AddModalProps> = (props) => {
           onFinishFailed={onFinishFailed}
           ref={formRef}
           isGGUF={isGGUF}
+          sourceDisable={realAction !== PageAction.COPY}
           onBackendChange={handleAsyncBackendChange}
           onValuesChange={handleManulOnValuesChange}
         ></DataForm>

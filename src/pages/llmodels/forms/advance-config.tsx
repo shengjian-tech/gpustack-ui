@@ -17,7 +17,15 @@ import { backendOptionsMap } from '../constants/backend-parameters';
 import BackendParametersList from './backend-parameters-list';
 import ModelLoraList from './model-lora-list';
 
-const AdvanceConfig = () => {
+/**
+ * @param pdActive Whether PD is on. When it is, this card drops its
+ *   model-level backend parameters and env: every role carries its own pair,
+ *   so keeping these here showed the same two controls twice and the role
+ *   card's "Same as model" pointed back at a copy nobody should be filling.
+ *   The values are cleared by the mount site (`clearModelParams`), not just
+ *   hidden — see the effect's declaration for why.
+ */
+const AdvanceConfig = ({ pdActive }: { pdActive?: boolean } = {}) => {
   const intl = useIntl();
   const form = Form.useFormInstance();
   const backend = Form.useWatch('backend', form);
@@ -37,6 +45,17 @@ const AdvanceConfig = () => {
   }, [backend, flatBackendOptions]);
 
   console.log('currentBackendOptions', currentBackendOptions);
+
+  // Anthropic Messages is a chat surface, so the declaration only means
+  // something on a backend that has one. vox-box serves /v1/audio/* and nothing
+  // else, which is a fact about what it is rather than about which build is
+  // running — the one exclusion that cannot go stale.
+  //
+  // Everything else stays, llama-box included: upstream llama.cpp serves
+  // /v1/messages as of ggml-org/llama.cpp#17570, so whether a given build
+  // answers it is a property of the image. That is the whole reason this is
+  // declared by whoever deploys instead of derived here.
+  const servesChatCompletions = backend !== backendOptionsMap.voxBox;
 
   const onSelectorChange = (field: string, allowEmpty?: boolean) => {
     const workerSelector = form.getFieldValue(field);
@@ -78,18 +97,24 @@ const AdvanceConfig = () => {
           options={modelCategories}
         ></SealSelect>
       </Form.Item>
-      <BackendParametersList></BackendParametersList>
-      <Form.Item<FormData> name="env">
-        <LabelSelector
-          label={intl.formatMessage({
-            id: 'models.form.env'
-          })}
-          btnText={intl.formatMessage({ id: 'common.button.vars' })}
-          onBlur={handleEnvSelectorOnBlur}
-          onDelete={handleDeleteEnvSelector}
-        ></LabelSelector>
-      </Form.Item>
-      <ModelLoraList></ModelLoraList>
+      {!pdActive && (
+        <>
+          <BackendParametersList></BackendParametersList>
+          <Form.Item<FormData> name="env">
+            <LabelSelector
+              label={intl.formatMessage({
+                id: 'models.form.env'
+              })}
+              btnText={intl.formatMessage({ id: 'common.button.vars' })}
+              onBlur={handleEnvSelectorOnBlur}
+              onDelete={handleDeleteEnvSelector}
+            ></LabelSelector>
+          </Form.Item>
+          {/* GPUStack does not support LoRA under PD. The form clears these
+              adapters and submits an empty list while their control is hidden. */}
+          <ModelLoraList></ModelLoraList>
+        </>
+      )}
       {(backend === backendOptionsMap.custom ||
         !currentBackendOptions?.isBuiltIn) && (
         <Form.Item<FormData>
@@ -137,6 +162,22 @@ const AdvanceConfig = () => {
           })}
         ></CheckboxField>
       </Form.Item>
+      {servesChatCompletions && (
+        <Form.Item<FormData>
+          name="native_anthropic_api"
+          valuePropName="checked"
+          style={{ marginBottom: 8 }}
+        >
+          <CheckboxField
+            description={intl.formatMessage({
+              id: 'models.form.nativeAnthropicApi.tips'
+            })}
+            label={intl.formatMessage({
+              id: 'models.form.nativeAnthropicApi'
+            })}
+          ></CheckboxField>
+        </Form.Item>
+      )}
       {realAction === PageAction.COPY || action === PageAction.CREATE ? (
         <>
           <Form.Item<FormData>

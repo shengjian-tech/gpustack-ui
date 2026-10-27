@@ -14,6 +14,10 @@ import {
   ClusterFormData as FormData,
   ClusterListItem as ListItem
 } from '../config/types';
+import {
+  extractHelmValuesError,
+  isHelmValuesError
+} from '../utils/helm-values';
 import ClusterForm from './cluster-form';
 
 const ModalFooterStyle = {
@@ -45,9 +49,10 @@ const AddCluster: React.FC<AddModalProps> = ({
   const intl = useIntl();
   const form = useRef<any>(null);
   const { loading, guard, run, release } = useSubmitLock();
-  // Whether the user has changed any k8s_options field. Lifted from ClusterForm
-  // so the "re-run registration" notice can sit in the drawer footer, above the
-  // Save/Cancel buttons (mirrors the model edit interaction).
+  // Whether the user has changed any field that is only applied while a worker
+  // registers. Lifted from ClusterForm so the "re-run registration" notice can
+  // sit in the drawer footer, above the Save/Cancel buttons (mirrors the model
+  // edit interaction).
   const [k8sOptionsChanged, setK8sOptionsChanged] = useState<boolean>(false);
 
   const handleSubmit = () => {
@@ -55,12 +60,21 @@ const AddCluster: React.FC<AddModalProps> = ({
   };
 
   const handleOk = async (data: FormData) => {
-    await run(() =>
-      onOk({
-        ...data,
-        provider
-      })
-    );
+    try {
+      await run(() =>
+        onOk({
+          ...data,
+          provider
+        })
+      );
+    } catch (error) {
+      // A rejected `onFinish` would otherwise be an unhandled rejection. The
+      // global handler already toasts the message; park it under the Chart
+      // Values editor too when that is the field the server blamed.
+      if (isHelmValuesError(error)) {
+        form.current?.setChartValuesError(extractHelmValuesError(error));
+      }
+    }
   };
 
   const handleCancel = () => {
@@ -85,7 +99,7 @@ const AddCluster: React.FC<AddModalProps> = ({
                 style={{ margin: '8px 24px 0' }}
                 icon={<ExclamationCircleFilled />}
                 message={intl.formatMessage({
-                  id: 'clusters.edit.k8sOptions.changed.tip'
+                  id: 'clusters.edit.registration.changed.tip'
                 })}
               ></AlertBlockInfo>
             )}

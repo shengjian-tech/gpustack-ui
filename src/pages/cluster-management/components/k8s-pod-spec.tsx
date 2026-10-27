@@ -3,6 +3,7 @@ import { PageActionType } from '@/config/types';
 import {
   CardRadioGroup,
   Input as CInput,
+  Select as CSelect,
   LabelSelector,
   type CardRadioOption
 } from '@gpustack/core-ui';
@@ -85,7 +86,7 @@ const ClusterTypeLabel = styled.div`
   font-weight: 500;
   margin-bottom: 8px;
   .required {
-    color: var(--ant-color-error);
+    color: var(--color-status-error-text);
     margin-left: 4px;
   }
 `;
@@ -106,7 +107,7 @@ const experimentalBadgeStyle: React.CSSProperties = {
 // on the submitted payload. No standalone form field is registered; the click
 // only updates the shared `clusterType` state (see FormContext) — the payload's
 // `gpuInstanceOptions` shape is derived from it at submit (see cluster-form's
-// normalizeOutgoing), and the static-address field mounts/unmounts off it.
+// normalizeOutgoing), and the GPU Service settings mount/unmount off it.
 export const ClusterTypeSelector: React.FC = () => {
   const intl = useIntl();
   const { presetClusterType } = useStepsContext();
@@ -166,42 +167,157 @@ export const ClusterTypeSelector: React.FC = () => {
   );
 };
 
-// Static access address for GPU instances. Only shown when "GPU 服务" is
-// the selected cluster type. Rendered in the advanced section, between the
-// default container registry and the worker config (节点配置).
-export const GpuInstancesStaticAddressForm: React.FC = () => {
+// The two boolean operator settings are tri-state on the wire: absent/null
+// means GPUStack does not manage the setting and the cluster keeps its own
+// value, which is a different instruction from an explicit off — the settings
+// reconciler only ever writes a knob that is set. The form offers Enabled and
+// Disabled only; it never produces the unmanaged state, because an operator
+// default nobody chose is not a meaningful thing to ask an administrator
+// about.
+//
+// The options carry sentinel strings rather than booleans so the mapping to
+// and from the wire values stays on the Form.Item rather than in the Select.
+const SETTING_TRUE = 'true';
+const SETTING_FALSE = 'false';
+
+// Only an explicit value maps to an option; an unmanaged knob maps to none, so
+// the Select falls back to its placeholder. Showing Enabled there would be a
+// claim the form cannot support: Enabled is the operator's default, but a
+// cluster whose own setting was turned off by kubectl is Disabled, and an
+// unmanaged knob is exactly the case where GPUStack does not know which. Picking
+// a display value is also not free — it is the one an administrator would then
+// leave in place and save, turning "not managed" into an instruction.
+const toSettingOption = (value?: boolean | null) => {
+  if (value === true) return SETTING_TRUE;
+  if (value === false) return SETTING_FALSE;
+  return undefined;
+};
+
+// Only the two sentinels map to a boolean. The Select cannot currently emit
+// anything else — it has no allowClear — but mapping an absent value to `true`
+// would turn "not managed" into an explicit instruction the moment it could.
+const fromSettingOption = (value?: string) => {
+  if (value === SETTING_TRUE) return true;
+  if (value === SETTING_FALSE) return false;
+  return undefined;
+};
+
+const OperatorFlagForm: React.FC<{
+  name: string;
+  labelId: string;
+  descriptionId: string;
+  // Seed the store with `true` when the form is registering a new cluster, so
+  // "Enabled" is a value GPUStack actually persists rather than only a label.
+  // Never on edit: the whole block mounts with the Advanced panel's
+  // `forceRender`, so an initialValue there would land on any cluster whose
+  // knob is unmanaged and turn an untouched save into an explicit `true` —
+  // which the reconciler would then write over the cluster's own value.
+  seed: boolean;
+}> = ({ name, labelId, descriptionId, seed }) => {
   const intl = useIntl();
-  // Visibility tracks the shared cluster-type state (see FormContext), so this
-  // field mounts/unmounts deterministically with the selector. Its Form.Item is
-  // the only thing keeping gpuInstanceOptions alive, so unmounting it here (with
-  // the form's preserve={false}) also clears that path from the store.
-  const { clusterType } = useFormContext();
+
+  const options = useMemo(
+    () => [
+      {
+        value: SETTING_TRUE,
+        label: intl.formatMessage({
+          id: 'clusters.gpuInstances.setting.enabled'
+        })
+      },
+      {
+        value: SETTING_FALSE,
+        label: intl.formatMessage({
+          id: 'clusters.gpuInstances.setting.disabled'
+        })
+      }
+    ],
+    [intl]
+  );
+
+  return (
+    <SectionWrap>
+      <Form.Item
+        name={['k8s_options', 'gpuInstanceOptions', name]}
+        style={{ marginBottom: 0 }}
+        initialValue={seed ? true : undefined}
+        // getValueProps runs on every render — including after the edit form's
+        // setFieldsValue, which normalize would not see — so the two sentinels
+        // and the unmanaged placeholder stay in sync with the stored value.
+        getValueProps={(value) => ({ value: toSettingOption(value) })}
+        normalize={fromSettingOption}
+      >
+        <CSelect
+          label={intl.formatMessage({ id: labelId })}
+          description={intl.formatMessage({ id: descriptionId })}
+          placeholder={intl.formatMessage({
+            id: 'clusters.gpuInstances.setting.unmanaged'
+          })}
+          options={options}
+        ></CSelect>
+      </Form.Item>
+    </SectionWrap>
+  );
+};
+
+// The three GPUStack Operator settings that define a GPU Service cluster. Only
+// shown when "GPU 服务" is the selected cluster type. Rendered in the advanced
+// section, between the operator image and the worker config (节点配置).
+export const GpuServiceSettingsForm: React.FC = () => {
+  const intl = useIntl();
+  // Visibility tracks the shared cluster-type state (see FormContext), so these
+  // fields mount/unmount deterministically with the selector. Their Form.Items
+  // are the only thing keeping gpuInstanceOptions alive, so unmounting them
+  // here (with the form's preserve={false}) also clears that path from the
+  // store — and its presence is what marks the cluster as GPU Service.
+  const { clusterType, action } = useFormContext();
 
   if (clusterType !== 'gpu') {
     return null;
   }
 
+  // Seeded for a registration, never for an edit. Read from `action` rather
+  // than from `currentData`: the wizard passes each step back its own
+  // previously-entered values, so on a registration where the user stepped away
+  // and returned `currentData` is populated and `!currentData` would stop
+  // seeding — the same registration then persisting a different thing depending
+  // on which way the user walked through it.
+  const seed = action !== PageAction.EDIT;
+
   return (
-    <SectionWrap>
-      <Form.Item
-        name={[
-          'k8s_options',
-          'gpuInstanceOptions',
-          'gpuInstancesAccessStaticAddress'
-        ]}
-        style={{ marginBottom: 0 }}
-        normalize={(value) => value || null}
-      >
-        <CInput.Input
-          label={intl.formatMessage({
-            id: 'clusters.gpuInstances.staticAddress'
-          })}
-          description={intl.formatMessage({
-            id: 'clusters.gpuInstances.staticAddress.tip'
-          })}
-        ></CInput.Input>
-      </Form.Item>
-    </SectionWrap>
+    <>
+      <OperatorFlagForm
+        name="gpuInstanceTypeDerivedFromNode"
+        labelId="clusters.gpuInstances.derivedFromNode"
+        descriptionId="clusters.gpuInstances.derivedFromNode.tip"
+        seed={seed}
+      />
+      <OperatorFlagForm
+        name="gpuInstanceTypeMixedOnNode"
+        labelId="clusters.gpuInstances.mixedOnNode"
+        descriptionId="clusters.gpuInstances.mixedOnNode.tip"
+        seed={seed}
+      />
+      <SectionWrap>
+        <Form.Item
+          name={[
+            'k8s_options',
+            'gpuInstanceOptions',
+            'gpuInstancesAccessStaticAddress'
+          ]}
+          style={{ marginBottom: 0 }}
+          normalize={(value) => value || null}
+        >
+          <CInput.Input
+            label={intl.formatMessage({
+              id: 'clusters.gpuInstances.staticAddress'
+            })}
+            description={intl.formatMessage({
+              id: 'clusters.gpuInstances.staticAddress.tip'
+            })}
+          ></CInput.Input>
+        </Form.Item>
+      </SectionWrap>
+    </>
   );
 };
 
@@ -237,16 +353,24 @@ const nullishCustomizer = (val1: any, val2: any) => {
 };
 
 // Headless watcher: in EDIT mode it reports (via onChange) whether the user has
-// changed any k8s_options field or the top-level system_default_container_registry
-// from the cluster's saved values. It renders nothing — the notice itself is shown
+// changed any k8s_options field or one of the top-level fields the registration
+// command bakes in (system_default_container_registry, server_url) from the
+// cluster's saved values. It renders nothing — the notice itself is shown
 // in the form footer, above Save/Cancel (see cluster-create.tsx), mirroring the
 // model edit interaction. Must be mounted inside the cluster <Form> so the watch
 // reads the form store.
 export const K8sOptionsChangeWatcher: React.FC<{
   action: PageActionType;
   currentData?: ListItem;
+  // A change the watch cannot see for itself. `helmValues` lives in a monaco
+  // editor rather than the form store, so its own edits arrive here instead of
+  // through `Form.useWatch`. Deliberately a dirty flag and not a diff: the
+  // stored value is an object, so comparing it against a re-serialization of
+  // the editor's text would report a change for a difference in key order or a
+  // dropped comment alone.
+  extraChanged?: boolean;
   onChange: (changed: boolean) => void;
-}> = ({ action, currentData, onChange }) => {
+}> = ({ action, currentData, extraChanged, onChange }) => {
   // `preserve: true` so the watch tracks the full store, including
   // gpuInstanceOptions which is toggled via setFieldValue without a mounted
   // Form.Item (mirrors ClusterTypeSelector).
@@ -254,6 +378,7 @@ export const K8sOptionsChangeWatcher: React.FC<{
   const containerRegistry = Form.useWatch('system_default_container_registry', {
     preserve: true
   });
+  const serverUrl = Form.useWatch('server_url', { preserve: true });
 
   // currentData?.k8s_options is static for the form's lifetime — memoize the
   // cleaned version to avoid redundant deep-clone on every render
@@ -273,9 +398,20 @@ export const K8sOptionsChangeWatcher: React.FC<{
     containerRegistry,
     nullishCustomizer
   );
+  // The registration command prints `--server-url` from this value, so a change
+  // only reaches the workers once the command is re-run.
+  const serverUrlChanged = !_.isEqualWith(
+    currentData?.server_url,
+    serverUrl,
+    nullishCustomizer
+  );
 
   const changed =
-    action === PageAction.EDIT && (k8sOptionsChanged || registryChanged);
+    action === PageAction.EDIT &&
+    (k8sOptionsChanged ||
+      registryChanged ||
+      serverUrlChanged ||
+      !!extraChanged);
 
   useEffect(() => {
     onChange(changed);

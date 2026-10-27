@@ -80,6 +80,7 @@ export default {
   'common.title.config': 'Configuration',
   'common.message.fail': 'Failed!',
   'common.message.success': 'Succeed!',
+  'common.message.downloadFailed': 'Download failed',
   'common.delete.tips': 'Are you sure you want to delete?',
   'common.button.close': 'Close',
   'common.button.done': 'Done',
@@ -219,6 +220,7 @@ export default {
   'common.button.help': 'Help',
   'common.button.feedback': 'Feedback',
   'common.button.docs': 'Documentation',
+  'common.button.imageSelector': 'Image Selector',
   'common.button.version': 'Version',
   'common.title.delete.confirm': 'Confirm deletion',
   'common.title.stop.confirm': 'Confirm stop',
@@ -263,8 +265,6 @@ export default {
   'common.appearance.description':
     'Customize how the interface looks on your device.',
   'common.security': 'Security',
-  'common.security.description':
-    'Manage the password used to sign in to your account.',
   'common.page.wentwrong': 'Something went wrong.',
   'common.page.refresh.tips':
     'The page may need to be updated. Try refreshing it!',
@@ -313,5 +313,53 @@ export default {
   'common.max': 'Max {count}',
   'common.max.count': '{label} Count',
   'common.validate.group': 'Please complete the {group} configuration',
-  'common.preferences': 'Preferences'
+  'common.preferences': 'Preferences',
+  // Shared by the source config drawer (src/pages/_components/source-config)
+  'common.source.manage': 'Manage Sources',
+  'common.source.type.builtin': 'Embedded',
+  'common.source.type.builtin.desc':
+    'Uses only the content bundled with the current version, and no other source.',
+  'common.source.type.url': 'URL',
+  'common.source.type.url.desc': 'Fetched by the server, can auto-update.',
+  'common.source.type.file': 'YAML File',
+  'common.source.type.file.desc':
+    'Paste the content directly; never auto-updates.',
+  'common.source.url': 'Source URL',
+  'common.source.url.scheme': 'The URL must start with http:// or https://',
+  'common.source.url.credentials': 'The URL must not embed credentials',
+  'common.source.url.host': 'The URL must include a host',
+  'common.source.content': 'Content',
+  'common.source.content.hint':
+    'Paste the YAML here, or import a file to load it into the editor. Only this text is sent — the server keeps no file.',
+  'common.source.save': 'Save',
+  'common.source.sync.unchanged': 'The remote content has not changed.',
+  'common.source.lastSync': 'Content taken at {time}',
+  'common.source.tag.custom': 'Custom',
+  'common.source.tag.official': 'Official',
+  'common.source.empty.hint':
+    'Your own URL replaces the official source entirely.',
+  'common.source.empty.hint.builtin':
+    'Your own source replaces the built-in content entirely. Leave it empty to keep the built-in content.',
+  'common.source.empty.hint.file':
+    'Leave the content empty to follow the official source — {description}',
+  'common.source.empty.hint.file.builtin':
+    'Leave the content empty to keep the built-in content — {description}',
+  'common.source.reset': 'Reset to Official Source',
+  'common.source.reset.tip':
+    'Follow the official source again, applied when you save — {description}',
+  'common.source.autoUpdate': 'Auto-update',
+  'common.source.autoUpdate.interval': 'Update Interval (hours)',
+  'common.source.autoUpdate.official.tip':
+    'How often to check the official OTA server for new content. Off leaves the stored content in place until you sync it yourself.',
+  'common.source.autoUpdate.custom.tip':
+    'How often to re-fetch your URL. Off leaves your source untouched until you save or reload it.',
+  'common.source.lastUpdated': 'Last updated {time}',
+  'common.source.official.link': 'Official File',
+  'common.source.builtin.link': 'Built-in File',
+  'common.source.sync.official': 'Update Now',
+  'common.source.sync.custom': 'Update Now',
+  'common.source.sync.hint.dirty':
+    'Save first — Save writes the new URL and fetches it. Update Now only re-pulls the URL already saved.',
+  'common.source.load.failed':
+    'Could not read the stored configuration, so there is nothing here to save. Close and reopen to try again.'
 };

@@ -114,25 +114,33 @@ A page module lives under `src/pages/{module}` with this sub-structure: `compone
 - **Create/edit modal**: `add-{feature}-modal.tsx` (keep the `-modal` suffix even when built with `FormDrawer`).
 - **Table columns hook**: `use-{feature}-columns.tsx`.
 - **Open/close & request hooks**: `use-{verb}-{noun}.ts` (e.g. `use-create-user.ts`, `use-query-user-list.ts`).
-- **Complex table cell**: extract into `{feature}-cell.tsx`.
+- **Complex table cell**: when extracted, name it `{feature}-cell.tsx`.
 
 # Module structure & file size
 
-## Split by reason-to-change, not by line count
+## Split for clear responsibilities and separation of concerns
 
-Line count is a smoke alarm, not the criterion. A 300-line file with two unrelated concerns should be split; a 700-line controlled form whose fields all interlock should not. Decide with these three questions, in order:
+The purpose of splitting is to make responsibilities explicit and separate concerns. In this section, **splitting a component means extracting it into a separate file**. Defining a child component within the same file is outside the scope of this file-organization rule.
 
-**1. How many independent reasons-to-change does the file hold?** Two or more that don't share state → split, extracting sub-components into `components/` and state / request / derivation logic into `hooks/`. One concern that is simply large → leave it. A list tab that fetches, filters, defines columns and lays out sections holds four; a cascading form whose every field feeds the next holds one, however long it gets.
+Use these questions to review a proposed boundary. Line count, naming, and interface size are **signals to inspect**, not automatic reasons to require or reject a split:
 
-Watch for the near-miss: a column definition and the cell it renders look like two things but are **one** reason-to-change — adding a column means adding its cell, and changing a cell means finding its column. Splitting them yields a file that only forwards `record` to the other. Same trap for a form and its field renderers, or a request hook and its response mapper.
+**1. What responsibility would each file own?** Identify the concerns and the reasons each may change. Extract a component when it gives a concern a clear owner and separates it from the parent's responsibilities. Fetching, filtering, column definitions, and layout may warrant separate owners, but a small list can keep them together coherently. Shared state does not prevent a split: related sections of a form can share state owned by their parent while each owns a distinct concern.
 
-**2. Can the extracted piece take a domain name?** `use-keys-columns`, `instance-status-cell`, `use-query-benchmarks` → the seam is real. If the only name you can find is `-utils`, `-helpers`, `-part2`, or the parent's name with a suffix, you are cutting mid-concern — don't.
+Closely related code often benefits from staying together, such as a simple column and its cell renderer, a form and its field renderers, or a request and its response mapping. A cell or form section with its own substantial interaction, state, or domain responsibility may warrant a separate component. Check that extraction clarifies ownership rather than merely moving JSX or forwarding parameters to another file.
 
-**3. How many props would the split need?** More than 2–3, or having to pass a `form` instance / a `setState` down, means the seam is in the wrong place. That prop list is the coupling you failed to cut.
+**2. Can the extracted responsibility be named clearly?** Names such as `instance-status-cell`, `use-keys-columns`, and `use-query-benchmarks` help explain ownership. Difficulty finding a meaningful name is a reason to reconsider the boundary. A domain name alone does not prove a good split, and a utility filename alone does not invalidate one; assess the responsibility the file actually owns.
 
-Line count only decides **when to run this checklist**, not its outcome: past **~600 lines**, stop and walk the three questions. Never split just to get under the number — every extra file costs real navigation time, so only pay it where the seam is genuine.
+**3. Does the interface express that responsibility clearly?** Several props or hook arguments, a whole `form` instance, or a `setState` callback are signals to inspect coupling and state ownership. There is no fixed prop limit: `value`, `options`, `disabled`, and `onChange` can form a coherent interface, while one large object can hide unrelated dependencies. Prefer focused inputs and callbacks that describe the component's actions. Let each consumer obtain shared setup such as `useStyles`, `intl`, and context hooks locally when appropriate.
 
-A naming convention can outrank all of the above: `use-{feature}-columns` is extracted even from a 300-line tab, because table columns change for their own reasons (design tweaks) independently of the tab's business logic. Ref `src/pages/api-keys/hooks/use-keys-columns.tsx`.
+At **~600 lines**, review the responsibilities and boundaries using these questions. This is a review threshold, not a file-size limit. A shorter file may need separation, and a longer file may remain cohesive. Consider maintenance, testing, reuse, and cross-file navigation costs when evaluating whether the proposed split achieves clearer responsibilities.
+
+Keep the existing `use-{feature}-columns` convention for table column definitions. Simple cell renderers can stay with their columns; complex cells can be extracted using the same responsibility checks. Ref `src/pages/api-keys/hooks/use-keys-columns.tsx`.
+
+## Place extracted components near their owner
+
+**By default, put an extracted component in the same directory as the original component**, using a meaningful business name. Do not create a directory solely to hold one extracted component.
+
+Follow an established directory convention when applicable. Components shared across tabs or modules belong in the appropriate shared directory; a group that develops into a complete submodule may get its own directory. Hooks, pure transforms, constants, and types continue to follow their existing naming and directory conventions. The tab ownership rules below still apply.
 
 ## One directory per tab
 
@@ -163,7 +171,7 @@ Two rules of thumb for deciding where a file lives:
 - A component used by **two or more** tabs goes to the page-level `components/` — even when one of them "owns" it conceptually. Putting it in the owner's directory would force the other tab into a `../{sibling-tab}/components/...` import, and a cross-tab-directory import is the signal that the file belongs one level up.
 - Keep a shared child's **whole dependency chain** at page level. Moving the parent up but leaving its children in a tab directory just relocates the same cross-directory import.
 
-The converse also holds: a file sitting in the page-level `components/` with only **one** consumer tab belongs in that tab's directory.
+The converse also holds: a file sitting in any page-level directory (`components/`, `hooks/`, `utils/`, `styles/`) with only **one** consumer tab belongs in that tab's directory.
 
 # Config & types
 
@@ -171,7 +179,7 @@ The converse also holds: a file sitting in the page-level `components/` with onl
 - `config/index.ts` — static constants, enums, and value/label maps (e.g. `XxxStatusValueMap`, `XxxStatusLabelMap`). Keep constants out of `types.ts`.
 - **`Select` options that need i18n**: set `label` to the message key and add `locale: true` on the option — the field translates it at render. Omit `locale` for options whose label is already final text. Ref `src/pages/benchmark/config/index.ts`.
 
-When `types.ts` grows past a few hundred lines and covers several backend domains, promote it to a `config/types/` directory: one file per domain (`instance.ts`, `template.ts`, `storage.ts`, …), shared primitives in `common.ts`, and an `index.ts` barrel that `export type *` re-exports all of them. The barrel keeps `from '../config/types'` resolving unchanged, so no import site has to move. Always import from the barrel, not from a domain file directly. No page uses the directory form yet — `src/pages/llmodels/config/types.ts` is the first candidate if it keeps growing.
+When `types.ts` grows past a few hundred lines and covers several backend domains, promote it to a `config/types/` directory: one file per domain (`instance.ts`, `template.ts`, `storage.ts`, …), shared primitives in `common.ts`, and an `index.ts` barrel that `export type *` re-exports all of them. The barrel keeps `from '../config/types'` resolving unchanged, so no import site has to move. Always import from the barrel, not from a domain file directly, and keep the domain files **types only** — `export type *` silently drops a `const`, so constants belong in `config/index.ts`. No page uses the directory form yet — `src/pages/llmodels/config/types.ts` is the first candidate if it keeps growing.
 
 # Common components
 
@@ -179,6 +187,7 @@ Always check `@gpustack/core-ui` first. Frequently reused:
 
 - **Drawer/Modal open/close**: `useBodyScroll`.
 - **Form drawer / footer**: `FormDrawer`, `ModalFooter`.
+- **Form _modal_**: no shared wrapper yet — `FormDrawer` has 34 consumers, its modal sibling was never written, so a page that wants a dialog instead of a drawer hand-rolls `Modal` + `ModalFooter` + `useSubmitLock`. Two do today (`src/pages/gpu-service/templates/components/edit-yaml-modal`, `src/pages/profile/components/modify-password-modal`) and they host different content, which is why there is no abstraction yet. **At the third, extract `FormModal` into core-ui and give it `FormDrawer`'s exact props**, so switching a page between drawer and dialog is one import.
 - **Delete confirmation**: `DeleteModal`.
 - **Search + bulk actions bar**: `FilterBar`.
 - **Form fields**: `BaseSelect`, `Input` (labeled).

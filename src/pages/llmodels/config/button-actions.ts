@@ -1,7 +1,11 @@
 import HotKeys from '@/config/hotkeys';
-import { icons } from '@gpustack/core-ui';
+import { IconFont, icons } from '@gpustack/core-ui';
 import React from 'react';
-import { modelCategoriesMap, modelSourceMap } from './index';
+import {
+  modelCategoriesMap,
+  modelSourceMap,
+  MyModelsStatusValueMap
+} from './index';
 
 export const modalConfig: Record<
   string,
@@ -45,6 +49,11 @@ export const ButtonList = [
     icon: icons.Stop
   },
   {
+    label: 'models.button.exportYaml',
+    key: 'export',
+    icon: icons.DownloadOutlined
+  },
+  {
     label: 'common.button.delete',
     key: 'delete',
     icon: icons.DeleteOutlined,
@@ -86,7 +95,16 @@ export const sourceOptions = [
     key: 'catalog',
     icon: icons.Catalog
   },
-  ...onLineSourceOptions
+  ...onLineSourceOptions,
+  {
+    // A noun, like every other entry here: the dropdown names where the
+    // deployment comes from, not what is done to it.
+    label: 'models.form.yamlFile',
+    locale: true,
+    value: 'import_yaml',
+    key: 'import_yaml',
+    icon: icons.Yaml
+  }
 ];
 
 export const generateSource = (record: any) => {
@@ -134,6 +152,37 @@ export const categoryToPathMap: Record<string, string> = {
   [modelCategoriesMap.reranker]: '/playground/rerank',
   [modelCategoriesMap.embedding]: '/playground/embedding'
 };
+
+export interface MyModelAction {
+  key: string;
+  label: string;
+  locale?: boolean;
+  // Menu position; the list is sorted by it so a plugin-contributed
+  // action can slot between built-ins instead of only appending.
+  order: number;
+  icon?: React.ReactNode;
+  // Per-model visibility. Omitted → always shown.
+  show?: (model: Record<string, any>) => boolean;
+  // Self-contained handler (a plugin action owns its own overlay);
+  // built-ins leave it off and are dispatched by `key` on the card.
+  onClick?: (model: Record<string, any>) => void;
+}
+
+// Actions in a my-models card's dropdown. Kept next to
+// `categoryToPathMap` — the playground route table the built-in action
+// drives — so the entry and its destination change together. A plugin
+// appends its own entries via `myModels.useGenerateActions`.
+export const myModelActions: MyModelAction[] = [
+  {
+    key: 'playground',
+    label: 'models.openinplayground',
+    locale: true,
+    order: 10,
+    // Same glyph as the Playground sidebar entry.
+    icon: React.createElement(IconFont, { type: 'icon-experiment' }),
+    show: (model) => model.status === MyModelsStatusValueMap.Ready
+  }
+];
 
 export const hotkeyConfigs = [
   {

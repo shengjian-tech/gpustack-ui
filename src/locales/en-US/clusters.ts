@@ -13,6 +13,8 @@ export default {
   'clusters.button.addNodePool': 'Add Worker Pool',
   'clusters.button.add.credential': 'Add {provider} Credential',
   'clusters.credential.title': 'Cloud Credential',
+  'clusters.credential.signinToCreate':
+    'No {name} yet? <a href="{link}" target="_blank">Sign in or sign up</a> to create one.',
   'clusters.credential.token': 'Access Token',
   'clusters.workerpool.region': 'Region',
   'clusters.workerpool.zone': 'Zone',
@@ -72,8 +74,13 @@ export default {
     'For <span class="bold-text">non-Docker</span> clusters, please register clusters or manage worker pools from the Clusters page.',
   'clusters.addworker.selectGPU': 'Select GPU Vendor',
   'clusters.addworker.selectGPU.multiTag': 'Multi-select',
-  'clusters.addworker.selectGPU.subtitle':
-    'You can select multiple GPU Vendors or none for CPU-only clusters',
+  'clusters.addworker.selectHardware': 'Select Hardware Type',
+  'clusters.addworker.selectHardware.subtitle':
+    'Select every hardware type this cluster should run workers on',
+  'clusters.addworker.cpuNode.tips':
+    'Deploys a worker on every node without a GPU. Leave it unselected when your control plane shares the cluster with the GPU nodes and you do not want workers running on the CPU nodes.',
+  'clusters.addworker.noWorkerSelected.error':
+    'Select at least one hardware type — with neither CPU Node nor a GPU vendor selected, no worker would be deployed at all.',
   'clusters.addworker.checkEnv': 'Check Environment',
   'clusters.addworker.checkEnv.cpuOnlyTips':
     'Use the following command to verify that the Kubernetes cluster has at least one ready node. You are registering a CPU-only cluster.',
@@ -93,6 +100,9 @@ export default {
   'clusters.addworker.enterWorkerAddress': 'Enter worker external address',
   'clusters.addworker.enterWorkerAddress.error':
     'Please enter the worker external address.',
+  'clusters.addworker.rdma': 'RDMA / InfiniBand',
+  'clusters.addworker.rdma.tips':
+    'Enable if the worker has InfiniBand/RoCE NICs. Required for cross-node KV cache transfer.',
   'clusters.addworker.extraVolume': 'Additional Volume Mount',
   'clusters.addworker.cacheVolume': 'Model Cache Volume Mount',
   'clusters.addworker.cacheVolume.tips':
@@ -108,17 +118,30 @@ export default {
   'clusters.addworker.cacheVolume.holder':
     'e.g. /data/cache (path must start with /)',
   'clusters.addworker.vendorNotes.title': 'Notes for {vendor} Device',
-  'clusters.button.genToken':
-    'Need to create a new token? Click <a href="{link}" target="_blank">here</a>.',
   'clusters.addworker.amdNotes-01': `If the <span class="bold-text">/opt/rocm</span> directory does not exist, please create a symbolic link pointing to the ROCm installed path: <span class="bold-text">ln -s /path/to/rocm /opt/rocm</span>.`,
+  'clusters.addworker.amdNotes-02': `If multiple ROCm versions are managed on the host, you must mount <span class="bold-text">/opt/rocm/lib</span> to avoid detection failures.`,
   'clusters.addworker.message.success_single':
     '{count} new worker has been added to the cluster.',
   'clusters.addworker.message.success_multiple':
     '{count} new workers have been added to the cluster.',
   'clusters.create.serverUrl': 'GPUStack Server URL',
   'clusters.create.workerConfig': 'Worker Configuration',
-  'clusters.edit.k8sOptions.changed.tip':
-    'You have changed the Kubernetes options. Re-run the registration command on the target cluster for the changes to take effect.',
+  'clusters.chartValues.title': 'Chart Values (YAML)',
+  'clusters.chartValues.tip':
+    'Values for the GPUStack Helm chart, keyed exactly as the chart keys them and merged over the values the server derives. Use it to reach anything the chart and its subcharts offer that has no field above — for example turning off a component the cluster already provides. Lists replace rather than append, as in Helm itself.',
+  'clusters.chartValues.reapply.tip':
+    'Saving the cluster changes nothing in Kubernetes. Re-run Register Cluster to get the manifest and apply it again — the in-cluster Job compares what the manifest asks for against what the release has installed, and upgrades only on a difference.',
+  'clusters.chartValues.doc.chart': 'Chart values',
+  'clusters.chartValues.doc.operator': 'Operator chart',
+  'clusters.chartValues.error.invalidYaml': 'Invalid YAML: {reason}',
+  'clusters.chartValues.error.notJson':
+    'The value at {path} is not a string, number, boolean, list or map — YAML read it as a date or binary value, which cannot be passed through unchanged. Quote it to keep it as text.',
+  'clusters.chartValues.error.unsafeInteger':
+    'The whole number at {path} is larger than can be carried exactly — reading the YAML already rounded it, so a different value would be sent. Quote it to keep the digits.',
+  'clusters.chartValues.error.notMapping':
+    'Chart values must be a YAML mapping of keys, not a single value or a list.',
+  'clusters.edit.registration.changed.tip':
+    'You have changed settings that are applied when a worker registers. Re-run the registration command on the target cluster for the changes to take effect.',
   'clusters.addworker.containerName': 'Worker Container Name',
   'clusters.addworker.containerName.tips':
     'Specify a name for the worker container.',
@@ -128,7 +151,7 @@ export default {
   'clusters.table.ip.internal': 'Internal',
   'clusters.table.ip.external': 'External',
   'clusters.form.serverUrl.tips':
-    'Specify an externally accessible GPUStack service URL if the worker cannot access GPUStack Server directly.',
+    'Specify an externally accessible GPUStack service URL if the worker cannot access GPUStack Server directly. For example: {example}',
   'clusters.form.setDefault': 'Set as Default',
   'clusters.form.setDefault.tips': 'Default for deployment.',
   'clusters.addworker.noClusters': 'No available Docker clusters found',
@@ -174,6 +197,8 @@ export default {
   'clusters.systemDefaultContainerRegistry.title': 'Default Container Registry',
   'clusters.systemDefaultContainerRegistry.tip':
     'Default registry used to resolve GPUStack images for this cluster. Falls back to the server default when unset.',
+  'clusters.systemDefaultContainerRegistry.dockerHubUnreachable':
+    '{provider} instances cannot reach Docker Hub. Use a mirror or a private registry.',
   'clusters.k8sOptions.title': 'Kubernetes Deployment Options',
   'clusters.imageCredentials.title': 'Image Credentials',
   'clusters.imageCredentials.add': 'Add Credential',
@@ -198,5 +223,188 @@ export default {
     'For on-demand GPU compute — e.g. interactive development, training jobs, or custom environments.',
   'clusters.gpuInstances.staticAddress': 'GPU Service Static Access Address',
   'clusters.gpuInstances.staticAddress.tip':
-    'Static address the operator uses to access GPU instances in this cluster (e.g. a LoadBalancer VIP). Optional.'
+    'Static address the operator uses to access GPU instances in this cluster (e.g. a LoadBalancer VIP). Operator default: empty — the access address is generated from host IPs. Changing it does not re-address GPU instances that are already deployed; it applies to newly created ones.',
+  'clusters.gpuInstances.derivedFromNode': 'Derive Instance Types from Nodes',
+  'clusters.gpuInstances.derivedFromNode.tip':
+    'Whether the operator auto-derives instance types (and their backing queues) from node hardware. Enabled: the operator authors a derived instance type for each node flavor. Disabled: it only aligns the resource flavor, and you define every instance type yourself. Operator default: Enabled.',
+  'clusters.gpuInstances.mixedOnNode': 'Allow Mixed Instance Types on a Node',
+  'clusters.gpuInstances.mixedOnNode.tip':
+    'Whether one node may serve both an accelerated and a CPU-only instance type. Enabled: a node is summarized into every type it can serve. Disabled: a node with accelerators yields only an accelerated type, and a CPU-only node only a general one. Operator default: Enabled.',
+  'clusters.gpuInstances.setting.enabled': 'Enabled',
+  'clusters.gpuInstances.setting.disabled': 'Disabled',
+  'clusters.gpuInstances.setting.unmanaged':
+    'Unmanaged (the cluster keeps its own value)',
+
+  // Topology: where this cluster's workers sit.
+  'clusters.topology.title': 'Topology Configuration',
+  'clusters.topology.load.failed': 'Could not load the topology.',
+  'clusters.topology.save.failed': 'Could not save.',
+  'clusters.topology.preview.failed': 'Could not preview this mapping.',
+  'clusters.topology.preview.noWorkers': 'This cluster has no workers yet.',
+  'clusters.topology.preview.capacity':
+    '{workers} workers · {gpus} GPUs · {free} unallocated',
+  'clusters.topology.cluster': 'Cluster',
+  'clusters.topology.discard.ok': 'Discard changes',
+  'clusters.topology.field.region': 'Region',
+  'clusters.topology.field.zone': 'Zone',
+  'clusters.topology.field.room': 'Room',
+  'clusters.topology.field.row': 'Row',
+  'clusters.topology.field.rack': 'Rack',
+  'clusters.topology.field.switch': 'Access switch',
+  'clusters.topology.field.acceleratorDomain': 'Accelerator domain',
+  'clusters.topology.field.host': 'Host',
+  'clusters.topology.field.region.tips': 'Cloud region or datacentre',
+  'clusters.topology.field.zone.tips': 'Cloud availability zone or hall',
+  'clusters.topology.field.room.tips': 'Machine room',
+  'clusters.topology.field.row.tips': 'Row of racks',
+  'clusters.topology.field.rack.tips': 'Rack or cabinet',
+  'clusters.topology.field.switch.tips':
+    'Filled by hand, or written by a tool such as Topograph',
+  'clusters.topology.field.acceleratorDomain.tips':
+    'Fill by hand when the device does not report one',
+  'clusters.topology.overview.workers': '{count} workers',
+  'clusters.topology.overview.domains': '{count} {field}(s)',
+  'clusters.topology.overview.unfilled': '{count} without a {field}',
+  'clusters.topology.previewing': '● Previewing',
+  'clusters.topology.previewing.long':
+    '● Previewing: the main drawer shows the unsaved mapping',
+  'clusters.topology.view.table': 'Table',
+  'clusters.topology.view.tree': 'Tree',
+  'clusters.topology.search.placeholder': 'Search hosts',
+  'clusters.topology.columns': 'Columns',
+  'clusters.topology.columns.fields': 'Topology layers',
+  'clusters.topology.columns.manage': 'Manage Layers',
+  'clusters.topology.columns.mapping': 'Manage Layers',
+  'clusters.topology.batch.button': 'Set Layer Value',
+  'clusters.topology.batch.title': 'Set Layer Value',
+  'clusters.topology.batch.selected': '{count} selected',
+  'clusters.topology.batch.field': 'Topology layer',
+  'clusters.topology.batch.value': 'Label value',
+  'clusters.topology.batch.value.placeholder': 'Select or enter a label value',
+  'clusters.topology.batch.labelKey': 'Label: {key}',
+  'clusters.topology.batch.summary':
+    'Set {field} to {value} on {count} Workers',
+  'clusters.topology.batch.noWritableLayers':
+    'No writable layers. Configure label keys in “Manage Layers” first.',
+  'clusters.topology.batch.clearHint':
+    'After removing the written label, the layer may fall back to another candidate label or a device-reported value.',
+  'clusters.topology.batch.clearSummary':
+    'Remove the label written for this layer from {count} Workers.',
+  'clusters.topology.batch.clearExisting':
+    'Remove labels from {count} Workers: {names}',
+  'clusters.topology.batch.overwrite':
+    'Overwrite existing values on {count} Workers: {names}',
+  'clusters.topology.batch.overwriteAuto':
+    'Overwrite device-reported values on {count} Workers',
+  'clusters.topology.batch.more': '{names} and {count} more',
+  'clusters.topology.batch.apply': 'Apply to {count}',
+  'clusters.topology.toast.setOne': '{field} of {host} set to {value}',
+  'clusters.topology.toast.clearedOne': '{field} of {host} cleared',
+  'clusters.topology.toast.set': '{field} of {count} workers set to {value}',
+  'clusters.topology.toast.cleared': '{field} of {count} workers cleared',
+  'clusters.topology.toast.firstWrite': ' (only affects later scheduling)',
+  'clusters.topology.undo': 'Undo',
+  'clusters.topology.undo.done': 'Undone',
+  'clusters.topology.undo.failed': 'Undo failed: {reason}',
+  'clusters.topology.cell.fill': 'Fill in {field}',
+  'clusters.topology.cell.unfilled': 'Layer value not set',
+  'clusters.topology.cell.noKeys.tips':
+    'First set label keys for this layer in “Manage Layers”.',
+  'clusters.topology.cell.aria': '{field}, {state}, {host}',
+  'clusters.topology.state.unfilled': 'unfilled',
+  'clusters.topology.state.discovered.aria': '{value}, reported by the device',
+  'clusters.topology.state.override.aria':
+    '{value}, hand-filled over a reported value',
+  'clusters.topology.state.discovered.tips':
+    'Reported by the device ({key}). Filling it in overrides this.',
+  'clusters.topology.state.override.tips':
+    'Hand-filled. Clearing restores the reported value {value}',
+  'clusters.topology.state.user.tips': 'From label: {key}',
+  'clusters.topology.override.confirm':
+    'This value was reported by the device; filling it in overrides it.',
+  'clusters.topology.override.ok': 'Override',
+  'clusters.topology.value.count': '{count} workers',
+  'clusters.topology.value.create': 'Create “{value}”',
+  'clusters.topology.value.clear': 'Clear',
+  'clusters.topology.value.empty': 'No available values. Enter a label value.',
+  'clusters.topology.column.menu': '{field} column menu',
+  'clusters.topology.column.fillUnfilled': 'Fill the {count} unfilled…',
+  'clusters.topology.column.fillBySwitch':
+    'Fill by access switch ({count} groups)…',
+  'clusters.topology.source.user': 'hand-filled',
+  'clusters.topology.source.discovered': 'auto',
+  'clusters.topology.source.node': 'K8s node',
+  'clusters.topology.host.online': 'Online',
+  'clusters.topology.host.offline': 'Offline',
+  'clusters.topology.tree.byLayer': 'By layer',
+  'clusters.topology.tree.byField': 'By {field}',
+  'clusters.topology.tree.expandAll': 'Expand all',
+  'clusters.topology.tree.collapseAll': 'Collapse all',
+  'clusters.topology.tree.unfilled': 'Not set',
+  'clusters.topology.tree.unmatched.tips':
+    'These Workers have no matching label value for this layer yet.',
+  'clusters.topology.tree.candidateKeys':
+    'Candidate label keys (set any one label)',
+  'clusters.topology.tree.more': '{count} more',
+  'clusters.topology.tree.hostCapacity': '{gpus} GPUs · {free} unallocated',
+  'clusters.topology.mapping.title': 'Manage Layers',
+  'clusters.topology.mapping.intro':
+    'Layer values are read from Worker labels using the candidate label keys. Key order determines priority: the first non-empty value is used.',
+  'clusters.topology.mapping.keysPriority':
+    'Candidate label keys (in priority order)',
+  'clusters.topology.mapping.classified': 'Resolved {classified} / {total}',
+  'clusters.topology.mapping.noKeys': 'No label keys',
+  'clusters.topology.mapping.noKeys.add': 'No label keys (click to add)',
+  'clusters.topology.layer.builtin': '[Built-in]',
+  'clusters.topology.layer.labelKeys': 'Label keys',
+  'clusters.topology.layer.addKey': 'Add candidate key',
+  'clusters.topology.layer.insert': 'Insert layer',
+  'clusters.topology.layer.rename': 'Rename',
+  'clusters.topology.layer.rename.tips':
+    "Changes the display name only. The layer's identity, its label keys and any topology affinity already saved on a model are untouched. Leave it empty to restore the default. Layer id:",
+  'clusters.topology.layer.rename.taken':
+    'Another layer on this chain is already called that.',
+  'clusters.topology.layer.disable': 'Disable',
+  'clusters.topology.layer.disabled': ' (disabled)',
+  'clusters.topology.layer.enable': 'Enable',
+  'clusters.topology.layer.inUse': 'This layer is still in use',
+  'clusters.topology.layer.inUse.tips':
+    'These models set their topology affinity to this layer and would lose it: {models}. Change those models first.',
+  'clusters.topology.layer.name': 'Name',
+  'clusters.topology.advanced.hostKeys': 'Built in, by worker name',
+  'clusters.topology.advanced.locked':
+    'GPUStack’s own key: hand-filled values are written here. Cannot be removed or moved.',
+  'clusters.topology.advanced.suggestions': 'Discovered label keys',
+  'clusters.topology.advanced.suggestion':
+    '{workers} workers · {values} values · looks like {field}',
+  'clusters.topology.advanced.discard': 'Discard unsaved layer changes?',
+  'clusters.topology.advanced.discard.tips':
+    'These changes to layers and candidate label keys will not be saved.',
+  'clusters.topology.advanced.discard.cancel': 'Continue editing',
+  'clusters.topology.advanced.saved':
+    'Saved. Only affects later scheduling; running groups are not moved.',
+  'clusters.topology.keys.workerLabels': 'Worker labels',
+  'clusters.topology.keys.placeholder': 'Enter or select a label key',
+  'clusters.topology.keys.invalid':
+    'Not a valid Kubernetes label key (prefix ≤ 253, name ≤ 63, alphanumerics - _ .)',
+  'clusters.topology.keys.usage':
+    '{count} workers carry this key ({values} values)',
+  'clusters.topology.keys.exists': 'This key is already added',
+  'clusters.topology.custom.title': 'Add layer',
+  'clusters.topology.custom.insertHere': 'Insert layer here',
+  'clusters.topology.custom.name.placeholder': 'Layer name',
+  'clusters.topology.custom.name.required': 'Enter a name',
+  'clusters.topology.custom.name.taken': 'This name is taken or reserved',
+  'clusters.topology.custom.name.tips':
+    'Appears as a choice in the deployment form',
+  'clusters.topology.custom.position': 'Where in the chain',
+  'clusters.topology.custom.slot.insert': 'Insert here',
+  'clusters.topology.custom.slot.placeholder': 'New layer',
+  'clusters.topology.custom.slot.explain':
+    'A {parent} holds several {name}; a {name} holds several {child}',
+  'clusters.topology.custom.slot.explain.top': 'A {name} holds several {child}',
+  'clusters.topology.custom.keys.tips':
+    'A custom layer has no key of its own; to fill it in from the table, make the first key the one you intend to write.',
+  'clusters.topology.custom.referenced':
+    'Cannot delete “{name}”: these models gather on it'
 };

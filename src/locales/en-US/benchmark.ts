@@ -5,7 +5,7 @@ export default {
   'benchmark.button.clone': 'Clone Benchmark',
   'benchmark.button.compare': 'Compare',
   'benchmark.table.model': 'Model',
-  'benchmark.table.instance': 'Model Instance',
+  'benchmark.form.target': 'Benchmark target',
   'benchmark.table.dataset': 'Dataset',
   'benchmark.table.requestRate': 'Request Rate',
   'benchmark.table.gpu': 'GPU ',
@@ -26,7 +26,7 @@ export default {
   'benchmark.form.autoTune.rate.tip':
     'The load points measured in this run — one stage = one measured point. Auto-tune ramps the request rate automatically until output throughput stops growing (the peak), so you do not list points yourself. Switch to Manual to run a fixed list of rates.',
   'benchmark.form.autoTune.concurrency.tip':
-    'The load points measured in this run — one stage = one measured point. Auto-tune ramps concurrency automatically until the latency targets can no longer be met (the SLA boundary), so you do not list points yourself. Switch to Manual to run a fixed list of concurrency levels.',
+    'The load points measured in this run — one stage = one measured point. Auto-tune ramps concurrency automatically until the latency targets can no longer be met (the SLO boundary), so you do not list points yourself. Switch to Manual to run a fixed list of concurrency levels.',
   'benchmark.form.autoTune.rangeRate': 'Search Range · Request Rate (req/s)',
   'benchmark.form.autoTune.rangeFrom': 'From',
   'benchmark.form.autoTune.rateFrom': 'Rate From (req/s)',
@@ -38,9 +38,9 @@ export default {
   'benchmark.form.autoTune.rangeMin': 'min',
   'benchmark.form.autoTune.rangeMax': 'max',
   'benchmark.form.autoTune.range.rate.tip':
-    'Adaptive ramp search range — a HARD range: no load outside it is ever measured. The ramp starts at the min and doubles up to the max. If the server is already saturated at the min, the run reports the sustained rate it measured and asks you to lower the range rather than probing below it. Default 4–1024.',
+    'Adaptive ramp search range — a HARD range: no load outside it is ever measured. The ramp starts at the min and doubles up to the max. If the server is already saturated at the min, the run reports the sustained rate it measured and asks you to lower the range rather than probing below it.',
   'benchmark.form.autoTune.range.concurrency.tip':
-    'Adaptive ramp search range — a HARD range: no load outside it is ever measured. The ramp starts at the min and doubles up to the max. If the server is already saturated at the min, the run reports the sustained rate it measured and asks you to lower the range rather than probing below it. Default 4–1024.',
+    'Adaptive ramp search range — a HARD range: no load outside it is ever measured. The ramp starts at the min and doubles up to the max. If the server is already saturated at the min, the run reports the sustained rate it measured and asks you to lower the range rather than probing below it.',
   'benchmark.form.autoTune.maxRate': 'Maximum Request Rate',
   'benchmark.form.autoTune.maxConcurrency': 'Maximum Concurrency',
   'benchmark.form.load.managedByProfile': 'managed by profile',
@@ -71,8 +71,14 @@ export default {
     'Stop the run once throughput plateaus (guidellm over-saturation constraint) instead of pushing further past saturation.',
   'benchmark.form.warmup': 'Warmup (%)',
   'benchmark.form.cooldown': 'Cooldown (%)',
+  'benchmark.form.warmup.tips':
+    'Trims the first N% of each stage\u2019s REQUESTS from the measured window (not the first N% of its seconds). Use it to exclude cold-start effects \u2014 the first few requests of a run can be several times slower than steady state. Enter a percentage \u2014 e.g. 10 trims the first 10% of each stage\u2019s requests.',
+  'benchmark.form.cooldown.tips':
+    'Trims the last N% of each stage\u2019s REQUESTS from the measured window, excluding the tail where the stage is draining. Enter a percentage \u2014 e.g. 10 trims the last 10% of each stage\u2019s requests.',
   'benchmark.form.maxErrors': 'Max Errors',
-  'benchmark.form.maxErrorRate': 'Max Error Rate (0–1)',
+  'benchmark.form.maxErrorRate': 'Max Error Rate (%)',
+  'benchmark.form.maxErrorRate.tips':
+    'Stops a stage once the share of failed requests reaches this level — a cap on how much of the run may fail before the numbers stop being worth measuring. Enter a percentage — e.g. 5 stops the stage at a 5% error rate. Leave it empty to tolerate any error rate.',
   'benchmark.form.stopOnSaturation': 'Stop on Saturation',
   'benchmark.form.datasetSeed.tips':
     'Seed for generating the synthetic data. In a multi-stage run this is the initial seed; each stage uses initial + stage index (turn off "Different seed for each stage" under Advanced to keep it fixed).',
@@ -82,32 +88,33 @@ export default {
   'benchmark.form.seedIncrement': 'Different seed for each stage',
   'benchmark.form.seedIncrement.tips':
     'On (default): each stage seed = initial + stage index, so stages differ and cross-stage cache reuse is reduced. Off: all stages share the same seed. Only affects the Random dataset.',
-  'benchmark.form.sla.ttft': 'Avg TTFT ≤ (ms)',
-  'benchmark.form.sla.p95Ttft': 'P95 TTFT ≤ (ms)',
-  'benchmark.form.sla.p99Ttft': 'P99 TTFT ≤ (ms)',
-  'benchmark.form.sla.tpot': 'Avg TPOT ≤ (ms)',
-  'benchmark.form.sla.p95Tpot': 'P95 TPOT ≤ (ms)',
-  'benchmark.form.sla.p99Tpot': 'P99 TPOT ≤ (ms)',
-  'benchmark.form.sla.avgLatency': 'Avg Latency ≤ (ms)',
-  'benchmark.form.sla.p95Latency': 'P95 Latency ≤ (ms)',
-  'benchmark.form.sla.p99Latency': 'P99 Latency ≤ (ms)',
-  'benchmark.form.sla.metric': 'Metric',
-  'benchmark.form.sla.aggregation': 'Aggregation',
-  'benchmark.form.sla.threshold': 'Threshold (ms)',
-  'benchmark.form.sla.add': 'Add SLA Target',
-  'benchmark.form.sla.metric.ttft': 'TTFT',
-  'benchmark.form.sla.metric.tpot': 'TPOT',
-  'benchmark.form.sla.metric.latency': 'Latency',
-  'benchmark.form.sla.agg.avg': 'Avg',
-  'benchmark.form.sla.agg.p95': 'P95',
-  'benchmark.form.sla.agg.p99': 'P99',
-  'benchmark.form.sla.col.metric': 'Metric',
-  'benchmark.form.sla.col.threshold': 'Threshold',
+  'benchmark.form.slo.ttft': 'Avg TTFT ≤ (ms)',
+  'benchmark.form.slo.p95Ttft': 'P95 TTFT ≤ (ms)',
+  'benchmark.form.slo.p99Ttft': 'P99 TTFT ≤ (ms)',
+  'benchmark.form.slo.tpot': 'Avg TPOT ≤ (ms)',
+  'benchmark.form.slo.p95Tpot': 'P95 TPOT ≤ (ms)',
+  'benchmark.form.slo.p99Tpot': 'P99 TPOT ≤ (ms)',
+  'benchmark.form.slo.avgLatency': 'Avg Latency ≤ (ms)',
+  'benchmark.form.slo.p95Latency': 'P95 Latency ≤ (ms)',
+  'benchmark.form.slo.p99Latency': 'P99 Latency ≤ (ms)',
+  'benchmark.form.slo.metric': 'Metric',
+  'benchmark.form.slo.aggregation': 'Aggregation',
+  'benchmark.form.slo.threshold': 'Threshold (ms)',
+  'benchmark.form.slo.add': 'Add SLO Target',
+  'benchmark.form.slo.metric.ttft': 'TTFT',
+  'benchmark.form.slo.metric.tpot': 'TPOT',
+  'benchmark.form.slo.metric.latency': 'Latency',
+  'benchmark.form.slo.agg.avg': 'Avg',
+  'benchmark.form.slo.agg.p95': 'P95',
+  'benchmark.form.slo.agg.p99': 'P99',
+  'benchmark.form.slo.col.metric': 'Metric',
+  'benchmark.form.slo.col.threshold': 'Threshold',
   'benchmark.form.preset': 'Preset',
   'benchmark.form.rate': 'Request Rate (req/s)',
   'benchmark.form.concurrency': 'Concurrency',
   'benchmark.form.stages': 'Stages',
   'benchmark.form.stages.mode.manual': 'Manual',
+  'benchmark.detail.stageLimits': 'Per-Stage Limits',
   'benchmark.form.addStage': 'Add Stage',
   'benchmark.form.maxRequests': 'Max Requests',
   'benchmark.form.maxSeconds': 'Max Seconds',
@@ -135,12 +142,18 @@ export default {
   'benchmark.form.distribution.intro':
     'Vary request lengths around the mean set above (instead of a fixed length). Leave blank to use defaults. Spread = how much lengths vary (standard deviation); Min/Max clamp the range.',
   'benchmark.form.group.constraints': 'Constraints',
-  'benchmark.form.group.sla': 'Latency SLA',
+  'benchmark.form.group.slo': 'Latency SLO',
   'benchmark.form.group.execution': 'Stop Conditions',
   'benchmark.form.group.advanced': 'Advanced',
   'benchmark.form.inputStdev': 'Input Spread (±)',
   'benchmark.form.inputMin': 'Input Min',
   'benchmark.form.inputMax': 'Input Max',
+  'benchmark.form.sharegpt.tokenLengthSettings': 'Token Length Settings',
+  'benchmark.form.sharegpt.tokenLengthSettings.tip':
+    'Optionally set a minimum input length, a maximum, or both. Output length is also optional; when empty, each sample uses its original answer length.',
+  'benchmark.form.sharegpt.inputRangeError':
+    'Input Max must be at least Input Min',
+  'benchmark.form.sharegpt.positiveInteger': 'Enter a positive integer',
   'benchmark.form.outputStdev': 'Output Spread (±)',
   'benchmark.form.outputMin': 'Output Min',
   'benchmark.form.outputMax': 'Output Max',
@@ -158,7 +171,7 @@ export default {
   'benchmark.form.concurrencyList.placeholder': 'e.g. 40, 60, 80',
   'benchmark.form.profile.maxThroughput.tips':
     'Finds peak throughput. The usual baseline for comparing GPUs and models.',
-  'benchmark.form.profile.latencySla.tips':
+  'benchmark.form.profile.latencySlo.tips':
     'Finds the most load that still meets your TTFT/TPOT targets. For capacity planning.',
   'benchmark.form.profile.custom': 'Custom',
   'benchmark.form.profile.custom.tips':
@@ -170,10 +183,11 @@ export default {
   'benchmark.detail.environment.title': 'Environment',
   'benchmark.detail.logs.title': 'Logs',
   'benchmark.form.totalRequests.tips': 'Total Requests',
-  'benchmark.table.filter.bygpu': 'Search by GPU',
-  'benchmark.table.filter.bymodel': 'Search by model',
+  'benchmark.table.filter.bygpu': 'Filter by GPU',
+  'benchmark.table.filter.bymodel': 'Filter by model',
   'benchmark.table.filter.bydataset': 'Filter by Dataset',
   'benchmark.table.filter.byLoadType': 'Filter by load type',
+  'benchmark.table.filter.byTargetMode': 'Filter by target type',
   'benchmark.table.filter.byProfile': 'Filter by profile',
   'benchmark.table.best': 'Best @',
   'benchmark.table.best.unit.concurrency': 'conc.',
@@ -181,6 +195,7 @@ export default {
   'benchmark.table.coverage': 'Coverage',
   'benchmark.table.coverage.insufficient': 'Insufficient',
   'benchmark.table.avg': 'Avg',
+  'benchmark.table.tailLatency': 'Tail Latency',
   'benchmark.table.columnSettings': 'Column Settings',
   'benchmark.detail.summary.results': 'Test Results',
   'benchmark.detail.summary.recommendation': 'Best Operating Point',
@@ -199,11 +214,11 @@ export default {
     'Stopped early ({reason}): {processed}/{requested} requests ran.',
   'benchmark.detail.summary.stageDetail': 'Stage detail',
   'benchmark.detail.summary.performance': 'Performance',
-  'benchmark.detail.reason.throughputVsPrev':
-    '{up}% higher throughput than {prevRate}',
-  'benchmark.detail.reason.withinSla': 'Within the SLA',
-  'benchmark.detail.reason.peakExceedsSla':
-    'Throughput peaks higher at {rate} {unit}, but running there would breach the SLA — so the recommendation is the SLA boundary.',
+  'benchmark.detail.reason.requestsSucceeded':
+    '{ok} of {total} requests succeeded',
+  'benchmark.detail.reason.withinSlo': 'Within the SLO',
+  'benchmark.detail.reason.peakExceedsSlo':
+    'Throughput peaks higher at {rate} {unit}, but running there would breach the SLO — so the recommendation is the SLO boundary.',
   'benchmark.detail.reason.matchesPeak': 'Highest sustained throughput',
   'benchmark.detail.validity.title': 'Test coverage',
   'benchmark.detail.validity.ok': 'OK',
@@ -213,14 +228,14 @@ export default {
     'The best operating point is the highest sampled point — the true optimum may be higher. Extend the range (higher concurrency/rate) and re-run.',
   'benchmark.detail.validity.fewPoints':
     'Too few measured points to trust the curve — check the bounds / budget.',
-  'benchmark.detail.validity.slaNeverMet':
-    'No measured point met the latency targets — the server is too slow for this SLA; lower the targets or change the deployment.',
-  'benchmark.detail.validity.slaNotBinding':
-    'The latency thresholds never came into play — at the highest load measured the strictest budget was only {used}% used — while throughput had already peaked at {rate}. What limited this run was capacity, not the latency budget: {rate} is a throughput ceiling, not an SLA boundary. It is therefore the best operating point (past it, extra load only queues: no more throughput, steadily worse latency). Tighten the thresholds and re-run to locate a real SLA boundary.',
+  'benchmark.detail.validity.sloNeverMet':
+    'No measured point met the latency targets — the server is too slow for this SLO; lower the targets or change the deployment.',
+  'benchmark.detail.validity.sloNotBinding':
+    'The latency thresholds never came into play — at the highest load measured the strictest budget was only {used}% used — while throughput had already peaked at {rate}. What limited this run was capacity, not the latency budget: {rate} is a throughput ceiling, not an SLO boundary. It is therefore the best operating point (past it, extra load only queues: no more throughput, steadily worse latency). Tighten the thresholds and re-run to locate a real SLO boundary.',
   'benchmark.detail.validity.notSaturated':
     'The best operating point is the highest measured point and nothing overloaded — the true optimum may be higher. Raise the search range (upper bound) and re-run.',
   'benchmark.detail.validity.budgetExhausted':
-    'The sweep ran out of its measurement budget before throughput turned over, so the best point is simply the last one measured. Raise {which, select, seconds{Max Total Duration} other{Max Test Points}} and re-run.',
+    'The search exhausted its measurement budget before it finished refining the result. Raise {which, select, seconds{Max Total Duration} other{Max Test Points}} and re-run.',
   'benchmark.detail.validity.saturatedAtLowerBound':
     'The search range starts above what this deployment can sustain (~{ceiling} req/s), so no load inside it can be the optimum. Lower the search range and re-run.',
   'benchmark.detail.validity.peakAtFloor':
@@ -238,6 +253,7 @@ export default {
   'benchmark.detail.avg.reqLatency': 'Request Latency Avg',
   'benchmark.detail.avg.ttft': 'TTFT Avg',
   'benchmark.detail.avg.tpot': 'TPOT Avg',
+  'benchmark.detail.avg.itl': 'ITL Avg',
   'benchmark.detail.throughput.totalToken': 'Total Throughput',
   'benchmark.detail.throughput.inputToken': 'Input Throughput',
   'benchmark.detail.throughput.outputToken': 'Output Throughput',
@@ -257,31 +273,40 @@ export default {
   'benchmark.detail.percentile.title': 'Percentile',
   'benchmark.detail.modelName': 'Model Name',
   'benchmark.detail.instanceName': 'Instance Name',
+  'benchmark.detail.members.title': 'Members',
+  'benchmark.detail.members.role': 'Role',
+  'benchmark.detail.members.injected': 'Injected parameters',
+  'benchmark.detail.members.endpoint': 'Endpoint',
   'benchmark.detail.configure': 'Configuration',
   'benchmark.detail.config.deployment': 'Deployment',
   'benchmark.detail.config.benchmark': 'Benchmark',
   'benchmark.detail.best.peak': 'Peak Throughput',
-  'benchmark.detail.best.sla': 'Max within SLA',
-  'benchmark.detail.sla.target': 'SLA Target',
-  'benchmark.detail.sla.capacity': 'SLA capacity',
-  'benchmark.detail.sla.capacity.locatedHint':
-    'A load above this was measured breaching the SLA, so this is where it actually breaks.',
-  'benchmark.detail.sla.capacity.floorHint':
+  'benchmark.detail.best.slo': 'Max within SLO',
+  'benchmark.detail.slo.target': 'SLO Target',
+  'benchmark.detail.slo.capacity': 'SLO capacity',
+  'benchmark.detail.slo.capacity.locatedHint':
+    'A load above this was measured breaching the SLO, so this is where it actually breaks.',
+  'benchmark.detail.slo.capacity.floorHint':
     'Nothing above this was ever measured — the search ended first — so read it as "at least this much". The real breaking point is somewhere above and was not measured.',
   'benchmark.detail.tpot.tip':
     "TPOT: decode-only time per output token = (last token − first token) / (output tokens − 1), first-token latency excluded. This is guidellm's inter_token_latency_ms and the TPOT that vLLM and similar tools report. When the server does not stream incrementally (the whole output in one chunk, common at low load) there is no gap to measure, and this falls back to the per-token time including the first token.",
-  'benchmark.detail.chart.slaBreached': 'SLA breached',
+  'benchmark.detail.itl.tip':
+    "ITL (Inter-Token Latency): the measured gap between consecutive streamed outputs — one sample per gap, pooled across requests, first-token latency excluded. It differs from TPOT in sample granularity: TPOT is one average per request, so a single stall is divided away by that request's other gaps, while ITL keeps every gap and the stall reaches the tail. Same definition as vLLM and SGLang. A chunk carrying several tokens (speculative decoding) still counts as one gap.",
+  'benchmark.detail.chart.sloBreached': 'SLO breached',
   'benchmark.detail.chart.success': 'Success rate',
   'benchmark.detail.reason.peakTradeoff':
     'Pushing to the peak {rate} {unit} adds only {gain}% throughput for {cost} latency',
   'benchmark.detail.unit.avg': 'avg',
   'benchmark.detail.p99.ttft': 'TTFT p99',
+  'benchmark.detail.p99.tpot': 'TPOT p99',
+  'benchmark.detail.p99.itl': 'ITL p99',
+  'benchmark.detail.max.itl': 'ITL Max',
   'benchmark.detail.lowSample':
-    'This stage has {count} samples, so only {tail} sit above p99 — the tail is decided by a handful of requests. Read it as indicative, not as an SLA conclusion (p99 needs ~1000 samples to behave like an estimate).',
+    'This stage has {count} samples, so only {tail} sit above p99 — the tail is decided by a handful of requests. Read it as indicative, not as an SLO conclusion (p99 needs ~1000 samples to behave like an estimate).',
   'benchmark.detail.successPill': '{pct}% success · {ok} / {total} requests',
   'benchmark.detail.summary.stagesHint': 'Click any row to see its detail',
-  'benchmark.detail.chart.operatingCurve': 'Operating curve',
-  'benchmark.detail.chart.operatingCurve.note':
+  'benchmark.detail.chart.loadSweep': 'Load sweep',
+  'benchmark.detail.chart.loadSweep.note':
     'Throughput and p99 TTFT as the load rises',
   'benchmark.detail.chart.dualAxisHint':
     'The left axis (throughput) is linear — every gridline adds the same amount. The right axis (TTFT p99) is logarithmic — every gridline is 10x the one below it, because latency spans a thousandfold and a linear scale would hide the blow-up past the knee.',
@@ -315,6 +340,9 @@ export default {
   'benchmark.detail.chart.tpotPercentiles': 'TPOT percentiles',
   'benchmark.detail.chart.tpotPercentiles.note':
     'Decode time per token, first token excluded · one value per request, so this shows decode slowing under load, not individual stalls',
+  'benchmark.detail.chart.itlPercentiles': 'ITL percentiles',
+  'benchmark.detail.chart.itlPercentiles.note':
+    'Measured gap between consecutive streamed outputs · one sample per gap, so the tail shows individual stalls',
   'benchmark.detail.chart.success.note':
     'Shown because some requests did not succeed',
   'benchmark.detail.chart.legend.shortfall': 'Shortfall',
@@ -329,6 +357,10 @@ export default {
   'benchmark.detail.chart.axis.inFlight': 'In-flight requests',
   'benchmark.detail.chart.axis.shortfall': 'Shortfall (requests)',
   'benchmark.detail.chart.axis.successRate': 'Success rate (%)',
+  'benchmark.detail.chart.axis.load.rate': 'Request rate (req/s)',
+  'benchmark.detail.chart.axis.load.concurrency': 'Concurrency (requests)',
+  'benchmark.detail.chart.axis.throughput': 'Total throughput (tok/s)',
+  'benchmark.detail.chart.axis.concurrencyAvg': 'Concurrency avg (requests)',
   'benchmark.detail.reason.peakTradeoffPlain':
     'Pushing to the peak {rate} {unit} adds only {gain}% throughput',
   'benchmark.detail.summary.showMore': 'Show {n} more',
@@ -347,20 +379,24 @@ export default {
   'benchmark.detail.stopReason.upperBound': 'the range ceiling',
   'benchmark.detail.stopReason.budgetPoints': 'the point budget',
   'benchmark.detail.stopReason.budgetSeconds': 'the duration budget',
-  'benchmark.detail.stopReason.slaFailed': 'a latency threshold',
+  'benchmark.detail.stopReason.sloFailed': 'a latency threshold',
   'benchmark.detail.stopReason.converged': 'convergence',
   'benchmark.detail.stopReason.overloaded': 'server overload',
   'benchmark.detail.stopReason.pointFailed': 'a point with no result',
+  'benchmark.detail.stopReason.probeBound': `the saturation probe's cap`,
   'benchmark.detail.recommend.text':
-    'Best: concurrency {rate} — {pct}% of peak throughput ({tps} tok/s) at TTFT {ttft} ms{sla, select, yes{, within the SLA} other{}}.',
+    'Best: concurrency {rate} — {pct}% of peak throughput ({tps} tok/s) at TTFT {ttft} ms{slo, select, yes{, within the SLO} other{}}.',
   'benchmark.detail.analysis.text':
-    'Concurrency {rate} sustains {tps} tok/s{prev, select, yes{ — {prevUp}% more throughput than {prevRate}} other{}}{next, select, yes{; pushing to {nextRate} adds only {nextUp}% throughput but {nextTtftUp}% TTFT} other{}}. That makes {rate} the best operating point{sla, select, yes{, within the SLA} other{}}.',
+    'Concurrency {rate} sustains {tps} tok/s{prev, select, yes{ — {prevUp}% more throughput than {prevRate}} other{}}{next, select, yes{; pushing to {nextRate} adds only {nextUp}% throughput but {nextTtftUp}% TTFT} other{}}. That makes {rate} the best operating point{slo, select, yes{, within the SLO} other{}}.',
+  'benchmark.detail.specDigest': 'Spec Generation',
   'benchmark.detail.modelFile': 'Model File',
   'benchmark.detail.kvCache': 'Extended KV Cache',
+  'benchmark.detail.cacheService': 'Cache Service',
   'benchmark.detail.speculativeDecoding': 'Speculative Decoding',
   'benchmark.detail.inputOutputTokenLength': 'Token Length (Input/Output)',
   'benchmark.env.gpuName': 'GPU Name',
   'benchmark.env.workerName': 'Worker Name',
+  'benchmark.env.hostedMembers': 'Members',
   'benchmark.env.index': 'Index',
   'benchmark.env.system': 'System',
   'benchmark.env.runtimeVersion': 'Runtime Version',
@@ -370,5 +406,24 @@ export default {
   'benchmark.form.nonLlmModel.tips':
     'Benchmarking currently only supports LLM models',
   'benchmark.detail.result.duration': 'Duration',
+  'benchmark.form.pdGroup.tips':
+    'A disaggregated group is measured whole: every request enters through its router, so there is no member to pick. The server sends the load to the router and runs the load generator on a worker that holds the weights.',
+  'benchmark.detail.monitoring': 'Monitoring',
+  'benchmark.detail.monitoring.tips':
+    'Open the dashboard for this run, over the interval it ran. A disaggregated group goes to the PD dashboard, where the prefill queue, the decode queue and the KV transfer are shown separately.',
+  'benchmark.form.targetMode': 'Target type',
+  'benchmark.form.targetMode.instance': 'Instance (engine)',
+  'benchmark.form.targetMode.route': 'Route (deployment)',
+  'benchmark.form.targetMode.tips.instance':
+    "Sends the load straight at one engine — a group's router, or one replica of a plain model — so nothing but the engine is in the path.",
+  'benchmark.form.targetMode.tips.route':
+    'Sends the load through the entrance clients call, so every replica of a plain model takes part; use it to compare a disaggregated group against an aggregated deployment on the same cards.',
+  'benchmark.form.targetMode.tips.results.title': 'Reading route results',
+  'benchmark.form.targetMode.tips.results':
+    "Route puts the server's proxy in the path. At high rates the proxy can saturate before the deployment does and drop requests — and dropped requests never reach the latency numbers, so TTFT / TPOT can look better than they are. Read route-mode results together with the error and incomplete counts.",
+  'benchmark.detail.targetMode.route': 'Route (deployment) · {route}',
+  'benchmark.form.target.route': 'Route',
+  'benchmark.form.target.route.empty':
+    'No route fronts a servable LLM in this cluster. Deploy a route, or measure an instance instead.',
   'benchmark.detail.result.basic': 'Basic'
 };

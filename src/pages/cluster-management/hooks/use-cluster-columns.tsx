@@ -18,6 +18,7 @@ import dayjs from 'dayjs';
 import { useAtomValue } from 'jotai';
 import { useMemo } from 'react';
 import {
+  CloudProviderList,
   ClusterStatus,
   ClusterStatusLabelMap,
   ProviderLabelMap,
@@ -61,9 +62,24 @@ const clusterActionList = [
   {
     key: 'addPool',
     label: 'clusters.button.addNodePool',
-    provider: ProviderValueMap.DigitalOcean,
+    // Node pools are the cloud providers' way to add workers, so this action
+    // is shared by all of them — `providers` (plural) is the multi-provider
+    // form of the single-provider `provider` gate above.
+    providers: CloudProviderList,
     locale: true,
     order: 40,
+    icon: icons.Catalog1
+  },
+  {
+    // Where a topology declaration lives in the open-source edition. There is
+    // no cluster-detail page to hang a tab on (see the note in the hook
+    // below), and the declaration needs a full-height two-column surface for
+    // "declare | preview" — so a row action opening a drawer, which also
+    // carries the cluster context for free.
+    key: 'configureTopology',
+    label: 'clusters.topology.title',
+    locale: true,
+    order: 45,
     icon: icons.Catalog1
   },
   {
@@ -100,6 +116,18 @@ const useClusterColumns = (
 
   const setActionsItems = (row: ClusterListItem) => {
     return actionList.filter((item: any) => {
+      // Row-level predicate, same seam as the my-models card actions:
+      // an action whose applicability depends on more than the provider
+      // (a cluster option, a fetched state) answers for itself instead
+      // of the host carrying its rule. Contributed actions are untyped
+      // at this boundary, so a non-function `show` falls through to the
+      // provider rules below rather than throwing mid-render.
+      if (typeof item.show === 'function') {
+        return item.show(row);
+      }
+      if (item.providers?.length) {
+        return item.providers.includes(row.provider);
+      }
       if (item.provider) {
         return item.provider === row.provider;
       }
@@ -241,6 +269,8 @@ const useClusterColumns = (
         title: intl.formatMessage({ id: 'common.table.operation' }),
         dataIndex: 'operations',
         span: 3,
+        maxWidth: 160,
+        minWidth: 100,
         render: (value: string, record: ClusterListItem) => (
           <DropdownButtons
             items={setActionsItems(record)}

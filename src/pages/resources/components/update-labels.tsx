@@ -2,40 +2,52 @@ import {
   Input as CInput,
   LabelSelector,
   ModalFooter,
-  ScrollerModal
+  ScrollerModal,
+  useSubmitLock
 } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import _ from 'lodash';
 import React from 'react';
 import 'simplebar-react/dist/simplebar.min.css';
+import { WorkerLabelsFormData } from '../config/types';
 
 type ViewModalProps = {
   open: boolean;
   onCancel: () => void;
-  onOk: (values: FormData) => Promise<void>;
+  onOk: (values: WorkerLabelsFormData) => Promise<void>;
   data: {
     name: string;
-    labels: object;
+    labels: Record<string, string>;
   };
+  /** A selection of one worker still uses batch merge semantics. */
+  batch?: boolean;
+  /** Number of workers receiving the label patch. */
+  count?: number;
 };
-interface FormData {
-  labels: object;
-  name: string;
-}
-
 const UpdateLabels: React.FC<ViewModalProps> = (props) => {
-  const { open, onCancel, data, onOk } = props || {};
+  const { open, onCancel, data, onOk, batch, count } = props || {};
   const intl = useIntl();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<WorkerLabelsFormData>();
+  const labels = Form.useWatch('labels', form);
+  const { loading, guard, run, release } = useSubmitLock();
+  const emptyBatch = !!batch && !Object.keys(labels || {}).length;
 
-  const handleSumit = () => {
-    form.submit();
+  const handleSubmit = () => {
+    if (!emptyBatch) {
+      guard(() => form.submit());
+    }
+  };
+
+  const handleFinish = async (values: WorkerLabelsFormData) => {
+    await run(() => onOk(values));
   };
 
   return (
     <ScrollerModal
-      title={intl.formatMessage({ id: 'resources.button.edit' })}
+      title={intl.formatMessage({
+        id: batch ? 'resources.worker.setLabels' : 'resources.button.edit'
+      })}
       open={open}
       centered={true}
       onCancel={onCancel}
@@ -48,21 +60,41 @@ const UpdateLabels: React.FC<ViewModalProps> = (props) => {
       width={600}
       maxContentHeight={'max(calc(100vh - 300px), 500px)'}
       footer={
-        <ModalFooter onOk={handleSumit} onCancel={onCancel}></ModalFooter>
+        <ModalFooter
+          onOk={handleSubmit}
+          onCancel={onCancel}
+          loading={loading}
+          okText={
+            batch
+              ? intl.formatMessage({ id: 'resources.worker.setLabels' })
+              : undefined
+          }
+          okBtnProps={{
+            disabled: emptyBatch,
+            style: { width: 'auto', minWidth: 88 }
+          }}
+        />
       }
     >
       <Form
         name="deployModel"
         form={form}
-        onFinish={onOk}
+        onFinish={handleFinish}
+        onFinishFailed={release}
         preserve={false}
         clearOnDestroy={true}
         initialValues={{
-          name: data.name,
-          labels: data.labels
+          name: batch
+            ? intl.formatMessage(
+                { id: 'resources.worker.setLabels.count' },
+                { count }
+              )
+            : data.name,
+          // Batch inputs contain only the keys to merge into each worker.
+          labels: batch ? {} : data.labels
         }}
       >
-        <Form.Item<FormData> name="name">
+        <Form.Item<WorkerLabelsFormData> name="name">
           <CInput.Input
             label={intl.formatMessage({
               id: 'common.table.name'
@@ -70,8 +102,13 @@ const UpdateLabels: React.FC<ViewModalProps> = (props) => {
             disabled
           />
         </Form.Item>
-        <Form.Item<FormData>
+        <Form.Item<WorkerLabelsFormData>
           name="labels"
+          extra={
+            batch
+              ? intl.formatMessage({ id: 'resources.worker.setLabels.hint' })
+              : undefined
+          }
           rules={[
             () => ({
               validator(rule, value) {

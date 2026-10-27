@@ -1,4 +1,5 @@
 import PluginExtraFields from '@/components/plugin-extra-fields';
+import sortVersions from '@/utils/sort-versions';
 import {
   AutoTooltip,
   DropdownActions,
@@ -11,13 +12,12 @@ import { useIntl } from '@umijs/max';
 import { Button, Tag } from 'antd';
 import _ from 'lodash';
 import { useMemo } from 'react';
-import semverCoerce from 'semver/functions/coerce';
-import semverGt from 'semver/functions/gt';
 import styled from 'styled-components';
 import {
   backendActions,
   BackendSourceLabelMap,
   BackendSourceValueMap,
+  backendVisualIndex,
   builtInBackendLogos,
   customColors,
   customIcons,
@@ -142,8 +142,12 @@ export const generateIcon = (data: ListItem, height?: number) => {
   if (data.icon) {
     return <img src={data.icon} height={innHeight} />;
   }
-  const color = customColors[data.id % customColors.length];
-  const icon = customIcons[data.id % customIcons.length];
+  // Hashed on the name so a backend keeps its identity across environments —
+  // `data.id % n` re-rolled both the colour and the glyph whenever ids differed.
+  const color =
+    customColors[backendVisualIndex(data.backend_name, customColors.length)];
+  const icon =
+    customIcons[backendVisualIndex(data.backend_name, customIcons.length)];
 
   return (
     <TagInner color={color} variant="filled" height={height || 28}>
@@ -186,18 +190,6 @@ const BackendCard: React.FC<BackendCardProps> = ({
 
   const handleonClickAction = (e: React.MouseEvent) => {
     e.stopPropagation();
-  };
-
-  const sortVersions = (v2: string, v1: string) => {
-    const sv1 = semverCoerce(v1);
-    const sv2 = semverCoerce(v2);
-
-    if (!sv1 && !sv2) return 0;
-    if (!sv1) return 1;
-    if (!sv2) return -1;
-
-    if (semverGt(sv1, sv2)) return -1;
-    return 1;
   };
 
   const renderTag = (item: any) => {
@@ -300,6 +292,9 @@ const BackendCard: React.FC<BackendCardProps> = ({
             icon={<IconFont type="icon-more"></IconFont>}
             size="small"
             type="text"
+            // Icon-only: without this the button has no accessible name at all.
+            aria-label={intl.formatMessage({ id: 'common.button.more' })}
+            title={intl.formatMessage({ id: 'common.button.more' })}
           ></Button>
         </DropdownActions>
       </span>

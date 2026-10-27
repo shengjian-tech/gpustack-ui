@@ -30,7 +30,7 @@ export default {
   'menu.accessControl.apikeys': 'API Anahtarları',
   'menu.accessControl.users': 'Kullanıcılar',
   'menu.accessControl.organizations': 'Organizasyonlar',
-  'menu.profile': 'Preferences',
+  'menu.profile': 'Tercihler',
   'menu.login': 'Giriş',
   'menu.usage': 'Kullanım',
   'menu.usage.usage': 'Kullanım',
@@ -43,15 +43,17 @@ export default {
   'menu.resources.clusterDetail': 'Küme Detayı',
   'menu.resources.clusterCreate': 'Küme Oluştur',
   'menu.models.backendsList': 'Çıkarım Altyapıları',
-  'menu.models.instances': 'Instances',
-  'menu.settings': 'Settings',
-  'menu.gpuService': 'GPU Service',
-  'menu.gpuService.instances': 'GPU Instances',
-  'menu.gpuService.instanceTypes': 'Instance Types',
-  'menu.gpuService.templates': 'Instance Templates',
-  'menu.gpuService.storage': 'Storage',
+  'menu.models.kvCache': 'KV Önbelleği',
+  'menu.models.kvCacheDetail': 'KV Önbelleği Ayrıntıları',
+  'menu.models.instances': 'Örnekler',
+  'menu.settings': 'Ayarlar',
+  'menu.gpuService': 'GPU Hizmeti',
+  'menu.gpuService.instances': 'GPU Örnekleri',
+  'menu.gpuService.instanceTypes': 'Örnek Türleri',
+  'menu.gpuService.templates': 'Örnek Şablonları',
+  'menu.gpuService.storage': 'Depolama',
   'menu.gpuService.storageTypes': 'Depolama Türleri',
-  'menu.gpuService.publicKeys': 'SSH Public Keys'
+  'menu.gpuService.publicKeys': 'SSH Ortak Anahtarları'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

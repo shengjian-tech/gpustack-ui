@@ -17,11 +17,22 @@ export default {
   'providers.form.target.placeholder': 'sağlayıcı/modeller',
   'providers.form.fallback.token': 'Yedek API Anahtarları',
   'providers.form.custombeckendUrl': 'Özel Temel URL',
+  'providers.form.claudeCustomUrl': "Özel API URL'si",
+  'providers.form.claudeCustomUrl.tips':
+    'Ayarlandığında bu sağlayıcı yalnızca Anthropic protokolünü (/v1/messages) sunar ve OpenAI biçimindeki istekler dönüştürülmez. Boş bırakılırsa api.anthropic.com adresi OpenAI protokolü üzerinden kullanılır.',
   'providers.form.more': '+{count} daha fazla',
   'providers.form.addAll': 'Tümünü Ekle',
   'providers.form.rules.models': 'Lütfen en az bir model seçin',
   'providers.form.rules.tokens': 'Lütfen geçerli bir API Anahtarı girin',
   'providers.form.rules.model': 'Lütfen bir model seçin',
+  'providers.form.rules.absoluteHttpUrl':
+    'Lütfen şema içeren tam bir http(s) adresi girin (varsa portu da ekleyin), örneğin https://gateway.example.com:8080',
+  'providers.form.rules.openaiCustomUrl':
+    'Lütfen şema ve yol içeren tam bir http(s) adresi girin, örneğin https://gateway.example.com:8080/v1',
+  'providers.form.rules.claudeCustomUrl.credentials':
+    'Adreste kimlik bilgileri (kullanıcı adı/şifre) bulunmamalıdır: bunlar her isteğin Host başlığı olarak gönderilir. Erişim anahtarını bunun yerine sağlayıcının API Anahtarı olarak yapılandırın.',
+  'providers.form.rules.claudeCustomUrl.query':
+    'Adres yalnızca bir kaynak ve isteğe bağlı bir yol öneki kabul eder; sorgu veya parça kısmı atılır.',
   'providers.form.model.duplicate': 'Yinelenen model mevcut',
   'providers.table.registerRoute': 'Yönlendirme Kaydet',
   'providers.form.azureServiceUrl': "Azure OpenAI Hizmet URL'si",
@@ -37,5 +48,11 @@ export default {
     "Triton Server'da kullanılan model sürümünü belirtir.",
   'providers.form.tritonDomain.tips':
     'Triton Server dağıtımına istek göndermek için kullanılan alan adı.',
-  'providers.form.awsRegion': 'AWS Bölgesi'
+  'providers.form.awsRegion': 'AWS Bölgesi',
+  'providers.form.systemoneEndpoint': 'Özel Temel URL',
+  'providers.form.systemoneEndpoint.tips':
+    'İsteğe bağlı. Jev uyumlu karar servisinizin özel temel URL\u2019si, yol eki olmadan (örn. http://jev.example.com:8010). Boş bırakılırsa TypeSafe yönetilen servisi https://api.typesafe.ai kullanılır.',
+  'providers.form.decision': 'Karar',
+  'providers.form.decisionTest.tips':
+    'Servise bir karar çağrısı gönderir (adres, token ve karar yolunu aynı anda doğrular).'
 };

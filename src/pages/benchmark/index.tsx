@@ -1,14 +1,14 @@
+import { ResponsiveFilterBar } from '@/components/responsive-filters';
 import { PageAction } from '@/config';
 import { PaginationKey, TABLE_SORT_DIRECTIONS } from '@/config/settings';
 import useTableFetch from '@/hooks/use-table-fetch';
 import { useBenchmarkTargetInstance } from '@/pages/llmodels/hooks/use-run-benchmark';
-import { useQueryModelList } from '@/pages/llmodels/services/use-query-model-list';
-import { DeleteModal, FilterBar, IconFont, NoResult } from '@gpustack/core-ui';
+import { DeleteModal, IconFont, NoResult } from '@gpustack/core-ui';
 import { useIntl, useNavigate } from '@umijs/max';
-import { useMemoizedFn, useToggle } from 'ahooks';
+import { useMemoizedFn } from 'ahooks';
 import { ConfigProvider, Table, message } from 'antd';
 import _ from 'lodash';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import PageBox from '../_components/page-box';
 import { useQueryClusterList } from '../cluster-management/services/use-query-cluster-list';
 import {
@@ -25,11 +25,10 @@ import ViewLogsModal from './components/view-logs-modal';
 import {
   datasetList,
   genBenchmarkName,
-  slaFieldsFromTargets,
-  type SlaTarget
+  sloFieldsFromTargets,
+  type SloTarget
 } from './config';
 import { FormData, BenchmarkListItem as ListItem } from './config/types';
-import Filters from './filters';
 import useBenchmarkColumns from './hooks/use-benchmark-columns';
 import useCloneBenchmark from './hooks/use-clone-benchmark';
 import useColumnSettings from './hooks/use-column-settings';
@@ -66,9 +65,6 @@ const Benchmark: React.FC = () => {
   const navigate = useNavigate();
   const { openBenchmarkModal, closeBenchmarkModal, openBenchmarkModalStatus } =
     useCreateBenchmark();
-  const { dataList: modelList, fetchData: fetchModelList } = useQueryModelList({
-    getValue: (item: any) => item.name
-  });
   const { openViewLogsModal, closeViewLogsModal, openViewLogsModalStatus } =
     useViewLogs();
   const { handleStopBenchmark } = useStopBenchmark();
@@ -90,12 +86,7 @@ const Benchmark: React.FC = () => {
     clusterList,
     profileOptions: profilesOptions
   });
-  const [filtersVisible, { toggle: toggleFilters }] = useToggle();
-  const filterRef = useRef<any>(null);
-  const [filterValues, setFilterValues] = useState<any>({});
-
   useEffect(() => {
-    fetchModelList({ page: -1 });
     fetchProfilesData();
     fetchClusterList({ page: -1 }).then(() => {
       // Clone raised from the detail page, which has no drawer of its own: the
@@ -125,29 +116,30 @@ const Benchmark: React.FC = () => {
   };
 
   const handleModalOk = async (data: FormData) => {
-    // `sla_targets` is the form's editable view of the 9 flat sla_*_ms
+    // `slo_targets` is the form's editable view of the 9 flat slo_*_ms
     // thresholds. It is not an API field, so it is EXPANDED here rather than just
     // dropped: none of the 9 flat fields is mounted by a Form.Item any more (the
-    // SLA section renders the list instead), and antd's onFinish only carries
+    // SLO section renders the list instead), and antd's onFinish only carries
     // REGISTERED fields — getFieldsValue(namePathList) walks the field entities,
     // not the store. Writing them with setFieldsValue therefore never reached the
     // request, and every UI-created or cloned benchmark silently lost all 9
     // thresholds while showing them in the drawer.
-    const { sla_targets: slaTargets, ...formValues } = data as FormData & {
-      sla_targets?: SlaTarget[];
+    const { slo_targets: sloTargets, ...formValues } = data as FormData & {
+      slo_targets?: SloTarget[];
     };
-    // `dataset_worker_*` are UI-only too, but unlike sla_targets they carry
+    // `dataset_worker_*` are UI-only too, but unlike slo_targets they carry
     // nothing the API wants: model-instance records the selected instance's
     // worker so the dataset picker can filter to it. Dropped, not expanded.
     const rest = _.omit(formValues, [
       'dataset_worker_id',
-      'dataset_worker_name'
+      'dataset_worker_name',
+      'sharegpt_filter_enabled'
     ]);
     const params = {
       ...rest,
-      // Absent (the SLA section is not rendered for a fixed-rate load) => leave
+      // Absent (the SLO section is not rendered for a fixed-rate load) => leave
       // the fields out entirely rather than nulling them.
-      ...(slaTargets === undefined ? {} : slaFieldsFromTargets(slaTargets))
+      ...(sloTargets === undefined ? {} : sloFieldsFromTargets(sloTargets))
     };
     try {
       if (openBenchmarkModalStatus.action === PageAction.EDIT) {
@@ -251,56 +243,22 @@ const Benchmark: React.FC = () => {
     exportData(rowSelection.selectedRowKeys);
   };
 
-  const handleOnFilterChange = (filters: any) => {
-    handleQueryChange({
-      page: 1,
-      ...filters
-    });
-
-    setFilterValues(filters);
-  };
-
-  const handleOnClearFilters = () => {
-    filterRef.current?.reset();
-  };
-
-  const filtersCount = Object.values(filterValues).filter(
-    (value) => value !== undefined && value !== null && value !== ''
-  );
-
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start'
-      }}
-    >
-      <Filters
-        ref={filterRef}
-        open={filtersVisible}
-        profilesOptions={profilesOptions}
-        onValuesChange={handleOnFilterChange}
-        onClose={toggleFilters}
-        onClear={handleOnClearFilters}
-      ></Filters>
-      <PageBox style={{ flex: 1 }}>
-        <FilterBar
+    <>
+      <PageBox>
+        <ResponsiveFilterBar
           showSelect={false}
-          marginBottom={22}
-          marginTop={0}
           handleSearch={handleSearch}
+          // Required by FilterBar, but unreachable here: passing `left` replaces
+          // the bar's own search input, and the name filter lives in LeftActions.
           handleInputChange={handleNameChange}
           rowSelection={rowSelection}
           widths={{ input: 300 }}
           left={
             <LeftActions
-              modelList={modelList}
               handleSearch={handleSearch}
               handleQueryChange={handleQueryChange}
-              handleInputChange={handleNameChange}
-              count={filtersCount.length}
-              toggleFilters={toggleFilters}
-              onClear={handleOnClearFilters}
+              filters={queryParams}
             ></LeftActions>
           }
           right={
@@ -315,7 +273,7 @@ const Benchmark: React.FC = () => {
               rowSelection={rowSelection}
             />
           }
-        ></FilterBar>
+        ></ResponsiveFilterBar>
         <ConfigProvider renderEmpty={renderEmpty}>
           <Table
             tableLayout="fixed"
@@ -344,6 +302,7 @@ const Benchmark: React.FC = () => {
           ></Table>
         </ConfigProvider>
       </PageBox>
+
       <AddBenchmarkModal
         clusterList={clusterList}
         open={openBenchmarkModalStatus.open}
@@ -362,7 +321,7 @@ const Benchmark: React.FC = () => {
         onCancel={closeViewLogsModal}
       ></ViewLogsModal>
       <DeleteModal ref={modalRef}></DeleteModal>
-    </div>
+    </>
   );
 };
 

@@ -9,20 +9,35 @@ import {
 import {
   Input as CInput,
   InputNumber as CInputNumber,
+  LabelInfo,
   MultipleSelect,
   Select as SealSelect,
   TimePicker
 } from '@gpustack/core-ui';
 import { getLocale, useIntl } from '@umijs/max';
-import { Button, Divider, Form, Switch, Tooltip } from 'antd';
+import {
+  Alert,
+  Button,
+  Divider,
+  Flex,
+  Form,
+  Modal,
+  Switch,
+  Tooltip
+} from 'antd';
 import { createStyles } from 'antd-style';
 import { CronExpressionParser } from 'cron-parser';
 import cronstrue from 'cronstrue/i18n';
 import dayjs from 'dayjs';
 import { useAtomValue } from 'jotai';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { useFormContext } from '../config/form-context';
-import { FormData } from '../config/types';
+import { FormData, ScalingSchedule } from '../config/types';
+import { getScalingSchedulePreviewCron } from './scaling-schedule-preview';
+import {
+  canSaveDisabledScalingSchedule,
+  canSubmitEnabledScalingSchedule
+} from './scaling-schedule-validation';
 
 // Map the app locale to a cronstrue locale id (falls back to English).
 const cronstrueLocaleMap: Record<string, string> = {
@@ -63,7 +78,7 @@ const cronstrueToString = (cron: string, options: any): string | null => {
 const describeCron = (cron: string, locale: string): string | null => {
   if (!cron?.trim()) return null;
   try {
-    return cronstrueToString(cron, {
+    return cronstrueToString(getScalingSchedulePreviewCron(cron), {
       locale,
       use24HourTimeFormat: true,
       throwExceptionOnParseError: true
@@ -131,6 +146,7 @@ const formatInTimezone = (date: Date, tz: string): string => {
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
+      second: date.getUTCSeconds() ? '2-digit' : undefined,
       hour12: false
     }).format(date);
   } catch {
@@ -138,19 +154,50 @@ const formatInTimezone = (date: Date, tz: string): string => {
   }
 };
 
-// Next window occurrence [start, start+duration] for a start cron + duration.
-const nextWindow = (
+// The window occurrence [start, start+duration] to preview for a start cron +
+// duration: the one currently running when now falls inside it, otherwise the
+// next upcoming one. Always jumping to the next occurrence hid the window the
+// user was actually in — at 16:33 a 16:32 → 18:00 daily rule showed tomorrow.
+const previewWindow = (
   cron: string,
   durationSeconds: number | null | undefined,
   tz: string
-): { start: string; end: string } | null => {
+): { start: string; end: string; active: boolean } | null => {
   if (!cron?.trim() || !durationSeconds) return null;
   try {
-    const start = CronExpressionParser.parse(cron, { tz }).next().toDate();
-    const end = new Date(start.getTime() + durationSeconds * 1000);
+    const now = Date.now();
+    const durationMs = durationSeconds * 1000;
+    const previewCron = getScalingSchedulePreviewCron(cron);
+    let start = CronExpressionParser.parse(previewCron, {
+      tz,
+      currentDate: new Date(now)
+    })
+      .next()
+      .toDate();
+    let active = false;
+    try {
+      // `prev()` yields the last occurrence STRICTLY before its currentDate, so
+      // nudge a second past now for a window starting on this very second. The
+      // `<= now` clamp then drops what that nudge over-reached into: a second
+      // before a window opens, `prev()` already returns it.
+      const started = CronExpressionParser.parse(previewCron, {
+        tz,
+        currentDate: new Date(now + 1000)
+      })
+        .prev()
+        .toDate();
+      if (started.getTime() <= now && started.getTime() + durationMs > now) {
+        start = started;
+        active = true;
+      }
+    } catch {
+      // no earlier occurrence — keep the upcoming one
+    }
+    const end = new Date(start.getTime() + durationMs);
     return {
       start: formatInTimezone(start, tz),
-      end: formatInTimezone(end, tz)
+      end: formatInTimezone(end, tz),
+      active
     };
   } catch {
     return null;
@@ -327,6 +374,17 @@ const durationShort = (seconds: number | null | undefined): string => {
 // styled-components for new code). Nested class selectors match descendant
 // elements exactly as before; theme tokens use the CSS variables.
 const useStyles = createStyles(({ css }) => ({
+  timePanelHeader: css`
+    padding-block: var(--ant-padding-xxs);
+    border-bottom: 1px solid var(--ant-color-border-secondary);
+    color: var(--ant-color-text-secondary);
+    font-size: var(--ant-font-size-sm);
+    text-align: center;
+
+    > span {
+      flex: 1;
+    }
+  `,
   previewWrapper: css`
     margin: 0 0 4px;
     padding: 8px 12px;
@@ -346,12 +404,12 @@ const useStyles = createStyles(({ css }) => ({
       font-variant-numeric: tabular-nums;
     }
     .error {
-      color: var(--ant-color-error);
+      color: var(--color-status-error-text);
     }
   `,
   sectionCard: css`
     border: 1px solid var(--ant-color-border);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 16px 12px 12px;
     margin-bottom: 8px;
     .section-title {
@@ -409,7 +467,7 @@ const useStyles = createStyles(({ css }) => ({
     .rules-error {
       margin-top: 4px;
       font-size: 12px;
-      color: var(--ant-color-error);
+      color: var(--color-status-error-text);
     }
     .rules-info {
       margin-top: 4px;
@@ -454,14 +512,14 @@ const useStyles = createStyles(({ css }) => ({
       font-weight: 600;
       line-height: 18px;
       white-space: nowrap;
-      color: var(--ant-color-warning);
+      color: var(--color-status-warning-text);
       background: var(--ant-color-warning-bg);
       cursor: help;
     }
     .field-error {
       margin: 4px 0 8px;
       font-size: 12px;
-      color: var(--ant-color-error);
+      color: var(--color-status-error-text);
     }
   `
 }));
@@ -481,6 +539,20 @@ const RuleEditor: React.FC<{
   const cronLocale = cronstrueLocaleMap[uiLocale] || 'en';
   const form = Form.useFormInstance<FormData>();
   const { styles } = useStyles();
+
+  const renderTimePanel = (panel: React.ReactNode) => (
+    <>
+      <Flex className={styles.timePanelHeader}>
+        <span>
+          {intl.formatMessage({ id: 'models.form.scaling.time.hour' })}
+        </span>
+        <span>
+          {intl.formatMessage({ id: 'models.form.scaling.time.minute' })}
+        </span>
+      </Flex>
+      {panel}
+    </>
+  );
 
   const path = (key: string) => ['scaling_schedule', 'rules', name, key];
 
@@ -633,7 +705,7 @@ const RuleEditor: React.FC<{
   );
   const tz = serverTimezone || getBrowserTimezone();
   const win = useMemo(
-    () => nextWindow(cronText, durationSeconds, tz),
+    () => previewWindow(cronText, durationSeconds, tz),
     [cronText, durationSeconds, tz]
   );
   // TimePicker only yields valid HH:mm, so no invalid-input state to track.
@@ -670,8 +742,8 @@ const RuleEditor: React.FC<{
       : '';
     return `${dayPhrase}, ${timeText} → ${endTimeText}${suffix}`;
   })();
-  // In cron mode an unparseable expression should still surface an error.
-  const showCronInvalid = repeat === 'cron' && !!cronText?.trim() && !meaning;
+  const showPreviewUnavailable =
+    repeat === 'cron' && !!cronText?.trim() && !win;
 
   const unitOptions = (['minutes', 'hours', 'days'] as DurationUnit[]).map(
     (u) => ({
@@ -701,13 +773,16 @@ const RuleEditor: React.FC<{
             submit — the visible inputs are controlled by local state and write
             these via setFieldValue, but without a registered Form.Item the
             form (preserve={false}) prunes them and sends rules: []. */}
-        <Form.Item name={[name, 'start_cron']} hidden noStyle>
+        <Form.Item name={[name, 'start_cron']} hidden noStyle preserve>
           <input />
         </Form.Item>
-        <Form.Item name={[name, 'duration_seconds']} hidden noStyle>
+        <Form.Item name={[name, 'duration_seconds']} hidden noStyle preserve>
           <input />
         </Form.Item>
-        <Form.Item name={[name, 'replicas']} hidden noStyle>
+        <Form.Item name={[name, 'replicas']} hidden noStyle preserve>
+          <input />
+        </Form.Item>
+        <Form.Item name={[name, 'name']} hidden noStyle preserve>
           <input />
         </Form.Item>
 
@@ -743,6 +818,7 @@ const RuleEditor: React.FC<{
           <div className="fld">
             <MultipleSelect
               mode="multiple"
+              maxTagCount={'responsive'}
               style={{ width: '100%' }}
               label={intl.formatMessage({
                 id: 'models.form.scaling.weekdaysLabel'
@@ -757,6 +833,7 @@ const RuleEditor: React.FC<{
           <div className="fld">
             <MultipleSelect
               mode="multiple"
+              maxTagCount={'responsive'}
               style={{ width: '100%' }}
               label={intl.formatMessage({
                 id: 'models.form.scaling.monthdaysLabel'
@@ -813,6 +890,8 @@ const RuleEditor: React.FC<{
                 })}
                 format="HH:mm"
                 allowClear={false}
+                needConfirm={false}
+                panelRender={renderTimePanel}
                 value={toDayjs(timeText)}
                 onChange={(d: any) =>
                   handleTimeChange(d ? d.format('HH:mm') : '')
@@ -825,6 +904,8 @@ const RuleEditor: React.FC<{
                 })}
                 format="HH:mm"
                 allowClear={false}
+                needConfirm={false}
+                panelRender={renderTimePanel}
                 value={toDayjs(endTimeText)}
                 onChange={(d: any) =>
                   handleEndTimeChange(d ? d.format('HH:mm') : '')
@@ -851,7 +932,7 @@ const RuleEditor: React.FC<{
           </>
         )}
 
-        {(summaryText || win || showCronInvalid) && (
+        {(summaryText || win || showPreviewUnavailable) && (
           <div className={styles.previewWrapper}>
             {summaryText && (
               <div className="meaning">
@@ -859,15 +940,21 @@ const RuleEditor: React.FC<{
                 {summaryText}
               </div>
             )}
-            {!summaryText && showCronInvalid && (
-              <span className="error">
-                {intl.formatMessage({ id: 'models.form.scaling.cron.invalid' })}
+            {showPreviewUnavailable && (
+              <span>
+                {intl.formatMessage({
+                  id: 'models.form.scaling.preview.unavailable'
+                })}
               </span>
             )}
             {win && (
               <>
                 <div className="next-title">
-                  {intl.formatMessage({ id: 'models.form.scaling.next' })}
+                  {intl.formatMessage({
+                    id: win.active
+                      ? 'models.form.scaling.current'
+                      : 'models.form.scaling.next'
+                  })}
                 </div>
                 <div className="next-item">
                   {win.start} → {win.end}
@@ -898,7 +985,7 @@ const RuleEditor: React.FC<{
 // replica counts — a genuine conflict since which one wins is order-dependent,
 // unlike a plain overlap (resolved by "most recently started wins").
 const startConflicts = (rules: any[]): string[] => {
-  const byCron = new Map<string, Set<number>>();
+  const byCron = new Map<string, { cron: string; replicas: Set<number> }>();
   for (const r of rules || []) {
     const cron = (r?.start_cron || '').trim();
     if (!cron) continue;
@@ -906,12 +993,18 @@ const startConflicts = (rules: any[]): string[] => {
     // null/undefined would count as a distinct value and falsely flag a
     // same-start conflict.
     if (typeof r?.replicas !== 'number') continue;
-    if (!byCron.has(cron)) byCron.set(cron, new Set());
-    byCron.get(cron)!.add(r.replicas);
+    let key = cron;
+    try {
+      key = getScalingSchedulePreviewCron(cron);
+    } catch {
+      // Identical expressions still conflict when preview is unavailable.
+    }
+    if (!byCron.has(key)) byCron.set(key, { cron, replicas: new Set() });
+    byCron.get(key)!.replicas.add(r.replicas);
   }
   return [...byCron.entries()]
-    .filter(([, replicasSet]) => replicasSet.size > 1)
-    .map(([cron]) => cron);
+    .filter(([, group]) => group.replicas.size > 1)
+    .map(([, group]) => group.cron);
 };
 
 // Human-readable, comma-separated list of the conflicting start times.
@@ -935,7 +1028,7 @@ const ruleIntervals = (
 ): Array<[number, number]> => {
   const out: Array<[number, number]> = [];
   try {
-    const it = CronExpressionParser.parse(cron, {
+    const it = CronExpressionParser.parse(getScalingSchedulePreviewCron(cron), {
       tz,
       currentDate: from,
       endDate: to
@@ -1011,12 +1104,25 @@ const ScheduledScalingForm: React.FC = () => {
   const intl = useIntl();
   const form = Form.useFormInstance<FormData>();
   const { styles } = useStyles();
-  const { onValuesChange } = useFormContext();
+  const { onValuesChange, initialValues, realAction, action } =
+    useFormContext();
+  const [modal, modalContext] = Modal.useModal();
+  const [ruleEditorsVersion, setRuleEditorsVersion] = useState(0);
+  const originalSchedule = useRef<ScalingSchedule | null>(
+    ['edit', 'copy'].includes(realAction ?? action) &&
+      initialValues?.scaling_schedule
+      ? structuredClone(initialValues.scaling_schedule)
+      : null
+  );
   const serverTimezone = useAtomValue(systemConfigAtom)?.timezone;
   const cronLocale = cronstrueLocaleMap[getLocale()] || 'en';
   const tz = serverTimezone || getBrowserTimezone();
-  const enabled = Form.useWatch(['scaling_schedule', 'enabled'], form);
-  const rules = Form.useWatch(['scaling_schedule', 'rules'], form);
+  const schedule =
+    Form.useWatch('scaling_schedule', { form, preserve: true }) ||
+    form.getFieldValue('scaling_schedule');
+  const enabled = schedule?.enabled;
+  const rules = schedule?.rules;
+  const manualReplicas = useRef<number | undefined>(initialValues?.replicas);
   // While scheduling is on, the top Replicas field holds the baseline value.
   const baselineReplicas = Form.useWatch('replicas', form);
   const conflictCrons = enabled ? startConflicts(rules) : [];
@@ -1028,39 +1134,84 @@ const ScheduledScalingForm: React.FC = () => {
 
   const notifyChange = () => onValuesChange?.({}, form.getFieldsValue());
 
+  const confirmDiscardDraft = () => {
+    modal.confirm({
+      title: intl.formatMessage({ id: 'models.form.scaling.draft.title' }),
+      content: intl.formatMessage({ id: 'models.form.scaling.draft.discard' }),
+      okText: intl.formatMessage({ id: 'common.button.discardChange' }),
+      cancelText: intl.formatMessage({ id: 'models.form.scaling.draft.edit' }),
+      onCancel() {
+        if (!form.getFieldValue('scaling_schedule')?.enabled) {
+          handleEnableToggle(true);
+        }
+      },
+      onOk() {
+        const original = originalSchedule.current;
+        form.setFieldValue(
+          'scaling_schedule',
+          original ? { ...structuredClone(original), enabled: false } : null
+        );
+        form.setFieldValue('replicas', manualReplicas.current ?? 1);
+        // Recreate editors from the restored values, including their cron,
+        // duration, recurrence and replica inputs.
+        setRuleEditorsVersion((version) => version + 1);
+        notifyChange();
+      }
+    });
+  };
+
   const handleEnableToggle = (checked: boolean) => {
+    const current = form.getFieldValue('scaling_schedule') || {};
+    const replicas = form.getFieldValue('replicas') ?? 0;
     if (checked) {
-      const current = form.getFieldValue('scaling_schedule') || {};
+      manualReplicas.current = replicas;
+      const baseline = current.baseline_replicas ?? replicas;
       form.setFieldsValue({
+        replicas: baseline,
         scaling_schedule: {
+          ...current,
           enabled: true,
-          // The top "Replicas" value doubles as the baseline (idle count); it
-          // is written to baseline_replicas on submit.
-          baseline_replicas:
-            current.baseline_replicas ?? form.getFieldValue('replicas') ?? 0,
+          baseline_replicas: baseline,
           rules:
             current.rules?.length > 0 ? current.rules : [{ ...DEFAULT_RULE }]
         }
       });
+      void form.validateFields([['scaling_schedule', 'rules']]).catch(() => {});
+    } else if (
+      !canSaveDisabledScalingSchedule(current, originalSchedule.current)
+    ) {
+      form.setFieldValue(['scaling_schedule', 'enabled'], true);
+      confirmDiscardDraft();
     } else {
-      form.setFieldValue(['scaling_schedule', 'enabled'], false);
+      form.setFieldsValue({
+        replicas: manualReplicas.current ?? replicas,
+        scaling_schedule: {
+          ...current,
+          enabled: false,
+          baseline_replicas: replicas
+        }
+      });
     }
     notifyChange();
   };
 
   return (
     <div className={styles.sectionCard}>
+      {modalContext}
+      <Form.Item
+        name={['scaling_schedule', 'baseline_replicas']}
+        hidden
+        noStyle
+      >
+        <input />
+      </Form.Item>
       <div className="section-title" style={{ marginBottom: enabled ? 12 : 0 }}>
-        <span>
-          {intl.formatMessage({ id: 'models.form.scaling' })}
-          <Tooltip
-            title={intl.formatMessage({
-              id: 'models.form.scaling.enable.tips'
-            })}
-          >
-            <QuestionCircleOutlined className="title-help" />
-          </Tooltip>
-        </span>
+        <LabelInfo
+          label={intl.formatMessage({ id: 'models.form.scaling' })}
+          description={intl.formatMessage({
+            id: 'models.form.scaling.enable.tips'
+          })}
+        ></LabelInfo>
         <Form.Item
           noStyle
           name={['scaling_schedule', 'enabled']}
@@ -1074,21 +1225,51 @@ const ScheduledScalingForm: React.FC = () => {
         </Form.Item>
       </div>
 
-      {enabled && (
-        <>
-          {/* The top Replicas field doubles as the baseline while scheduling is
-              on; surface its value here (explanation in the tooltip) instead of
-              relabeling the field. */}
+      {!enabled &&
+        schedule &&
+        !canSaveDisabledScalingSchedule(schedule, originalSchedule.current) && (
+          <Alert
+            type="warning"
+            title={intl.formatMessage({
+              id: 'models.form.scaling.draft.title'
+            })}
+            description={intl.formatMessage({
+              id: 'models.form.scaling.draft.discard'
+            })}
+            action={
+              <Flex gap={8}>
+                <Button size="small" onClick={() => handleEnableToggle(true)}>
+                  {intl.formatMessage({ id: 'models.form.scaling.draft.edit' })}
+                </Button>
+                <Button size="small" onClick={confirmDiscardDraft}>
+                  {intl.formatMessage({ id: 'common.button.discardChange' })}
+                </Button>
+              </Flex>
+            }
+          />
+        )}
+
+      {/* Keep the list registered while hidden so unmounting does not restore
+          initial rules after the user explicitly discards a draft. */}
+      {schedule !== undefined && (
+        <div hidden={!enabled} data-field="scaling_schedule.config">
+          {/* A disabled plan retains its baseline independently of the manual
+              target in the top Replicas field. */}
           <Tooltip
             title={intl.formatMessage({
-              id: 'models.form.scaling.baselineNote'
+              id: enabled
+                ? 'models.form.scaling.baselineNote'
+                : 'models.form.scaling.baseline.tips'
             })}
           >
             <div className="baseline-summary">
               <span className="label">
                 {intl.formatMessage({ id: 'models.form.scaling.baseline' })}:
               </span>
-              <span className="value">{baselineReplicas ?? 0}</span>
+              <span className="value">
+                {(enabled ? baselineReplicas : schedule?.baseline_replicas) ??
+                  0}
+              </span>
               <InfoCircleOutlined className="help" />
             </div>
           </Tooltip>
@@ -1097,10 +1278,39 @@ const ScheduledScalingForm: React.FC = () => {
             rules={[
               {
                 validator: async (_r, value) => {
+                  const current = form.getFieldValue('scaling_schedule');
+                  if (!current?.enabled) {
+                    if (
+                      !canSaveDisabledScalingSchedule(
+                        { ...current, rules: value || [] },
+                        originalSchedule.current
+                      )
+                    ) {
+                      throw new Error(
+                        intl.formatMessage({
+                          id: 'models.form.scaling.draft.title'
+                        })
+                      );
+                    }
+                    return;
+                  }
                   if (!value || value.length < 1) {
                     throw new Error(
                       intl.formatMessage({
                         id: 'models.form.scaling.rules.required'
+                      })
+                    );
+                  }
+                  if (
+                    !canSubmitEnabledScalingSchedule({
+                      ...current,
+                      baseline_replicas: form.getFieldValue('replicas'),
+                      rules: value
+                    })
+                  ) {
+                    throw new Error(
+                      intl.formatMessage({
+                        id: 'models.form.scaling.rules.invalid'
                       })
                     );
                   }
@@ -1117,7 +1327,7 @@ const ScheduledScalingForm: React.FC = () => {
               }
             ]}
           >
-            {(fields, { add, remove }) => (
+            {(fields, { add, remove }, { errors }) => (
               <>
                 <div className="rules-label">
                   {intl.formatMessage({ id: 'models.form.scaling.rules' })}
@@ -1136,7 +1346,7 @@ const ScheduledScalingForm: React.FC = () => {
                   </Tooltip>
                 </div>
                 {fields.map((field, i) => (
-                  <Fragment key={field.key}>
+                  <Fragment key={`${ruleEditorsVersion}:${field.key}`}>
                     {/* Dashed divider between rules, like Image Credentials. */}
                     {i !== 0 && (
                       <Divider variant="dashed" style={{ marginBlock: 20 }} />
@@ -1167,7 +1377,8 @@ const ScheduledScalingForm: React.FC = () => {
                 >
                   {intl.formatMessage({ id: 'models.form.scaling.addRule' })}
                 </Button>
-                {fields.length === 0 && (
+                <Form.ErrorList errors={errors} />
+                {enabled && fields.length === 0 && (
                   <div className="rules-error">
                     {intl.formatMessage({
                       id: 'models.form.scaling.rules.required'
@@ -1208,7 +1419,7 @@ const ScheduledScalingForm: React.FC = () => {
               </span>
             </div>
           </Tooltip>
-        </>
+        </div>
       )}
     </div>
   );

@@ -24,6 +24,7 @@ import {
   InstanceTypeItem as InstanceTypeItemModel,
   ListItem
 } from '../config/types';
+import { buildInstanceTypeSnapshot } from '../utils/type-snapshot';
 
 const FieldBlock = styled.div`
   margin-bottom: 24px;
@@ -322,8 +323,15 @@ const InstanceTypeFormItem: React.FC<InstanceTypeFormItemProps> = ({
   };
 
   const renderInstanceType = () => {
-    const description =
-      parseJsonSafe<any>(currentData?.description || '{}', {}).spec || {};
+    // The card renders the type from the server-resolved summary; an instance
+    // with no summary (or whose type row is gone) keeps the 'CPU' fallback.
+    // maxComputeUnitCount is the create-time availability figure, which the
+    // resolved summary cannot reconstruct (the type row persists no capacity
+    // ledger) — it comes from the memo below off the legacy description blob.
+    const typeSnapshot = {
+      ...(buildInstanceTypeSnapshot(currentData?.typeSnapshotDetail) ?? {}),
+      maxComputeUnitCount
+    };
     return (
       <SelectedCard
         style={{
@@ -342,11 +350,13 @@ const InstanceTypeFormItem: React.FC<InstanceTypeFormItemProps> = ({
               fontWeight: 400
             }}
           >
-            {description.acceleratable
-              ? `${description.displayName || description.product} x ${currentData?.spec?.resources?.accelerator}`
-              : description.displayName || 'CPU'}
+            {typeSnapshot.acceleratable
+              ? `${typeSnapshot.displayName || typeSnapshot.product} x ${currentData?.spec?.resources?.accelerator}`
+              : typeSnapshot.displayName || 'CPU'}
           </span>
-          <InstanceMetadataSection spec={description}></InstanceMetadataSection>
+          <InstanceMetadataSection
+            spec={typeSnapshot}
+          ></InstanceMetadataSection>
         </Flex>
       </SelectedCard>
     );
@@ -415,6 +425,13 @@ const InstanceTypeFormItem: React.FC<InstanceTypeFormItemProps> = ({
                 // this field; a slice-only type reports a whole-card max of 0,
                 // so keep the ceiling check out of their way.
                 if (isSliced || isPartitioned) {
+                  return Promise.resolve();
+                }
+                // A not-yet-re-typed edit renders the count read-only from
+                // the persisted resources; the only ceiling available here is
+                // the stale description figure (0 when the blob is absent),
+                // which would veto saving unrelated fields like the SSH keys.
+                if (readonlyType) {
                   return Promise.resolve();
                 }
                 if (num > maxComputeUnitCount) {

@@ -2,7 +2,13 @@ import { GPUSTACK_API_BASE_URL } from '@/config/settings';
 import { downloadFile } from '@/utils/download-stream';
 import { request } from '@umijs/max';
 import { message } from 'antd';
-import { GPUDeviceItem, ListItem, ModelFile } from '../config/types';
+import {
+  GPUDeviceItem,
+  ListItem,
+  ModelFile,
+  WorkerLabelsUpdate
+} from '../config/types';
+import { workerPrivateKeyFilename } from '../utils/ssh-access';
 
 export const WORKERS_API = '/workers';
 export const GPU_DEVICES_API = '/gpu-devices';
@@ -18,11 +24,9 @@ const matchFilename = (disposition: string | null): string | undefined => {
 
 // download stream data and save as a csv file
 export async function downloadWorkerPrivateKey({
-  id,
-  name
+  id
 }: {
   id: string | number;
-  name?: string;
 }) {
   try {
     const res = await fetch(
@@ -31,7 +35,7 @@ export async function downloadWorkerPrivateKey({
     // header
     const contentDispostion = res.headers.get('content-Disposition');
     const filename =
-      matchFilename(contentDispostion) || `${name}-privatekey.pem`;
+      matchFilename(contentDispostion) || workerPrivateKeyFilename(id);
     if (res.ok) {
       const blob = await res.blob();
       downloadFile(blob, filename);
@@ -52,6 +56,16 @@ export async function queryWorkersList<T extends Record<string, any>>(
     method: 'GET',
     params,
     cancelToken: options?.token,
+    skipErrorHandler: options?.skipErrorHandler
+  });
+}
+
+export async function queryWorker(
+  id: string | number,
+  options?: { skipErrorHandler?: boolean }
+) {
+  return request<ListItem>(`${WORKERS_API}/${id}`, {
+    method: 'GET',
     skipErrorHandler: options?.skipErrorHandler
   });
 }
@@ -82,6 +96,15 @@ export async function deleteWorker(id: string | number) {
 export async function updateWorker(id: string | number, data: any) {
   return request(`${WORKERS_API}/${id}`, {
     method: 'PUT',
+    data
+  });
+}
+
+export async function updateWorkerLabels(
+  data: WorkerLabelsUpdate
+): Promise<void> {
+  return request<void>(`${WORKERS_API}/labels`, {
+    method: 'POST',
     data
   });
 }

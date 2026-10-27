@@ -17,11 +17,22 @@ export default {
   'providers.form.target.placeholder': 'provider/models',
   'providers.form.fallback.token': 'Fallback API Keys',
   'providers.form.custombeckendUrl': 'Custom Base URL',
+  'providers.form.claudeCustomUrl': 'Custom API URL',
+  'providers.form.claudeCustomUrl.tips':
+    'When set, this provider serves the Anthropic protocol (/v1/messages) only, and OpenAI-style requests are not converted. Leave it empty to use api.anthropic.com through the OpenAI protocol.',
   'providers.form.more': '+{count} more',
   'providers.form.addAll': 'Add All',
   'providers.form.rules.models': 'Please select at least one model',
   'providers.form.rules.tokens': 'Please enter a valid API Key',
   'providers.form.rules.model': 'Please select a model',
+  'providers.form.rules.absoluteHttpUrl':
+    'Please enter an absolute http(s) URL, including the port if there is one, e.g. https://gateway.example.com:8080',
+  'providers.form.rules.openaiCustomUrl':
+    'Please enter an absolute http(s) URL with a path, e.g. https://gateway.example.com:8080/v1',
+  'providers.form.rules.claudeCustomUrl.credentials':
+    'The URL must not carry credentials: they would be sent as the Host header of every request. Configure the endpoint key as the provider API key instead.',
+  'providers.form.rules.claudeCustomUrl.query':
+    'The URL takes an origin and an optional path prefix only; the query or fragment would be dropped.',
   'providers.form.model.duplicate': 'Duplicate model exists',
   'providers.table.registerRoute': 'Register Route',
   'providers.form.azureServiceUrl': 'Azure OpenAI Service URL',
@@ -37,5 +48,11 @@ export default {
     'Specifies the model version used in Triton Server.',
   'providers.form.tritonDomain.tips':
     'The domain used to send requests to the Triton Server deployment.',
-  'providers.form.awsRegion': 'AWS Region'
+  'providers.form.awsRegion': 'AWS Region',
+  'providers.form.systemoneEndpoint': 'Custom Base URL',
+  'providers.form.systemoneEndpoint.tips':
+    'Optional. The custom base URL of your Jev-compatible decision service, with no path suffix (e.g. http://jev.example.com:8010). Leave empty to use the TypeSafe managed service at https://api.typesafe.ai.',
+  'providers.form.decision': 'Decision',
+  'providers.form.decisionTest.tips':
+    'Send a decision round-trip to the service (validates the endpoint, token and decision path).'
 };

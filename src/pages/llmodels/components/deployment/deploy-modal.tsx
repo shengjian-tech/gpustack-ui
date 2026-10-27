@@ -19,7 +19,7 @@ import {
   mergeBackendParameters,
   modelSourceMap
 } from '../../config';
-import { FormData, SourceType } from '../../config/types';
+import { ClusterOption, FormData, SourceType } from '../../config/types';
 import { backendOptionsMap } from '../../constants/backend-parameters';
 import DataForm from '../../forms';
 import {
@@ -35,8 +35,16 @@ import ModelCard from '../model-source/model-card';
 import SearchModel from '../model-source/search-model';
 import Separator from '../separator';
 import TitleWrapper from '../title-wrapper';
+import { resolveRuntimeChoice } from './runtime-choice';
 
-const pickFieldsFromSpec = ['backend_version', 'backend_parameters', 'env'];
+const pickFieldsFromSpec = [
+  'backend',
+  'backend_version',
+  'image_name',
+  'run_command',
+  'backend_parameters',
+  'env'
+];
 const dropFieldsFromForm = [
   'name',
   'huggingface_filename',
@@ -80,15 +88,7 @@ type AddModalProps = {
   width?: string | number;
   initialValues?: any;
   deploymentType?: 'modelList' | 'modelFiles';
-  clusterList: Global.BaseOption<
-    number,
-    {
-      provider: string;
-      state: string | number;
-      is_default: boolean;
-      owner_principal_id?: number;
-    }
-  >[];
+  clusterList: ClusterOption[];
   onOk: (values: FormData) => void;
   onCancel: () => void;
 };
@@ -246,6 +246,16 @@ const AddModal: FC<AddModalProps> = (props) => {
        * do not reset backend_parameters when select a model file
        */
       const formValues = form.current?.getFieldsValue?.(pickFieldsFromSpec);
+      const defaultRuntime =
+        !defaultSpec.backend || defaultSpec.backend === modelInfo.backend
+          ? defaultSpec
+          : {};
+      const selectedRuntime =
+        formValues.backend === modelInfo.backend ? formValues : {};
+      const runtimeChoice = resolveRuntimeChoice(
+        selectedRuntime,
+        defaultRuntime
+      );
 
       form.current?.setFieldsValue?.({
         ..._.omit(modelInfo, ['name']),
@@ -255,11 +265,10 @@ const AddModal: FC<AddModalProps> = (props) => {
           formValues.backend_parameters?.length > 0
             ? formValues.backend_parameters
             : defaultSpec.backend_parameters || [],
-        backend_version:
-          formValues.backend_version || defaultSpec.backend_version,
         env: formValues.env || defaultSpec.env,
         categories: getCategory(item)
       });
+      form.current?.applyRuntimeChoice?.(runtimeChoice);
     },
     100
   );
@@ -284,12 +293,16 @@ const AddModal: FC<AddModalProps> = (props) => {
       huggingface_filename: item.fakeName,
       model_scope_file_path: item.fakeName,
       backend_parameters: [],
-      backend_version: null,
       backend: modelInfo.backend,
       env: {
         ...modelInfo.env
       },
       categories: getCategory(item)
+    });
+    form.current?.applyRuntimeChoice?.({
+      backend_version: null,
+      image_name: null,
+      run_command: null
     });
 
     // evaluate the form data when select a model file
@@ -358,6 +371,11 @@ const AddModal: FC<AddModalProps> = (props) => {
       name: generateNameValue(item, modelInfo.name, manual),
       categories: getCategory(item)
     });
+    form.current?.applyRuntimeChoice?.({
+      backend_version: null,
+      image_name: null,
+      run_command: null
+    });
 
     updateSelectedModel(item);
 
@@ -400,12 +418,24 @@ const AddModal: FC<AddModalProps> = (props) => {
       item.evaluated
     ) {
       const defaultSpec = getDefaultSpec(item);
+      const currentValues = form.current?.form?.getFieldsValue?.() || {};
+      const previousValues = manual
+        ? { ...defaultFormValues }
+        : _.omit(currentValues, [...dropFieldsFromForm]);
+      const selectedRuntime =
+        !manual && currentValues.backend === modelInfo.backend
+          ? currentValues
+          : {};
+      const defaultRuntime =
+        !defaultSpec.backend || defaultSpec.backend === modelInfo.backend
+          ? defaultSpec
+          : {};
+      const runtimeChoice = resolveRuntimeChoice(
+        selectedRuntime,
+        defaultRuntime
+      );
       const newFormValues = {
-        ...(manual
-          ? { ...defaultFormValues }
-          : _.omit(form.current?.form?.getFieldsValue?.(), [
-              ...dropFieldsFromForm
-            ])),
+        ...previousValues,
         ...defaultSpec,
         ...modelInfo,
         env: {
@@ -420,7 +450,10 @@ const AddModal: FC<AddModalProps> = (props) => {
         categories: getCategory(item)
       };
 
-      form.current?.form?.setFieldsValue?.(newFormValues);
+      form.current?.setFieldsValue?.(
+        _.omit(newFormValues, Object.keys(runtimeChoice))
+      );
+      form.current?.applyRuntimeChoice?.(runtimeChoice);
 
       onClickModel();
     }
@@ -438,6 +471,11 @@ const AddModal: FC<AddModalProps> = (props) => {
       return;
     }
     submitloadingRef.current = true;
+    // Visible from the click, not from the request: `submit()` validates first,
+    // and on a PD form that is a large tree of conditional fields. Leaving the
+    // button idle until the request starts reads as the click not having
+    // registered — the reason to press Save again.
+    setLoading(true);
     form.current?.submit?.();
   };
 
@@ -451,7 +489,9 @@ const AddModal: FC<AddModalProps> = (props) => {
   };
 
   const onFinishFailed = () => {
+    // Validation rejected, so no request will run to clear the spinner.
     submitloadingRef.current = false;
+    setLoading(false);
   };
 
   const handleBackendChange = async (backend: string) => {
@@ -526,6 +566,9 @@ const AddModal: FC<AddModalProps> = (props) => {
       form.current?.form?.setFieldsValue({
         ...props.initialValues
       });
+      form.current?.applyRuntimeChoice?.(
+        resolveRuntimeChoice(props.initialValues)
+      );
       handleOnValuesChange?.({
         changedValues: {},
         allValues: form.current?.form?.getFieldsValue(),

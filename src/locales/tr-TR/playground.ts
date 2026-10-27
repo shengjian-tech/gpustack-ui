@@ -18,6 +18,9 @@ export default {
   'playground.tokenusage': 'Token Kullanımı',
   'models.openinplayground': 'Deneme Alanında Aç',
   'playground.tokenoutput': 'Çıktı',
+  'playground.cachehitrate': 'Önbellek İsabet Oranı',
+  'playground.cached': 'Önbellekten',
+  'playground.cachewrite': 'Önbelleğe Yazılan',
   'playground.params.temperature.tips':
     'Rastgeleliği kontrol eder: Düşürülmesi daha az rastgele tamamlamalara yol açar. Sıcaklık sıfıra yaklaştıkça model belirleyici ve tekrarlayıcı hale gelir.',
   'playground.params.maxtokens.tips':
@@ -176,7 +179,7 @@ export default {
     'Yalnızca Konuşmacı Gömme Kullan (ICL yok)',
   'playground.params.streamMode': 'Akışı Etkinleştir',
   'playground.speech.rules.refAudio':
-    'Either the reference audio transcript or speaker embedding must be set.'
+    'Referans ses metni veya konuşmacı gömmesinden biri mutlaka ayarlanmalıdır.'
 };
 
 // ========== To-Do: Translate Keys (Remove After Translation) ==========

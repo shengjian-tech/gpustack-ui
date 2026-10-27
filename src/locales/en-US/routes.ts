@@ -6,8 +6,10 @@ export default {
   'routes.table.setAsFallback': 'Set as Fallback',
   'routes.form.target.title': 'Route Targets',
   'routes.form.target.add': 'Add Route Target',
+  'routes.form.target.advanced': 'Advanced',
   'routes.form.target.fallback': 'Fallback Route Target',
   'routes.form.target.weight': 'Weight',
+  'routes.form.target.remove': 'Remove',
   'routes.form.target.model': 'Model',
   'routes.form.metadata.title': 'Metadata',
   'routes.form.metadata.add': 'Add Metadata',
@@ -24,5 +26,71 @@ export default {
   'routes.form.metadata.uploadIcon': 'Upload Icon',
   'routes.form.fallback.warning':
     'Changes to fallback route target take effect after one minute.',
-  'routes.form.weight.tips': 'Target traffic weight.'
+  'routes.form.weight.tips': 'Target traffic weight.',
+  'routes.lb.routeBy': 'Route By',
+  'routes.table.lbMode': 'Route By',
+  'routes.lb.mode.weighted': 'Target Weight',
+  'routes.lb.mode.policy': 'Policy',
+  // Form-mode labels live apart from the list badges: the form asks for the
+  // user's intent (routing method), the list shows the server-derived result
+  // (weighted / policy / invalid).
+  'routes.lb.form.mode.weighted': 'Target Weight',
+  'routes.lb.form.mode.policy': 'Policy',
+  'routes.lb.form.mode.weighted.tips':
+    'Split traffic across targets by weight; every target must have a weight greater than 0.',
+  'routes.lb.form.mode.policy.tips':
+    'Targets are picked by the enabled policy plugins (Policy), or round-robin when none is enabled.',
+  'routes.lb.mode.invalid': 'Invalid',
+  'routes.lb.mode.invalid.tooltip':
+    'Mixed weights detected: this route is unavailable — the gateway refuses to serve it. Set every target weight to >0, or all to 0.',
+  'routes.lb.sessionAffinity': 'Session Affinity',
+  'routes.lb.sessionAffinity.tips':
+    'Route requests of the same session to the same target; sessions are identified by an ordered key chain (header or body key).',
+  'routes.lb.sessionKeys': 'Session Keys (Ordered, First Match Wins)',
+  'routes.lb.sessionKeys.source.header': 'Header',
+  'routes.lb.sessionKeys.source.bodyKey': 'Body Key',
+  'routes.lb.sessionKeys.keyPlaceholder': 'Key name, e.g. session-id',
+  'routes.lb.sessionKeys.add': 'Add session key',
+  'routes.lb.sessionKeys.required':
+    'At least one session key is required when session affinity is enabled',
+  'routes.lb.sessionKeys.keyRequired': 'Please enter a key name',
+  'routes.lb.leastLoad': 'Least Inflight Request',
+  'routes.lb.leastLoad.tips':
+    'Score targets by their number of inflight requests and prefer routing requests to the target with the fewest inflight requests.',
+  'routes.lb.influence': 'Weight',
+  'routes.lb.weight.mixed':
+    'Weighted mode requires every target to have a weight greater than 0. To use policy routing, switch the LB mode.',
+  'routes.form.target.maxRunningRequests': 'Max Inflight Request per Instance',
+  'routes.lb.systemone': 'Decision Service Routing',
+  'routes.lb.systemone.tips':
+    'Score targets by task difficulty: each request is sent (truncated) with a model-selection question to a Jev-compatible decision service, whose answer becomes a weighted vote. Decision failures, timeouts, or non-2xx responses fall back silently to the other plugins.',
+  'routes.lb.systemone.provider': 'Decision Service',
+  'routes.lb.systemone.provider.tips':
+    'Select a TypeSafe decision service provider.',
+  'routes.lb.systemone.provider.required': 'Please select a decision service',
+  'routes.lb.systemone.decisionModel': 'Decision Model',
+  'routes.lb.systemone.decisionModel.tips':
+    'Route-level decision model, required when this card is enabled. Options are read from the engines cached in the selected provider; if unset or invalid, JEV-based routing is skipped and requests fall back to the other plugins.',
+  'routes.lb.systemone.decisionModel.required':
+    'Please select a decision model',
+  'routes.lb.systemone.instructions': 'Instructions',
+  'routes.lb.systemone.instructions.tips':
+    'Extra guidance for the model-selection question sent to the decision service.',
+  'routes.lb.systemone.instructions.required': 'Please enter the instructions',
+  'routes.lb.systemone.criteria': 'Model Criteria',
+  'routes.lb.systemone.criteria.add': 'Add criterion',
+  'routes.lb.systemone.criteria.tips':
+    'Model name → capability description: the basis the decision service uses to pick a model.',
+  'routes.lb.systemone.criteria.generate': 'Generate from targets',
+  'routes.lb.systemone.criteria.modelPlaceholder': 'Model name',
+  'routes.lb.systemone.criteria.descPlaceholder':
+    'Capability description, e.g. strongest reasoner / cheap and fast',
+  'routes.lb.systemone.criteria.required':
+    'At least one model criterion is required when smart routing is enabled',
+  'routes.lb.systemone.criteria.nameRequired':
+    'Please enter the model name for every criterion',
+  'routes.lb.systemone.criteria.valueRequired':
+    'Please fill in the description for every model criterion',
+  'routes.lb.systemone.criteria.duplicate':
+    'Model names in criteria must be unique'
 };

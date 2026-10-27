@@ -36,8 +36,10 @@ import {
   createModel,
   deleteModel,
   deleteModelInstance,
+  queryModelDetail,
   queryModelInstancesList,
-  updateModel
+  updateModel,
+  updateModelLifecycle
 } from '../apis';
 import { modelSourceMap } from '../config';
 import {
@@ -53,10 +55,19 @@ import {
   SourceType
 } from '../config/types';
 import useEditDeployment from '../hooks/use-edit-deployment';
+import useExportDeployments from '../hooks/use-export-deployments';
 import useModelsColumns from '../hooks/use-models-columns';
+import { fetchCatalog } from '../hooks/use-query-pd-modes';
+import { useBenchmarkTargetInstance } from '../hooks/use-run-benchmark';
 import useViewInstanceLogs from '../hooks/use-view-instance-logs';
 import LeftFilters from '../instance-view/left-filters';
+import { getDeploymentFormReplicas } from '../utils/deployment-lifecycle';
+import { instanceDeleteMessages } from '../utils/instance-recreation';
+import { getReplicasUpdate } from '../utils/manual-scaling';
 import DeployModal from './deployment/deploy-modal';
+import ImportYamlModal from './deployment/import-yaml-modal';
+import useModelRevisions from './deployment/revisions/hooks/use-model-revisions';
+import RevisionHistoryDrawer from './deployment/revisions/revision-history-drawer';
 import UpdateModelModal from './deployment/update-modal';
 import Instances from './instance/instances';
 import ViewLogsModal from './view-logs-modal';
@@ -117,6 +128,10 @@ const getFormattedData = (record: any, extraData = {}) => ({
       'updated_at',
       'rowIndex'
     ]),
+    scaling_schedule: record.scaling_schedule
+      ? _.omit(record.scaling_schedule, ['paused'])
+      : record.scaling_schedule,
+    replicas: getDeploymentFormReplicas(record),
     ...extraData
   }
 });
@@ -150,6 +165,10 @@ const Models: React.FC<ModelsProps> = ({
   const [searchParams] = useSearchParams();
   const page = searchParams.get('page');
   const { saveScrollHeight, restoreScrollHeight } = useBodyScroll();
+  const revisionHistory = useModelRevisions(
+    () => handleSearch(),
+    restoreScrollHeight
+  );
   const {
     openEditModalStatus,
     openEditModal,
@@ -171,6 +190,7 @@ const Models: React.FC<ModelsProps> = ({
   const { handleOpenPlayGround } = useOpenPlayground();
   const { openViewLogsModal, openViewLogsModalStatus, closeViewLogsModal } =
     useViewInstanceLogs();
+  const { runBenchmarkOnModel } = useBenchmarkTargetInstance();
 
   const { goToGrafana, ActionButton } = useGranfanaLink({
     type: 'model'
@@ -189,6 +209,8 @@ const Models: React.FC<ModelsProps> = ({
     isGGUF: false,
     source: modelSourceMap.huggingface_value as SourceType
   });
+  const [openImportModal, setOpenImportModal] = useState(false);
+  const { exportDeployments } = useExportDeployments();
   const modalRef = useRef<any>(null);
 
   useEffect(() => {
@@ -208,8 +230,27 @@ const Models: React.FC<ModelsProps> = ({
   };
 
   const handleOnCell = useMemoizedFn(async (record: any, extra: any) => {
+    if (record.scaling_schedule?.enabled) {
+      modalRef.current?.show({
+        content: 'models.table.models',
+        title: 'models.table.replicas.edit',
+        okText: 'common.button.save',
+        operation: 'models.scaling.manual.confirm',
+        async onOk() {
+          await updateModel(
+            getFormattedData(record, getReplicasUpdate(record, extra.newValue))
+          );
+          if (extra.newValue > extra.oldValue) {
+            updateExpandedRowKeys([record.id, ...expandedRowKeys]);
+          }
+        }
+      });
+      return;
+    }
     try {
-      await updateModel(getFormattedData(record, { replicas: extra.newValue }));
+      await updateModel(
+        getFormattedData(record, getReplicasUpdate(record, extra.newValue))
+      );
       message.success(intl.formatMessage({ id: 'common.message.success' }));
       if (extra.newValue > extra.oldValue) {
         updateExpandedRowKeys([record.id, ...expandedRowKeys]);
@@ -219,12 +260,25 @@ const Models: React.FC<ModelsProps> = ({
     }
   });
 
-  const handleStartModel = async (row: ListItem) => {
-    await updateModel(getFormattedData(row, { replicas: row.replicas || 1 }));
+  // Per-role scaling from the replica cell. Same PUT as every other edit on
+  // this page — the server converges role by role rather than restarting the
+  // group, because `replicas` is excluded from the spec digest.
+  const handleUpdateRoles = useMemoizedFn(
+    async (record: ListItem, roles: any[]) => {
+      await updateModel(getFormattedData(record, { roles }));
+      message.success(intl.formatMessage({ id: 'common.message.success' }));
+    }
+  );
+
+  const handleStartModel = async (row: Pick<ListItem, 'id'>) => {
+    const resumed = await updateModelLifecycle(row.id, 'start');
+    if (resumed?.scaling_schedule?.enabled && resumed.replicas === 0) {
+      message.info(intl.formatMessage({ id: 'models.scaling.waiting' }));
+    }
   };
 
-  const handleStopModel = async (row: ListItem) => {
-    await updateModel(getFormattedData(row, { replicas: 0 }));
+  const handleStopModel = async (row: Pick<ListItem, 'id'>) => {
+    await updateModelLifecycle(row.id, 'stop');
     removeExpandedRowKey([row.id]);
   };
 
@@ -271,14 +325,26 @@ const Models: React.FC<ModelsProps> = ({
     });
   };
 
-  const refreshListStatus = (modelData: ListItem) => {
-    setTimeout(() => {
-      updateExpandedRowKeys([modelData.id, ...expandedRowKeys]);
-    }, 300);
+  const refreshListStatus = (created: ListItem[]) => {
+    // Expanding follows a deployment the user just described one of, so it
+    // only applies to a single one. An import creates as many as the file
+    // holds, and expanding them all leaves a screen of rows open on nothing:
+    // the children are fetched by the expand button's own handler, which
+    // putting a key in here does not run.
+    if (created.length === 1) {
+      setTimeout(() => {
+        updateExpandedRowKeys([created[0].id, ...expandedRowKeys]);
+      }, 300);
+    }
     message.success(intl.formatMessage({ id: 'common.message.success' }));
     setTimeout(() => {
       handleSearch?.();
     }, 150);
+  };
+
+  const handleImportOk = (items: ListItem[]) => {
+    setOpenImportModal(false);
+    refreshListStatus(items ?? []);
   };
 
   const handleCreateModel = async (data: FormData) => {
@@ -290,7 +356,7 @@ const Models: React.FC<ModelsProps> = ({
         ...openDeployModal,
         show: false
       });
-      refreshListStatus(modelData);
+      refreshListStatus([modelData]);
     } catch (error) {}
   };
 
@@ -341,17 +407,34 @@ const Models: React.FC<ModelsProps> = ({
     onViewLogs();
   };
 
-  const handleDeleteInstace = (row: any) => {
-    modalRef.current?.show({
-      content: 'models.instances',
-      okText: 'common.button.delrecreate',
-      operation: 'common.delete.single.confirm',
-      name: row.name,
-      async onOk() {
-        await deleteModelInstance(row.id);
-        onDeleteInstanceFromCache?.(row.id);
+  const handleDeleteInstace = async (row: ModelInstanceListItem) => {
+    try {
+      const model = await queryModelDetail(row.model_id);
+      const modes = model.roles?.length ? await fetchCatalog() : [];
+      const { okText, tip } = instanceDeleteMessages(
+        model,
+        modes.find((mode) => mode.name === model.disaggregation?.mode)
+      );
+      modalRef.current?.show({
+        content: 'models.instances',
+        okText,
+        tips: tip ? intl.formatMessage({ id: tip }) : undefined,
+        operation: 'common.delete.single.confirm',
+        name: row.name,
+        async onOk() {
+          await deleteModelInstance(row.id);
+          onDeleteInstanceFromCache?.(row.id);
+        }
+      });
+    } catch (error: any) {
+      // HTTP errors are reported globally; transport failures need local feedback.
+      if (!error?.response?.status) {
+        message.error(
+          error?.message || intl.formatMessage({ id: 'common.delete.fail' })
+        );
       }
-    });
+      return;
+    }
   };
 
   const getModelInstances = useCallback(async (row: any, options?: any) => {
@@ -385,6 +468,10 @@ const Models: React.FC<ModelsProps> = ({
 
   const handleSelect = useMemoizedFn(async (val: any, row: ListItem) => {
     try {
+      if (val === 'history') {
+        saveScrollHeight();
+        revisionHistory.open(row);
+      }
       if (val === 'edit') {
         handleEdit(row, PageAction.EDIT);
       }
@@ -396,9 +483,9 @@ const Models: React.FC<ModelsProps> = ({
       }
       if (val === 'start') {
         await handleStartModel(row);
-        message.success(intl.formatMessage({ id: 'common.message.success' }));
         updateExpandedRowKeys([row.id, ...expandedRowKeys]);
         onStart?.();
+        message.success(intl.formatMessage({ id: 'common.message.success' }));
       }
 
       if (val === 'stop') {
@@ -408,11 +495,20 @@ const Models: React.FC<ModelsProps> = ({
           okText: 'common.button.stop',
           operation: 'common.stop.single.confirm',
           name: row.name,
+          tips: row.scaling_schedule?.enabled
+            ? intl.formatMessage({ id: 'models.scaling.pause.tip' })
+            : undefined,
           async onOk() {
             await handleStopModel(row);
             onStop?.([row.id]);
           }
         });
+      }
+      if (val === 'benchmark') {
+        // The deployment is the target, so this hands over the model rather
+        // than one of its members. For a group that is the only correct
+        // answer — no member of it can serve a request alone.
+        runBenchmarkOnModel(row);
       }
       if (val === 'chat') {
         const targetRoute = targetList.find(
@@ -429,6 +525,9 @@ const Models: React.FC<ModelsProps> = ({
       }
       if (val === 'metrics') {
         goToGrafana(row);
+      }
+      if (val === 'export') {
+        exportDeployments([row.id]);
       }
     } catch (error) {
       // ignore
@@ -469,6 +568,10 @@ const Models: React.FC<ModelsProps> = ({
       navigate('/models/catalog');
       return;
     }
+    if (item.key === 'import_yaml') {
+      setOpenImportModal(true);
+      return;
+    }
 
     const config = modalConfig[item.key];
     const hasLinuxWorker = workerList.some(
@@ -489,12 +592,15 @@ const Models: React.FC<ModelsProps> = ({
       title: 'common.title.start.confirm',
       okText: 'common.button.start',
       operation: 'common.start.confirm',
+      tips: rowSelection.selectedRows.some(
+        (row: ListItem) => row.scaling_schedule?.enabled
+      )
+        ? intl.formatMessage({ id: 'models.scaling.resume.tip' })
+        : undefined,
       async onOk() {
-        const selectedKeySet = new Set(rowSelection.selectedRowKeys);
-        const latestRows = dataSource.filter((item) =>
-          selectedKeySet.has(item.id)
+        await handleBatchRequest(rowSelection.selectedRowKeys, (id) =>
+          handleStartModel({ id: Number(id) })
         );
-        await handleBatchRequest(latestRows, handleStartModel);
         onStart?.();
       }
     });
@@ -506,8 +612,15 @@ const Models: React.FC<ModelsProps> = ({
       title: 'common.title.stop.confirm',
       okText: 'common.button.stop',
       operation: 'common.stop.confirm',
+      tips: rowSelection.selectedRows.some(
+        (row: ListItem) => row.scaling_schedule?.enabled
+      )
+        ? intl.formatMessage({ id: 'models.scaling.pause.tip' })
+        : undefined,
       async onOk() {
-        await handleBatchRequest(rowSelection.selectedRows, handleStopModel);
+        await handleBatchRequest(rowSelection.selectedRowKeys, (id) =>
+          handleStopModel({ id: Number(id) })
+        );
         onStop?.(rowSelection.selectedRowKeys as number[]);
       }
     });
@@ -523,6 +636,9 @@ const Models: React.FC<ModelsProps> = ({
     if (val === 'stop') {
       handleStopBatch();
     }
+    if (val === 'export') {
+      exportDeployments(rowSelection.selectedRowKeys as number[]);
+    }
   };
 
   const options = useMemo(() => {
@@ -530,9 +646,10 @@ const Models: React.FC<ModelsProps> = ({
       handleSelect,
       clusterList,
       sortOrder,
-      targetList: targetList
+      targetList: targetList,
+      onUpdateRoles: handleUpdateRoles
     };
-  }, [handleSelect, clusterList, sortOrder, targetList]);
+  }, [handleSelect, clusterList, sortOrder, targetList, handleUpdateRoles]);
 
   const columns = useModelsColumns(options);
 
@@ -549,7 +666,7 @@ const Models: React.FC<ModelsProps> = ({
     loading: loading,
     dataSource: dataSource,
     queryParams: queryParams,
-    iconType: 'icon-resources',
+    iconType: 'icon-rocket-launch1',
     title: intl.formatMessage({ id: 'noresult.deployments.title' }),
     noClusters: !clusterList.length,
     noWorkers: workerList.length === 0 && clusterList.length > 0,
@@ -581,8 +698,8 @@ const Models: React.FC<ModelsProps> = ({
     >
       <div style={{ flex: 1, padding: '24px' }}>
         <PageTools
-          marginBottom={22}
           marginTop={0}
+          marginBottom={16}
           left={
             <LeftFilters
               showCategory
@@ -683,6 +800,15 @@ const Models: React.FC<ModelsProps> = ({
         onCancel={handleDeployModalCancel}
         onOk={handleCreateModel}
       ></DeployModal>
+      <RevisionHistoryDrawer
+        history={revisionHistory}
+        onClose={revisionHistory.close}
+      />
+      <ImportYamlModal
+        open={openImportModal}
+        onCancel={() => setOpenImportModal(false)}
+        onOk={handleImportOk}
+      ></ImportYamlModal>
       <ViewLogsModal
         status={openViewLogsModalStatus.currentData.status}
         url={openViewLogsModalStatus.currentData.url}

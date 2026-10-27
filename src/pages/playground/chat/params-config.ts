@@ -38,10 +38,14 @@ export const ChatParamsConfig: ParamsSchema[] = [
       isLocalized: true
     },
     attrs: {
-      max: 1024,
       step: 1,
       labelWidth: 314,
       inputnumber: true
+    },
+    initAttrs: (meta: any) => {
+      return {
+        max: meta?.max_tokens || 16 * 1024
+      };
     },
     rules: [
       {
@@ -116,6 +120,37 @@ export const ChatParamsConfig: ParamsSchema[] = [
       step: 0.01,
       labelWidth: 314,
       inputnumber: true
+    },
+    rules: [
+      {
+        required: false
+      }
+    ]
+  },
+  {
+    type: 'Select',
+    name: 'reasoning_effort',
+    options: [
+      { label: 'None', value: 'none' },
+      { label: 'Minimal', value: 'minimal' },
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'High', value: 'high' },
+      { label: 'XHigh', value: 'xhigh' },
+      { label: 'Max', value: 'max' }
+    ],
+    label: {
+      text: 'Reasoning Effort',
+      isLocalized: false
+    },
+    attrs: {
+      allowClear: true
+    },
+    formItemAttrs: {
+      // clearing the field must drop it from the request, not send an empty value
+      normalize(value: string) {
+        return value || undefined;
+      }
     },
     rules: [
       {

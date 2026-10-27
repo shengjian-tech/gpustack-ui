@@ -5,17 +5,42 @@ import {
   AutoTooltip,
   CopyButton,
   DropdownButtons,
-  StatusTag
+  StatusTag,
+  type TableColumnProps
 } from '@gpustack/core-ui';
 import { useAccess, useIntl } from '@umijs/max';
 import { Button } from 'antd';
-import type { ColumnsType } from 'antd/lib/table';
 import dayjs from 'dayjs';
 import _ from 'lodash';
 import { Fragment, useMemo } from 'react';
-import { InstanceStatusLabelMap, rowActionList, status } from '../config';
-import { ListItem } from '../config/types';
+import UtilizationCell from '../components/utilization-cell';
+import {
+  GaugeColumnOrder,
+  GaugeLabelIdMap,
+  InstanceStatusLabelMap,
+  MetricsPollablePhases,
+  rowActionList,
+  status
+} from '../config';
+import {
+  InstanceMetricsMap,
+  InstanceServicePort,
+  ListItem
+} from '../config/types';
 import { renderInstanceType } from '../utils/render-instance-type';
+import { buildInstanceTypeSnapshot } from '../utils/type-snapshot';
+
+// GPU / VRAM gauges belong to accelerated instance types only. The flag comes
+// from the server-resolved type summary — the same source the Instance Type
+// column renders from.
+const isAcceleratable = (record: ListItem) =>
+  !!buildInstanceTypeSnapshot(record?.typeSnapshotDetail)?.acceleratable;
+
+// Whether a sample can exist for this row at all — the poller's own rule, so a
+// row it skips (stopped, stopping, still initializing) renders a bare "--"
+// rather than an empty ring waiting for a figure that is never coming.
+const isMeasurable = (record: ListItem) =>
+  _.includes(MetricsPollablePhases, record?.status?.phase || '');
 
 const buildRowActions = (record: ListItem) => {
   return rowActionList
@@ -48,10 +73,20 @@ type ConnectEntry =
       protocol: string;
     };
 
+const isSshPort = (p: InstanceServicePort) =>
+  (p.protocol === 'TCP' && p.port === 22) ||
+  _.includes(_.toLower(p.name), 'ssh');
+
 const getConnectEntries = (record: ListItem): ConnectEntry[] => {
   const ip = record.status?.accessAddresses?.[0];
   const ports = record.status?.ports || [];
   const configPorts = record.spec?.ports || [];
+  // Every instance is created with a tcp/22 port, whether or not SSH was
+  // enabled — that is deliberate, so a public key can be attached later by
+  // updating the instance instead of recreating its Pod. The open port is
+  // therefore not a way in on its own: with no key there is nothing to
+  // authenticate with, so SSH is offered only once a key is actually attached.
+  const hasSshKey = !!record.spec?.sshPublicKeys?.length;
 
   if (!ip) {
     return [];
@@ -59,28 +94,33 @@ const getConnectEntries = (record: ListItem): ConnectEntry[] => {
 
   return ports
     .filter((p) => p.nodePort)
+    .filter((p) => hasSshKey || !isSshPort(p))
     .map<ConnectEntry>((p) => {
-      const isSsh =
-        (p.protocol === 'TCP' && p.port === 22) ||
-        _.includes(_.toLower(p.name), 'ssh');
-      return isSsh
-        ? {
-            type: 'ssh',
-            name: 'SSH',
-            key: `ssh-${p.nodePort}`,
-            protocol: _.toUpper(p.protocol),
-            command: `ssh root@${ip} -p ${p.nodePort}`
-          }
-        : {
-            type: 'http',
-            name:
-              configPorts.find((port) => port.port === p.port)?.name ||
-              _.toUpper(p.protocol),
-            key: `http-${p.nodePort}`,
-            port: p.port,
-            protocol: _.toUpper(p.protocol),
-            url: `http://${ip}:${p.nodePort}`
-          };
+      if (isSshPort(p)) {
+        return {
+          type: 'ssh',
+          name: 'SSH',
+          key: `ssh-${p.nodePort}`,
+          protocol: _.toUpper(p.protocol),
+          command: `ssh root@${ip} -p ${p.nodePort}`
+        };
+      }
+      const configPort = configPorts.find((port) => port.port === p.port);
+      // accessParams is generic query-param metadata from the spec (e.g. a
+      // Jupyter token): serialize whatever keys it carries onto the URL.
+      const accessParams = configPort?.accessParams;
+      const query =
+        _.isPlainObject(accessParams) && !_.isEmpty(accessParams)
+          ? `?${new URLSearchParams(accessParams).toString()}`
+          : '';
+      return {
+        type: 'http',
+        name: configPort?.name || _.toUpper(p.protocol),
+        key: `http-${p.nodePort}`,
+        port: p.port,
+        protocol: _.toUpper(p.protocol),
+        url: `http://${ip}:${p.nodePort}${query}`
+      };
     });
 };
 
@@ -91,24 +131,41 @@ interface ColumnsHookProps {
   // name → capacity (e.g. "20Gi") for referenced persistent volumes, so the
   // Disk → Persistent row can show the size instead of just the PV name.
   pvCapacityByName?: Record<string, string>;
+  // instance id → utilization gauges, polled page-wide by
+  // use-query-instance-metrics. Rows with no entry render "--".
+  metrics: InstanceMetricsMap;
 }
 
 const useInstancesColumns = ({
   handleSelect,
   clusterList,
   sortOrder,
-  pvCapacityByName
-}: ColumnsHookProps): ColumnsType<ListItem> => {
+  pvCapacityByName,
+  metrics
+}: ColumnsHookProps): TableColumnProps[] => {
   const intl = useIntl();
   const access = useAccess();
   const pluginCols = usePluginListColumns('gpuInstances');
   const creatorCols = useCreatorColumn<ListItem>('gpuInstances');
 
-  return useMemo(() => {
+  // No column sets a `span`, so SealTable gives every one `1fr` and they divide
+  // whatever width is left once the floors below are satisfied. What each
+  // column carries instead is a `minWidth` floor — the table scrolls
+  // horizontally (`scroll={{ x: true }}` widens the row to the sum of the
+  // floors), so the floors are what decide when scrolling starts. A column
+  // whose content is a fixed size takes `width` instead and stays pinned.
+  //
+  // Every column also needs a unique `dataIndex`: SealTable keys each cell by
+  // it and hands `render` the row's value at that key. It is a flat property
+  // lookup, not a path — a dotted `dataIndex` resolves to `undefined`, so those
+  // columns read what they need off `record` and the value only serves as the
+  // sort field the backend receives.
+  return useMemo<TableColumnProps[]>(() => {
     const pluginRendered = pluginCols.map((c) => ({
       title: intl.formatMessage({ id: c.titleId }),
+      dataIndex: c.key,
       key: c.key,
-      ellipsis: { showTitle: false },
+      minWidth: 120,
       render: (_text: any, record: ListItem) => c.render(record)
     }));
     return [
@@ -117,9 +174,7 @@ const useInstancesColumns = ({
         dataIndex: 'name',
         key: 'name',
         sorter: true,
-        ellipsis: {
-          showTitle: false
-        },
+        minWidth: 180,
         render: (text: string, record: ListItem) => (
           <AutoTooltip
             ghost
@@ -132,11 +187,10 @@ const useInstancesColumns = ({
       },
       {
         title: intl.formatMessage({ id: 'gpuservice.instance.connect' }),
+        dataIndex: 'connect',
         key: 'connect',
-        ellipsis: {
-          showTitle: false
-        },
-        render: (_text, record: ListItem) => {
+        minWidth: 120,
+        render: (_text: any, record: ListItem) => {
           const entries = getConnectEntries(record);
 
           if (entries.length === 0) {
@@ -216,13 +270,11 @@ const useInstancesColumns = ({
       },
       {
         title: intl.formatMessage({ id: 'common.table.status' }),
-        dataIndex: ['status', 'phase'],
+        dataIndex: 'status.phase',
         key: 'status',
-        sorter: false,
-        ellipsis: {
-          showTitle: false
-        },
-        render: (value: string, record: ListItem) => {
+        minWidth: 140,
+        render: (_text: any, record: ListItem) => {
+          const value = record?.status?.phase || '';
           return (
             <StatusTag
               statusValue={{
@@ -236,39 +288,75 @@ const useInstancesColumns = ({
       },
       {
         title: intl.formatMessage({ id: 'gpuservice.instance.section.type' }),
-        dataIndex: ['spec', 'type'],
+        dataIndex: 'spec.type',
         key: 'type',
-        sorter: false,
-        ellipsis: {
-          showTitle: false
-        },
-        width: 300,
-        render: (_text: string, record: ListItem) =>
+        // The widest cell in the table — a resource summary plus its tags — so
+        // it gets a floor rather than a fixed width and keeps its share of any
+        // leftover room.
+        minWidth: 160,
+        maxWidth: 200,
+        render: (_text: any, record: ListItem) =>
           renderInstanceType(record, { intl, pvCapacityByName })
       },
-      ...pluginRendered,
-      {
-        title: intl.formatMessage({ id: 'clusters.title' }),
-        dataIndex: 'clusterId',
-        hidden: !access.canSeeAdmin,
-        ellipsis: {
-          showTitle: false
-        },
-        render: (id: number) => (
-          <AutoTooltip ghost maxWidth={240}>
-            {_.find(clusterList, { value: id })?.label || id || '-'}
-          </AutoTooltip>
+      // One column per gauge rather than one cell holding all five: the header
+      // names the resource, so the cell is nothing but the ring — no label
+      // repeated down every row — and every row's reading for a given resource
+      // lands at the same x, so a busy instance is found by scanning a column
+      // instead of reading five labels per row.
+      //
+      // Flat columns, not a grouped "Utilization" header: a group turns the
+      // whole table's header into two rows (every other column rowSpan=2),
+      // which is a lot of table to restructure for these five. The gauge's
+      // percent is what says "utilization" here, and the Instance Type column
+      // is where the requested resources are read.
+      ...GaugeColumnOrder.map((gaugeKey) => ({
+        title: intl.formatMessage({ id: GaugeLabelIdMap[gaugeKey] }),
+        dataIndex: `utilization-${gaugeKey}`,
+        key: `utilization-${gaugeKey}`,
+        // `width`, not `minWidth`: the content is a fixed GAUGE_SIZE gauge, so
+        // the column has nothing to gain from extra room and stays pinned. The
+        // cell's own inline padding eats 32 of this, and a header that outgrows
+        // what is left truncates through AutoTooltip.
+        width: 80,
+        render: (_text: any, record: ListItem) => (
+          <UtilizationCell
+            gaugeKey={gaugeKey}
+            values={metrics[record.id]}
+            hasAccelerators={isAcceleratable(record)}
+            measurable={isMeasurable(record)}
+          />
         )
-      },
-      ...creatorCols,
+      })),
+      ...pluginRendered,
+      // SealTable has no `hidden` column flag (antd's `Table` does), so a column
+      // the viewer may not see drops out of the array instead.
+      ...(access.canSeeAdmin
+        ? [
+            {
+              title: intl.formatMessage({ id: 'clusters.title' }),
+              dataIndex: 'clusterId',
+              key: 'clusterId',
+              minWidth: 140,
+              render: (id: number) => (
+                <AutoTooltip ghost maxWidth={240}>
+                  {_.find(clusterList, { value: id })?.label || id || '-'}
+                </AutoTooltip>
+              )
+            }
+          ]
+        : []),
+      // The shared creator column is written for antd `Table` and carries no
+      // `dataIndex`; give it one here rather than pushing SealTable's
+      // requirement onto the three sibling pages that still use antd.
+      ...creatorCols.map((c) => ({
+        ...c,
+        dataIndex: 'creator',
+        minWidth: 140
+      })),
       {
         title: intl.formatMessage({ id: 'common.table.createTime' }),
         dataIndex: 'created_at',
         key: 'created_at',
-        sorter: false,
-        ellipsis: {
-          showTitle: false
-        },
         width: 180,
         render: (text: string) => (
           <AutoTooltip ghost>
@@ -280,10 +368,8 @@ const useInstancesColumns = ({
         title: intl.formatMessage({ id: 'common.table.operation' }),
         key: 'operation',
         dataIndex: 'operation',
-        ellipsis: {
-          showTitle: false
-        },
-        render: (_text, record) => {
+        width: 110,
+        render: (_text: any, record: ListItem) => {
           return (
             <DropdownButtons
               items={buildRowActions(record)}
@@ -299,6 +385,7 @@ const useInstancesColumns = ({
     clusterList,
     intl,
     pvCapacityByName,
+    metrics,
     pluginCols,
     creatorCols
   ]);

@@ -1,16 +1,12 @@
+import useDownloadInstanceLogs from '@/pages/llmodels/hooks/use-download-instance-logs';
 import { useBenchmarkTargetInstance } from '@/pages/llmodels/hooks/use-run-benchmark';
 import { DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import { DropdownButtons, IconFont } from '@gpustack/core-ui';
 import {
-  DropdownButtons,
-  type HandlerOptions,
-  IconFont,
-  useDownloadStream
-} from '@gpustack/core-ui';
-import { useIntl } from '@umijs/max';
-import { Progress, notification } from 'antd';
-import dayjs from 'dayjs';
-import { MODEL_INSTANCE_API } from '../../apis';
-import { InstanceStatusMap, modelCategoriesMap } from '../../config';
+  InstanceStatusMap,
+  RoleValueMap,
+  modelCategoriesMap
+} from '../../config';
 import { ListItem, ModelInstanceListItem } from '../../config/types';
 
 const childActionList = [
@@ -66,64 +62,13 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
   onSelect
 }) => {
   const { runBenchmarkOnInstance } = useBenchmarkTargetInstance();
-  const [api, contextHolder] = notification.useNotification({
-    stack: { threshold: 1 }
-  });
-  const { downloadStream } = useDownloadStream();
-  const intl = useIntl();
-
-  const createFileName = (name: string) => {
-    const timestamp = dayjs().format('YYYY-MM-DD_HH-mm-ss');
-    const fileName = `${name}_${timestamp}.txt`;
-    return fileName;
-  };
-
-  const renderMessage = (title: string) => {
-    return (
-      <div
-        style={{
-          width: 280,
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden'
-        }}
-      >
-        {title}
-      </div>
-    );
-  };
-
-  const downloadNotification = (
-    data: HandlerOptions & {
-      filename: string;
-      duration?: number;
-      chunkRequestRef: any;
-    }
-  ) => {
-    api.open({
-      duration: data.duration,
-      title: renderMessage(data.filename),
-      key: data.filename,
-      closeIcon: (
-        <span>{intl.formatMessage({ id: 'common.button.cancel' })}</span>
-      ),
-      description: <Progress percent={data.percent} size="small"></Progress>,
-      onClose() {
-        data.chunkRequestRef?.current?.abort();
-        notification.destroy?.(data.filename);
-      }
-    });
-  };
+  const { downloadLogs } = useDownloadInstanceLogs();
 
   const handleOnSelect = (val: string) => {
     if (val === 'benchmark') {
       runBenchmarkOnInstance(record);
     } else if (val === 'download') {
-      downloadStream({
-        url: `${MODEL_INSTANCE_API}/${record.id}/logs`,
-        filename: createFileName(record.name),
-        downloadNotification
-      });
+      downloadLogs(record);
     } else {
       onSelect(val, record);
     }
@@ -131,6 +76,13 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
 
   const actionItems = childActionList.filter((action: any) => {
     if (action.key === 'benchmark') {
+      // A run measures the path a request takes, and in a group that path
+      // enters through the router. A prefill or a decode answers on its own
+      // port but never on its own behalf, so the entry belongs to the router
+      // row alone; a roleless instance is the whole deployment and keeps it.
+      if (record.role && record.role !== RoleValueMap.Router) {
+        return false;
+      }
       return (
         action.status.includes(record.state) &&
         modelData?.categories?.includes(modelCategoriesMap.llm)
@@ -143,13 +95,10 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
   });
 
   return (
-    <>
-      {contextHolder}
-      <DropdownButtons
-        items={actionItems}
-        onSelect={handleOnSelect}
-      ></DropdownButtons>
-    </>
+    <DropdownButtons
+      items={actionItems}
+      onSelect={handleOnSelect}
+    ></DropdownButtons>
   );
 };
 

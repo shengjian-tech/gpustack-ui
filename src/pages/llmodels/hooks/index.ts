@@ -8,13 +8,19 @@ import { useAtomValue } from 'jotai';
 import _ from 'lodash';
 import { useEffect, useRef, useState } from 'react';
 import { evaluationsModelSpec } from '../apis';
-import { modelSourceMap, modelTaskMap } from '../config';
-import { EvaluateResult, FormData } from '../config/types';
+import { modelSourceMap, modelTaskMap, RoleLabelMap } from '../config';
+import {
+  EvaluateResult,
+  FormData,
+  RoleResourceClaim,
+  RoleResourceDemand
+} from '../config/types';
 import {
   backendOptionsMap,
   BuiltInBackendOptions
 } from '../constants/backend-parameters';
-import { generateGPUIds } from '../utils';
+import { rolesFormToPayload } from '../forms/roles/transform';
+import { derivesNativeAnthropicApi, generateGPUIds } from '../utils';
 import useCheckBackend from './use-check-backend';
 import useRecognizeAudio from './use-recognize-audio';
 
@@ -157,8 +163,6 @@ export const useCheckCompatibility = () => {
     options?: WarningStausOptions
   ) => {
     const { lockAfterUpdate = false, override = false } = options || {};
-    console.log('updateWarningStatus', params, options);
-
     setWarningStatus((prev: MessageStatus) => {
       if (isLockWarningStatus.current && !override) {
         return prev;
@@ -170,6 +174,34 @@ export const useCheckCompatibility = () => {
 
       return params;
     });
+  };
+
+  // A slice request is only valid as a pair, and the API is specific about
+  // which halves it accepts (GPUTypeSelector.normalize_slice_percentages):
+  // memory must be 1-100, while cores may be absent — it defaults to 100 —
+  // but not an explicit 0. Anything else is not a smaller request, it is an
+  // unparseable one. So leave a request the API would accept (or a partition
+  // profile) untouched, and reduce the rest to the whole-card pair it
+  // normalizes an all-zero selector to, which costs a half-typed selector
+  // nothing. Leaving an absent cores percentage absent matters: forcing it to
+  // a pair here would evaluate a whole card for a request the API reads as
+  // memory% / 100%.
+  const normalizeSelectorForEvaluate = (selector: any) => {
+    if (selector.accelerator_partitioned_profile) {
+      return selector;
+    }
+    const cores = selector.accelerator_sliced_cores_percentage;
+    const coresSet = cores !== null && cores !== undefined && cores !== '';
+    const memorySliced =
+      _.toNumber(selector.accelerator_sliced_memory_percentage) > 0;
+    if (memorySliced && (!coresSet || _.toNumber(cores) > 0)) {
+      return selector;
+    }
+    return {
+      ...selector,
+      accelerator_sliced_memory_percentage: 0,
+      accelerator_sliced_cores_percentage: 0
+    };
   };
 
   const handleEvaluate = async (data: any) => {
@@ -207,8 +239,70 @@ export const useCheckCompatibility = () => {
               ..._.omit(data, [
                 'scheduleType',
                 'manualGpuMode',
-                'scaling_schedule'
+                'scaling_schedule',
+                // Assembled below instead of passed through: a role is held in
+                // FORM shape — the override switches, the router's managed
+                // flag, and GPU ids still in the cascader's [worker, gpu]
+                // pairs — which the API's `List[str]` rejects outright, so
+                // sending it raw 422s the whole evaluation.
+                'roles'
               ]),
+              // 🔴 The roles are what make this a PD evaluation, and they used
+              // to be dropped here along with the form-only keys above. With
+              // them gone the server had no way to know it was pricing a
+              // group, so it answered for ONE instance of the model-level spec
+              // — no per-role overrides, no x+y replicas, no router, and no
+              // check that prefill and decode fit together. A 4P4D deployment
+              // therefore read like a single replica.
+              //
+              // `rolesFormToPayload` is the same transform submit runs, so
+              // what is evaluated is what would be deployed. `data` is passed
+              // as the model-level values because the transform demotes a role
+              // whose every field still equals the model's back to inheriting.
+              //
+              // `disaggregation` travels with them and is nulled without
+              // them: it is already in wire shape, but a form that had PD
+              // turned back off still carries the last recipe, and sending
+              // that alone would have the server narrow the eligible
+              // accelerators for a deployment that is no longer a group.
+              //
+              // 🔴 And nulled while it has no `mode`, which is a state the
+              // form passes through every single time PD is switched on: the
+              // roles are seeded synchronously and the recipe is resolved by
+              // a request, so between the two there is a `disaggregation` of
+              // `{}`. `mode` is required on the wire, so sending that empty
+              // object 422s the whole evaluation — the panel reads "评估失败"
+              // at the very moment the user turned the feature on.
+              //
+              // Null is not a workaround here, it is the honest answer: with
+              // no recipe there is nothing to narrow the placement by, and
+              // the roles alone are enough to price the group. The next
+              // evaluation — the resolution itself triggers one — carries the
+              // recipe.
+              ...(data.roles?.length
+                ? {
+                    roles: rolesFormToPayload(data.roles, data),
+                    disaggregation: data.disaggregation?.mode
+                      ? data.disaggregation
+                      : null
+                  }
+                : { roles: null, disaggregation: null }),
+              // Same reasoning for the vGPU selector, which the form walks
+              // through an incomplete state on every GPU-type switch: the new
+              // type's capacity may not admit the percentage the previous one
+              // carried, leaving a cores percentage without a memory one,
+              // which the API rejects outright (GpuTypeSelector rejects a
+              // sliced request whose memory percentage is not 1-100). The
+              // whole evaluation would 422 on a half-typed request and surface
+              // as an error toast, so evaluate the equivalent whole-card
+              // request instead.
+              ...(data.gpu_type_selector
+                ? {
+                    gpu_type_selector: normalizeSelectorForEvaluate(
+                      data.gpu_type_selector
+                    )
+                  }
+                : {}),
               categories: Array.isArray(data.categories)
                 ? data.categories
                 : data.categories
@@ -237,6 +331,122 @@ export const useCheckCompatibility = () => {
     return clusterNames.join(', ');
   };
 
+  /**
+   * One line of a PD group's breakdown.
+   *
+   * Three shapes, and the difference between them is what the number means:
+   * a role whose members all size the same reports what ONE costs (the useful
+   * figure when you are deciding a replica count), a role whose members differ
+   * — two accelerator types under one role — can only report the total, and a
+   * role that holds no weights reports memory because it claims no card.
+   */
+  const formatRoleClaim = (claim: RoleResourceClaim) => {
+    // A role the UI has no label for is shown under the name the API used —
+    // phase two opens up encoder / draft, and an unlabelled role must still
+    // appear in the breakdown rather than as an empty line.
+    const labelId = RoleLabelMap[claim.role as keyof typeof RoleLabelMap];
+    const values = {
+      role: labelId ? intl.formatMessage({ id: labelId }) : claim.role,
+      replicas: claim.replicas
+    };
+
+    if (!claim.vram) {
+      return intl.formatMessage(
+        { id: 'models.form.check.claims.role.ram' },
+        { ...values, ram: convertFileSize(claim.ram || 0, 2) }
+      );
+    }
+    return claim.per_replica
+      ? intl.formatMessage(
+          { id: 'models.form.check.claims.role' },
+          { ...values, vram: convertFileSize(claim.per_replica.vram, 2) }
+        )
+      : intl.formatMessage(
+          { id: 'models.form.check.claims.role.total' },
+          { ...values, vram: convertFileSize(claim.vram, 2) }
+        );
+  };
+
+  /**
+   * A refused group's breakdown, in English whatever the form's locale.
+   *
+   * 🔴 Deliberately not `intl.formatMessage`, and this is the one place in
+   * the form where that is right.
+   *
+   * These lines are prepended to the scheduler's own account, and that account
+   * is English prose assembled server-side — `group_solver`'s verdict, the
+   * worker filters' "Matched n workers by …", each selector's dashed list —
+   * none of which this form can translate. Localizing only the lines we happen
+   * to own produced one block in two languages, which reads worse than a block
+   * in one language the reader may not speak: a refusal is diagnostic text
+   * that gets pasted into an issue, and half-translating it breaks both the
+   * reading and the search.
+   *
+   * So they match their neighbours instead. The day the server sends a code
+   * and parameters the way `PDModeUnresolvedCode` already does for the
+   * transport picker, the whole block becomes translatable at once and these
+   * move into the message catalog with the rest of it — not before, because
+   * until then every translated line here is a line out of step.
+   */
+  const roleName = (role: string) =>
+    role ? role.charAt(0).toUpperCase() + role.slice(1) : role;
+
+  /**
+   * One line of a refused group's breakdown.
+   *
+   * Three shapes, for the same reason `formatRoleClaim` has three: a priced
+   * role reports what ONE member costs, a role that holds no weights reports
+   * memory because it claims no card, and a role no selector ever priced —
+   * no worker was eligible, so none ran — reports the count alone. A
+   * fabricated "0 GiB" there would read as a role that costs nothing.
+   *
+   * The count is per role and measured with nothing else of the group standing
+   * in, so roles that each fit alone and do not fit together all read as
+   * satisfied. That is the finding rather than a flaw in it, and the
+   * scheduler's own lines below say which role the search stopped on.
+   */
+  const formatRoleDemand = (demand: RoleResourceDemand) => {
+    const head = `${roleName(demand.role)} × ${demand.replicas}`;
+    const room = `the cluster has room for ${demand.placeable}, measured on its own`;
+    if (!demand.per_replica) {
+      return `${head}: ${room}`;
+    }
+    if (!demand.vram) {
+      return `${head}: approximately ${convertFileSize(demand.ram || 0, 2)} RAM in total; ${room}`;
+    }
+    return `${head}: approximately ${convertFileSize(demand.per_replica.vram, 2)} VRAM each; ${room}`;
+  };
+
+  /**
+   * The group's own total, above its breakdown.
+   *
+   * Summed here rather than sent as a field of its own: it is the breakdown's
+   * total by definition, and a second number from a second source is a second
+   * thing that can disagree with it.
+   */
+  const formatGroupDemand = (demands: RoleResourceDemand[]) => {
+    const ramBytes = demands.reduce(
+      (sum, demand) => sum + (demand.ram || 0),
+      0
+    );
+    const vramBytes = demands.reduce(
+      (sum, demand) => sum + (demand.vram || 0),
+      0
+    );
+    const ram = convertFileSize(ramBytes, 2);
+    const vram = convertFileSize(vramBytes, 2);
+    if (!ram && !vram) {
+      return '';
+    }
+    if (!ram) {
+      return `The group needs approximately ${vram} VRAM in total.`;
+    }
+    if (!vram) {
+      return `The group needs approximately ${ram} RAM in total.`;
+    }
+    return `The group needs approximately ${vram} VRAM and ${ram} RAM in total.`;
+  };
+
   const handleCheckCompatibility = (
     evaluateResult: EvaluateResult | null
   ): MessageStatus => {
@@ -253,6 +463,8 @@ export const useCheckCompatibility = () => {
       compatibility_messages = [],
       scheduling_messages = [],
       resource_claim_by_cluster_id,
+      role_resource_claims_by_cluster_id,
+      role_resource_demands_by_cluster_id,
       cluster_id,
       error,
       error_message
@@ -284,11 +496,29 @@ export const useCheckCompatibility = () => {
       ? intl.formatMessage({ id: 'models.form.modelfile.notfound' })
       : compatibilityMessage;
 
+    /**
+     * What the group asked for, above the scheduler's account of why it could
+     * not have it.
+     *
+     * The order is the one an approval reads in — total, then role by role —
+     * so the two outcomes of one question look alike. Below it the scheduler
+     * says which role the search stopped on and what stood in the way, and
+     * these lines are what give those numbers a subject: "the largest worker
+     * has 67 GiB" means nothing until something has said a decode member wants
+     * 43 of them.
+     *
+     * English, like everything under it — see `formatRoleDemand`.
+     */
+    const roleDemands = role_resource_demands_by_cluster_id?.[cluster_id!];
+    const demandMessages = roleDemands?.length
+      ? [formatGroupDemand(roleDemands), ...roleDemands.map(formatRoleDemand)]
+      : [];
+
     let msgData = {
       title: scheduling_messages?.length > 0 ? compatibilityMessage : '',
       message:
         scheduling_messages?.length > 0
-          ? scheduling_messages
+          ? [...demandMessages.filter(Boolean), ...scheduling_messages]
           : compatibilityMessage
     };
 
@@ -307,10 +537,28 @@ export const useCheckCompatibility = () => {
       if (!vram) {
         messageId = 'models.form.check.claims3';
       }
-      msgData = {
-        title: intl.formatMessage({ id: 'models.form.check.passed' }),
-        message: intl.formatMessage({ id: messageId }, { ram, vram })
-      };
+
+      // A PD deployment's claim is the WHOLE group's — every replica of every
+      // role plus the router — so it is said differently and broken down by
+      // role. Without the breakdown the total is unreadable: "1.25 TiB" tells
+      // nobody which role is asking for it, and that is the first question
+      // when the group does not fit.
+      const roleClaims = role_resource_claims_by_cluster_id?.[cluster_id!];
+      msgData = roleClaims?.length
+        ? {
+            title: intl.formatMessage({ id: 'models.form.check.passed' }),
+            message: [
+              intl.formatMessage(
+                { id: 'models.form.check.claims.group' },
+                { ram, vram }
+              ),
+              ...roleClaims.map(formatRoleClaim)
+            ]
+          }
+        : {
+            title: intl.formatMessage({ id: 'models.form.check.passed' }),
+            message: intl.formatMessage({ id: messageId }, { ram, vram })
+          };
     }
 
     return {
@@ -578,6 +826,11 @@ export const useSelectModel = (data: { gpuOptions: any[] }) => {
         ...(selectedBackend?.default_env || {})
       },
       backend_parameters: [...(selectedBackend?.default_backend_param || [])],
+      // Derived here as well as in the backend dropdown's handler: this path
+      // writes `backend` straight into the form, so without it the same
+      // deployment would answer differently depending on whether the user
+      // happened to touch the dropdown.
+      native_anthropic_api: derivesNativeAnthropicApi(backend, selectedBackend),
       name: name,
       source: source,
       backend: backend

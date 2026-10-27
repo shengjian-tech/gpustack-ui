@@ -21,6 +21,8 @@ export interface GPUDeviceItem {
   uuid: string;
   name: string;
   vendor: string;
+  // device runtime backend, e.g. cuda / rocm / cann
+  type?: string;
   index: number;
   core: {
     total: number;
@@ -74,8 +76,20 @@ export interface ListItem {
   owner_principal_id?: number | null;
   state_message: string;
   ssh_key_id: string;
+  // Provider-recorded facts about the backing cloud instance. `ssh_endpoint`
+  // is only present when SSH does not answer on `advertise_address:22` — see
+  // `resolveSSHAccess` in `utils/ssh-access.ts`.
+  provider_config?: {
+    ssh_endpoint?: {
+      host: string;
+      port: number;
+      user?: string;
+    };
+    [key: string]: any;
+  } | null;
   advertise_address: string;
   provision_progress: string;
+  system_reserved?: { ram?: number | null; vram?: number | null } | null;
   worker_version: string;
   maintenance: {
     enabled: boolean;
@@ -91,6 +105,7 @@ export interface ListItem {
       total: number;
       used: number;
       allocated: number;
+      is_unified_memory?: boolean;
     };
     gpu_devices: GPUDeviceItem[];
     swap: {
@@ -103,6 +118,9 @@ export interface ListItem {
       version: string;
     };
     kernel: Kernel;
+    // Location facts the runtime read off the hardware (today: the NVIDIA
+    // NVLink clique), keyed like labels. A label with the same key wins.
+    topology_facts?: Record<string, string> | null;
     uptime: {
       uptime: number;
       boot_time: string;
@@ -145,4 +163,14 @@ export interface ModelFileFormData {
   local_path: string;
   local_dir: string;
   is_lora: boolean;
+}
+
+export interface WorkerLabelsFormData {
+  labels: Record<string, string>;
+  name: string;
+}
+
+export interface WorkerLabelsUpdate {
+  worker_ids: number[];
+  labels: Record<string, string>;
 }

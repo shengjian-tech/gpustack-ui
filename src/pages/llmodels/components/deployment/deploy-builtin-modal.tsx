@@ -30,6 +30,8 @@ import { useCheckCompatibility } from '../../hooks';
 import useFormInitialValues from '../../hooks/use-form-initial-values';
 import { generateGPUIds } from '../../utils';
 import CompatibilityAlert from '../compatible-alert';
+import { getCatalogFormValues } from './catalog-form-values';
+import { resolveRuntimeChoice } from './runtime-choice';
 
 const ModesMap: Record<string, string> = {
   latency: 'models.form.mode.latency',
@@ -48,18 +50,6 @@ const ModesTipsMap: Record<string, string> = {
 const EMPTY_SIZE_OPTIONS: Global.BaseOption<number>[] = [];
 const EMPTY_QUANTIZATION_OPTIONS: Global.BaseOption<string>[] = [];
 const EMPTY_FIELDS: string[] = [];
-
-const pickFieldsFromSpec = [
-  'env',
-  'size',
-  'source',
-  'quantization',
-  'backend_version',
-  'backend_parameters',
-  'backend',
-  'extended_kv_cache',
-  'speculative_config'
-];
 
 type AddModalProps = {
   title: string;
@@ -110,7 +100,6 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   >([]);
   const sourceGroupMap = useRef<any>({});
   const axiosToken = useRef<any>(null);
-  const selectSpecRef = useRef<CatalogSpec>({} as CatalogSpec);
   const specListRef = useRef<any[]>([]);
   const noCompatibleGPUsRef = useRef<boolean>(false);
   const backendOptionsCache = useRef<any>([]);
@@ -140,38 +129,30 @@ const AddModal: React.FC<AddModalProps> = (props) => {
 
   const generateSubmitData = (formData: FormData) => {
     const gpuSelector = generateGPUIds(formData);
-    const data = {
-      ..._.omit(selectSpecRef.current, ['name']),
-      ...formData,
+    return getCatalogFormValues(form.current, {
+      ..._.omit(formData, ['scheduleType', 'manualGpuMode', 'pdMode']),
       ...gpuSelector
-    };
-
-    return data;
+    });
   };
 
-  const getModelSpec = (data: {
-    mode?: string;
-    backend: string;
-    size: number;
-    quantization: string;
-  }) => {
+  const getModelSpec = (mode: string) => {
     const defaultSpec = _.find(
       specListRef.current,
-      (item: CatalogSpec) => item.mode === data.mode
+      (item: CatalogSpec) => item.mode === mode
     );
-    selectSpecRef.current = defaultSpec;
     return {
-      ..._.pick(defaultSpec, pickFieldsFromSpec),
+      ..._.omit(defaultSpec, ['name']),
       categories: _.get(current, 'categories.0', null)
     };
   };
 
-  const initFormDataBySource = (data: CatalogSpec) => {
-    selectSpecRef.current = data;
-    form.current?.setFieldsValue({
-      ..._.omit(data, ['name']),
+  const applyCatalogSpec = (data: Partial<CatalogSpec>) => {
+    const runtimeChoice = resolveRuntimeChoice(data);
+    form.current?.applyCatalogSpec({
+      ..._.omit(data, ['name', ...Object.keys(runtimeChoice)]),
       categories: _.get(current, 'categories.0', null)
     });
+    form.current?.applyRuntimeChoice(runtimeChoice);
   };
 
   const handleCheckCompatibility = async (formData: FormData) => {
@@ -191,15 +172,12 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   const handleSourceChange = (source: string) => {
     const defaultSpec = _.get(sourceGroupMap.current, `${source}.0`, {});
     // set form value
-    initFormDataBySource(defaultSpec);
+    applyCatalogSpec(defaultSpec);
     handleCheckFormData();
   };
 
   const onValuesChange = async (changedValues: any, allValues: any) => {
-    const data = {
-      ..._.omit(selectSpecRef.current, ['name']),
-      ...allValues
-    };
+    const data = getCatalogFormValues(form.current, allValues);
 
     // no compatible gpus, do nothing
     if (noCompatibleGPUsRef.current) {
@@ -291,8 +269,6 @@ const AddModal: React.FC<AddModalProps> = (props) => {
           (item: CatalogSpec) => item.mode === modeDataList[0]?.value
         ) || {};
 
-      selectSpecRef.current = defaultSpec;
-
       const defaultBackendParams =
         backendOptionsCache.current?.find(
           (item: any) => item.value === defaultSpec.backend
@@ -300,7 +276,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
 
       setModeList(modeDataList);
       setSourceList(sources);
-      initFormDataBySource({
+      applyCatalogSpec({
         ...defaultSpec,
         backend_parameters: mergeBackendParameters(
           defaultBackendParams,
@@ -317,12 +293,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
       } else {
         setIsGGUF(false);
       }
-      const allValues = generateSubmitData({
-        ...defaultSpec,
-        categories: _.get(current, 'categories.0', null),
-        cluster_id: clusterId,
-        name
-      });
+      const allValues = generateSubmitData(form.current.getFieldsValue(true));
 
       // If no avaliable gpus for the model, show warning message
       if (!res.items.length) {
@@ -342,16 +313,9 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   };
 
   const handleOnModeChange = (val: string) => {
-    const data = getModelSpec({
-      mode: val,
-      backend: form.current.getFieldValue('backend'),
-      size: 0,
-      quantization: ''
-    });
+    const data = getModelSpec(val);
 
-    form.current.setFieldsValue({
-      ...data
-    });
+    applyCatalogSpec(data);
     handleCheckFormData();
   };
 
@@ -360,10 +324,7 @@ const AddModal: React.FC<AddModalProps> = (props) => {
   };
 
   const handleOk = async (values: FormData) => {
-    const data = {
-      ..._.omit(selectSpecRef.current, ['name']),
-      ...values
-    };
+    const data = getCatalogFormValues(form.current, values);
     setLoading(true);
     try {
       await onOk(data);

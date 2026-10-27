@@ -20,16 +20,17 @@ import { useEffect, useState } from 'react';
 import {
   WORKERS_API,
   deleteWorker,
-  downloadWorkerPrivateKey,
   queryWorkersList,
-  updateWorker
+  updateWorker,
+  updateWorkerLabels
 } from '../apis';
-import { ListItem } from '../config/types';
+import { ListItem, WorkerLabelsFormData } from '../config/types';
 import useWorkerColumns from '../hooks/use-worker-columns';
 import useWorkerMaintenance from '../hooks/use-worker-maintenance';
 import UpdateLabels from './update-labels';
 import WorkerDetailModal from './worker-detail-modal';
 import WorkerRightActions from './worker-right-actions';
+import WorkerSSHModal from './worker-ssh-modal';
 
 // Optional ``clusterId`` pins the list to a single cluster (used by
 // the cluster-detail page) and hides the cluster-filter dropdown so
@@ -77,6 +78,9 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
   });
 
   const intl = useIntl();
+  // Non-empty means the labels modal is writing to the selection rather than
+  // to one row. Send every selected id, independent of the visible page.
+  const [batchLabelTargets, setBatchLabelTargets] = useState<number[]>([]);
   const [updateLabelsData, setUpdateLabelsData] = useState<{
     open: boolean;
     data: ListItem;
@@ -94,6 +98,13 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
     data: {}
   });
   const [workerDetailStatus, setWorkerDetailStatus] = useState<{
+    open: boolean;
+    currentData: ListItem | null;
+  }>({
+    open: false,
+    currentData: null
+  });
+  const [workerSSHStatus, setWorkerSSHStatus] = useState<{
     open: boolean;
     currentData: ListItem | null;
   }>({
@@ -147,21 +158,35 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
     }
   };
 
-  const handleUpdateLabelsOk = async (values: Record<string, any>) => {
+  const handleUpdateLabelsOk = async (values: WorkerLabelsFormData) => {
     try {
-      await updateWorker(updateLabelsData.data.id, {
-        ...updateLabelsData.data,
-        labels: values.labels
-      });
-      message.success(intl.formatMessage({ id: 'common.message.success' }));
+      if (batchLabelTargets.length) {
+        if (!Object.keys(values.labels).length) {
+          return;
+        }
+        await updateWorkerLabels({
+          worker_ids: batchLabelTargets,
+          labels: values.labels
+        });
+        message.success(intl.formatMessage({ id: 'common.message.success' }));
+        rowSelection?.clearSelections?.();
+      } else {
+        await updateWorker(updateLabelsData.data.id, {
+          ...updateLabelsData.data,
+          labels: values.labels
+        });
+        message.success(intl.formatMessage({ id: 'common.message.success' }));
+      }
       fetchData();
+      setBatchLabelTargets([]);
       setUpdateLabelsData({ open: false, data: {} as ListItem });
-    } catch (error) {
-      console.log('error', error);
+    } catch {
+      // The global request handler reports the error; keep the form for retry.
     }
   };
 
   const handleCancelUpdateLabels = () => {
+    setBatchLabelTargets([]);
     setUpdateLabelsData({
       ...updateLabelsData,
       open: false
@@ -169,11 +194,30 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
   };
 
   const handleUpdateLabels = (record: ListItem) => {
+    setBatchLabelTargets([]);
     setUpdateLabelsData({
       open: true,
       data: {
         ...record
       }
+    });
+  };
+
+  /**
+   * Bulk labelling: the same modal, pointed at the selection.
+   *
+   * Topology is declared once and maintained by labelling, and a fleet is
+   * labelled forty machines at a time — a modal per host is not a workflow.
+   */
+  const handleUpdateLabelsByBatch = () => {
+    const ids = (rowSelection?.selectedRowKeys || []) as number[];
+    if (!ids.length) {
+      return;
+    }
+    setBatchLabelTargets(ids);
+    setUpdateLabelsData({
+      open: true,
+      data: {} as ListItem
     });
   };
 
@@ -195,10 +239,10 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
     if (val === 'details') {
       handleViewDetail(record);
     }
-    if (val === 'download_ssh_key') {
-      downloadWorkerPrivateKey({
-        id: record.id,
-        name: record.name
+    if (val === 'view_ssh') {
+      setWorkerSSHStatus({
+        open: true,
+        currentData: record
       });
     }
 
@@ -277,8 +321,6 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
         <FilterBar
           showSelect={source !== 'clusterDetail'}
           selectHolder={intl.formatMessage({ id: 'clusters.filterBy.cluster' })}
-          marginBottom={22}
-          marginTop={30}
           buttonText={intl.formatMessage({ id: 'resources.button.create' })}
           handleDeleteByBatch={handleDeleteBatch}
           handleSearch={handleSearch}
@@ -298,6 +340,7 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
             ) : (
               <WorkerRightActions
                 handleDeleteByBatch={handleDeleteBatch}
+                handleUpdateLabelsByBatch={handleUpdateLabelsByBatch}
                 handleClickPrimary={handleOnAddWorker}
                 rowSelection={rowSelection}
                 MonitorButton={ActionButton()}
@@ -341,6 +384,8 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
           open={updateLabelsData.open}
           onOk={handleUpdateLabelsOk}
           onCancel={handleCancelUpdateLabels}
+          batch={batchLabelTargets.length > 0}
+          count={batchLabelTargets.length}
           data={{
             name: updateLabelsData.data.name,
             labels: updateLabelsData.data.labels
@@ -352,6 +397,11 @@ const Workers: React.FC<WorkersProps> = ({ clusterId, source }) => {
           onClose={() =>
             setWorkerDetailStatus({ currentData: null, open: false })
           }
+        />
+        <WorkerSSHModal
+          open={workerSSHStatus.open}
+          currentData={workerSSHStatus.currentData}
+          onClose={() => setWorkerSSHStatus({ currentData: null, open: false })}
         />
         {MaintenanceModal}
         {AddWorkerModal}

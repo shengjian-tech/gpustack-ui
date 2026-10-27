@@ -14,10 +14,10 @@ import {
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import { useEffect, useMemo } from 'react';
-import styled from 'styled-components';
 import { DeployFormKeyMap, sourceOptions } from '../config';
 import { useFormContext } from '../config/form-context';
-import { FormData } from '../config/types';
+import { ClusterOption, FormData } from '../config/types';
+import styles from '../style/cluster-option.module.less';
 import BackendForm from './backend';
 import CatalogFrom from './catalog';
 import CustomBackend from './custom-backend';
@@ -25,66 +25,26 @@ import LocalPathSource from './local-path-source';
 import ModeField from './mode-field';
 import OnlineSource from './online-source';
 
-const ClusterOption = styled.span`
-  display: flex;
-  padding: 8px 0;
-  width: 100%;
-  flex-direction: column;
-  border-bottom: 1px solid var(--ant-color-split);
-  gap: 4px;
-  .label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .dot {
-    display: flex;
-    width: 6px;
-    height: 6px;
-    background-color: var(--ant-color-warning);
-    border-radius: 50%;
-    &.ready {
-      background-color: var(--ant-color-success);
-    }
-  }
-  .item {
-    width: max-content;
-    display: flex;
-    align-items: center;
-    padding: 2px 0px;
-    border-radius: 4px;
-    font-weight: 400;
-    gap: 8px;
-  }
-  .s-dot {
-    width: 4px;
-    height: 4px;
-    margin: 0 4px;
-    background-color: var(--ant-color-text-quaternary);
-    border-radius: 50%;
-  }
-`;
-
 interface BasicFormProps {
+  /**
+   * PD is on, so this deployment is a *group* and its size lives in
+   * `roles[].replicas`.
+   *
+   * `Model.replicas` degrades to a 0/1 deployment switch under PD (D20), and
+   * the form already forces it back to 1 — which left a number field the user
+   * could edit and that silently reverted. A control whose value is
+   * overwritten is worse than no control, so the field goes.
+   *
+   * 🔴 It briefly stayed on as a read-only summary of the per-role counts, on
+   * the argument that hiding it made the form look like it had lost a
+   * question. That reads worse in practice: the counts are *edited* one
+   * section down, so the summary answered the same question twice in two
+   * places, only one of which responds to a click.
+   */
+  pdActive?: boolean;
   sourceDisable?: boolean;
   sourceList?: Global.BaseOption<string>[];
-  clusterList: Global.BaseOption<
-    number,
-    {
-      provider: string;
-      state: string;
-      is_default: boolean;
-      gpu_instance_enabled?: boolean;
-      owner_principal_id?: number;
-      workers: number;
-      ready_workers: number;
-      gpus: number;
-    }
-  >[];
+  clusterList: ClusterOption[];
   handleClusterChange: (value: number) => void;
   onClusterSeed: (value: number) => void;
   onSourceChange?: (value: string) => void;
@@ -203,15 +163,15 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
     const { data } = option;
 
     return (
-      <ClusterOption>
-        <span className="label">
+      <span className={styles.clusterOption}>
+        <span className={styles.label}>
           <AutoTooltip ghost maxWidth={'100%'}>
             {data.label}
           </AutoTooltip>
         </span>
-        <span className={`item ${data.ready_workers > 0 ? 'ready' : ''}`}>
+        <span className={styles.meta}>
           <span
-            className={`dot ${data.ready_workers > 0 ? 'ready' : ''}`}
+            className={`${styles.dot} ${data.ready_workers > 0 ? styles.ready : ''}`}
           ></span>
           <span className="flex-center gap-8">
             <span className="flex-center gap-4 text-tertiary">
@@ -220,14 +180,14 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
                 {data.ready_workers}/{data.workers}
               </span>
             </span>
-            <span className="s-dot"></span>
+            <span className={styles.metaDivider}></span>
             <span className="flex-center gap-4 text-tertiary">
-              <span>GPUs:</span>
+              <span>{intl.formatMessage({ id: 'menu.resources.gpus' })}:</span>
               <span>{data.gpus}</span>
             </span>
           </span>
         </span>
-      </ClusterOption>
+      </span>
     );
   };
 
@@ -305,30 +265,54 @@ const BasicForm: React.FC<BasicFormProps> = (props) => {
       <CatalogFrom></CatalogFrom>
       <BackendForm></BackendForm>
       <CustomBackend></CustomBackend>
-      <Form.Item<FormData>
-        name="replicas"
-        rules={[
-          {
-            required: true,
-            message: getRuleMessage('input', 'models.form.replicas')
-          }
-        ]}
-      >
-        <CInput.Number
-          style={{ width: '100%' }}
-          // The Replicas field keeps its label/description unchanged even when
-          // scheduled scaling is on. While scheduling is on this value doubles
-          // as the baseline (idle) replica count — that's explained by a note in
-          // the Scheduled Scaling section rather than by relabeling this field.
-          label={intl.formatMessage({ id: 'models.form.replicas' })}
-          required
-          description={intl.formatMessage(
-            { id: 'models.form.replicas.tips' },
-            { api: `${window.location.origin}/${OPENAI_COMPATIBLE}` }
-          )}
-          min={0}
-        ></CInput.Number>
-      </Form.Item>
+      {/* 🔴 The PD switch used to sit here, between the backend fields and the
+          replica count — and before that, overlaid on the replica field's own
+          label line. It moved into the «PD 分离配置» panel, next to the roles
+          it reveals: the switch and everything it turns on are one topic, and
+          splitting them put the control in one section and its entire
+          consequence in another. */}
+      {/* Gone entirely under PD, not restated as a read-only summary: the
+          counts are per role now, and they are *edited* one section down. An
+          echo here answered the same question twice in two places, only one
+          of which responds to a click. */}
+      {!props.pdActive && (
+        <Form.Item<FormData>
+          name="replicas"
+          preserve
+          rules={[
+            {
+              required: true,
+              message: getRuleMessage('input', 'models.form.replicas')
+            }
+          ]}
+        >
+          <CInput.Number
+            style={{ width: '100%' }}
+            // No spinner: a replica count is typed, not nudged one at a time.
+            controls={false}
+            // The Replicas field keeps its label/description unchanged even
+            // when scheduled scaling is on. While scheduling is on this value
+            // doubles as the baseline (idle) replica count — that's explained
+            // by a note in the Scheduled Scaling section rather than by
+            // relabeling this field.
+            label={intl.formatMessage({ id: 'models.form.replicas' })}
+            required
+            description={intl.formatMessage(
+              { id: 'models.form.replicas.tips' },
+              { api: `${window.location.origin}/${OPENAI_COMPATIBLE}` }
+            )}
+            min={0}
+          ></CInput.Number>
+        </Form.Item>
+      )}
+      {/* Still registered while PD is on, so the payload carries the 0/1
+          switch the backend expects. Hidden rather than absent: the effects
+          pin it to 1 and nothing on screen should invite editing it. */}
+      {props.pdActive && (
+        <Form.Item<FormData> name="replicas" hidden noStyle preserve>
+          <input />
+        </Form.Item>
+      )}
       <Form.Item<FormData> name="description">
         <CInput.TextArea
           scaleSize={true}

@@ -1,4 +1,4 @@
-import LogoIcon from '@/assets/images/gpustack-logo.png';
+import LogoIcon from '@/assets/images/ai-computing power-cloud-logo.svg';
 import { initialPasswordAtom, userAtom } from '@/atoms/user';
 import { resetStorageUserSettings } from '@/atoms/utils';
 import DarkMask from '@/components/dark-mask';
@@ -8,10 +8,11 @@ import ThemeDropActions from '@/components/theme-toggle/theme-drop-actions';
 import { PasswordReg } from '@/config';
 import { GPUSTACK_API_BASE_URL } from '@/config/settings';
 import { COLOR_PRIMARY } from '@/config/theme/constants';
-import externalLinks from '@/constants/external-links';
+import { documentationPaths } from '@/constants/documentation';
 import useUserSettings from '@/hooks/use-user-settings';
 import useUserSettingsStorage from '@/hooks/use-user-settings-storage';
 import { getGPUStackPlugin } from '@/plugins';
+import { getDocumentationUrl } from '@/utils/documentation';
 import {
   CRYPT_TEXT,
   IS_FIRST_LOGIN,
@@ -26,7 +27,7 @@ import {
   useModel,
   useNavigate
 } from '@umijs/max';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider } from 'antd';
 import { createStyles } from 'antd-style';
 import CryptoJS from 'crypto-js';
 import { useAtom } from 'jotai';
@@ -37,6 +38,7 @@ import { updatePassword as updatePasswordApi } from './apis';
 import Background from './components/background';
 import LoginForm from './components/login-form';
 import PasswordForm from './components/password-form';
+import { useInitialPasswordGuard } from './hooks/use-initial-password-guard';
 import { useLocalAuth } from './hooks/use-local-auth';
 import { useSSOAuth } from './hooks/use-sso-auth';
 import { checkDefaultPage } from './utils';
@@ -122,6 +124,11 @@ const Login = () => {
   const [initialPassword, setInitialPassword] = useAtom(initialPasswordAtom);
   const { initialState, setInitialState } = useModel('@@initialState') || {};
 
+  // Runs ahead of the render branch below so the custom-login path gets
+  // the same recovery — its component reads `userInfo` off `kit`, which
+  // the logout clears.
+  const credentialLost = useInitialPasswordGuard();
+
   const plugin = getGPUStackPlugin();
 
   const CustomLoginComponent = plugin?.login?.CustomLoginComponent;
@@ -183,7 +190,10 @@ const Login = () => {
       updatePassword: updatePasswordApi,
       passwordReg: PasswordReg,
       onPasswordChanged,
-      resetPasswordUrl: externalLinks.resetPassword,
+      resetPasswordUrl: getDocumentationUrl(
+        documentationPaths.resetPassword,
+        intl.locale
+      ),
       formLogoUrl: LogoIcon
     }),
     [
@@ -192,25 +202,12 @@ const Login = () => {
       fetchUserInfo,
       initialPassword,
       setInitialPassword,
-      onPasswordChanged
+      onPasswordChanged,
+      intl.locale
     ]
   );
   return (
-    <ConfigProvider
-      componentSize="large"
-      theme={{
-        algorithm: userSettings.isDarkTheme
-          ? theme.darkAlgorithm
-          : theme.defaultAlgorithm,
-        ...themeData,
-        token: {
-          ...themeData?.token,
-          colorPrimary:
-            plugin?.getPrimaryColor?.(userSettings)?.colorPrimary ||
-            COLOR_PRIMARY
-        }
-      }}
-    >
+    <ConfigProvider componentSize="large" theme={themeData}>
       <CoreUIProvider
         config={{
           apiBaseUrl: GPUSTACK_API_BASE_URL,
@@ -257,7 +254,7 @@ const Login = () => {
           <Box>
             <div className={styles.formContainer}>
               <FormWrapper>
-                {userInfo?.require_password_change ? (
+                {userInfo?.require_password_change && !credentialLost ? (
                   <PasswordForm />
                 ) : (
                   <LoginForm />

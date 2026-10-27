@@ -96,6 +96,15 @@ export default {
   'resource.register.windows.support': 'win 10, win 11',
   'resources.model.instance': 'Model Instance',
   'resources.worker.download.privatekey': 'Download Private Key',
+  'resources.worker.ssh.view': 'View SSH Access',
+  'resources.worker.ssh.title': 'SSH Access',
+  'resources.worker.ssh.host': 'Host',
+  'resources.worker.ssh.port': 'Port',
+  'resources.worker.ssh.command': 'Connection Command',
+  'resources.worker.ssh.privatekey': 'Private Key',
+  'resources.worker.ssh.pending': 'Not available yet',
+  'resources.worker.ssh.tip':
+    'Authentication uses the private key of this worker. Download it, run chmod 600 on the file, then connect.',
   'resources.modelfiles.form.exsting': 'Downloaded',
   'resources.modelfiles.form.added': 'Added',
   'resources.modelfiles.form.isLora': 'Is LoRA',
@@ -111,10 +120,15 @@ export default {
     'No available clusters. Please create a cluster before adding a node.',
   'resources.metrics.details': 'Monitoring',
   'resoureces.worker.upgrade.tips':
-    'Please upgrade to match the GPUStack Server version.',
+    'The Worker version does not match the GPUStack Server version. Please keep them consistent.',
   'resources.worker.version': 'Worker Version: {version}',
   'resources.server.version': 'Server Version: {version}',
   'resources.worker.currentVersion': 'Current Version: {version}',
   'resources.worker.targetVersion': 'Target Version: {version}',
-  'resources.driver.version': 'Driver Version: {version}'
+  'resources.driver.version': 'Driver Version: {version}',
+
+  'resources.worker.setLabels': 'Set Labels',
+  'resources.worker.setLabels.count': '{count} workers selected',
+  'resources.worker.setLabels.hint':
+    'Adds new labels and updates matching keys on all selected workers. Other labels are preserved. To remove labels, edit a worker individually.'
 };

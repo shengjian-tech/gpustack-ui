@@ -24,10 +24,18 @@ export interface LoginKit {
       // "/auth/cas/login"}``) or ``null`` when only local login is
       // configured. The login UI renders an SSO button only when this
       // is non-null and navigates to ``login_url``.
-      external_auth: { type: string; login_url: string } | null;
+      external_auth: {
+        type: string;
+        login_url: string;
+        display_name: string;
+      } | null;
       first_time_setup: boolean;
       get_initial_password_command: string;
     };
+    // Provider label for the SSO button: ``display_name`` if the backend
+    // set one, else the provider ``type``, else ``SSO``. Prefer this over
+    // reading ``external_auth`` — the fallback chain lives in the hook.
+    displayName: string;
     loginWithExternalAuth: () => void;
   };
   userInfo: any;
@@ -105,6 +113,15 @@ export interface LocalesConfig {
 }
 
 /**
+ * lazily fetched language packs, one async chunk per entry. A plugin puts the
+ * languages that carry the bulk of its usage in `locales` (bundled with the
+ * plugin) and the rest here, so a boot in English does not pay for the others.
+ */
+export interface LocaleLoaders {
+  [locale: string]: () => Promise<{ default: Record<string, any> }>;
+}
+
+/**
  * runtime context passed to plugin lifecycle hooks
  */
 export interface AppPluginContext {
@@ -146,6 +163,11 @@ export interface AppPlugin {
    * localization configuration
    */
   locales?: LocalesConfig;
+
+  /**
+   * localization packs fetched on demand, for the languages kept out of `locales`
+   */
+  localeLoaders?: LocaleLoaders;
 
   /**
    * routes extension

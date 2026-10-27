@@ -25,7 +25,7 @@ type DateType = 'date' | 'week' | 'month' | 'quarter' | 'year';
 const TokenTab: React.FC = () => {
   const intl = useIntl();
   const access = useAccess();
-  const { exportTable } = useExportTable();
+  const { exportTable, exporting: exportingTable } = useExportTable();
   const [openExportModal, setOpenExportModal] = useState(false);
   const [breakdownRefreshKey, setBreakdownRefreshKey] = useState(0);
   const [breakdownPageResetKey, setBreakdownPageResetKey] = useState(0);
@@ -188,7 +188,14 @@ const TokenTab: React.FC = () => {
         }}
         handleSearch={handleSearch}
         handlePickerChange={handlePickerChange}
-        onExportTable={exportTable}
+        exportingTable={exportingTable}
+        onExportTable={() =>
+          exportTable({
+            filters,
+            dateRange: breakdownDateRange,
+            scope: commonFilters.scope
+          })
+        }
         onExportChart={handleExportChart}
       />
       <div

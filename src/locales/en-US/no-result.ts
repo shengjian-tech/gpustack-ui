@@ -37,7 +37,7 @@ export default {
   'noresult.resources.cluster':
     'No clusters available. Add a cluster to get started.',
   'noresult.resources.k8sCluster':
-    'No clusters available. Add a Kubernetes cluster to get started.',
+    'No clusters available. Register a Kubernetes cluster for GPU Service to get started.',
   'noresult.resources.worker':
     'No workers available. Add a worker to get started.',
   'noresult.resources.gotocluster': 'Create Your First Cluster',
@@ -79,5 +79,9 @@ export default {
   'noresult.gpuservice.sshkey.title': 'No SSH Public Keys',
   'noresult.gpuservice.sshkey.subTitle':
     'No SSH public keys have been added yet.',
-  'noresult.gpuservice.sshkey.nofound': 'No matching SSH public keys found.'
+  'noresult.gpuservice.sshkey.nofound': 'No matching SSH public keys found.',
+  'noresult.kvCache.title': 'No cache services yet',
+  'noresult.kvCache.subTitle':
+    'Create a cache service to reuse KV cache across model instances.',
+  'noresult.kvCache.nofound': 'No matching cache services found.'
 };

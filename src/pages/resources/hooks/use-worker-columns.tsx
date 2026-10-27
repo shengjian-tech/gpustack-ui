@@ -5,7 +5,6 @@ import { usePluginListColumns } from '@/plugins/list-extra-columns';
 import { convertFileSize } from '@/utils';
 import {
   DeleteOutlined,
-  DownloadOutlined,
   EditOutlined,
   InfoCircleOutlined,
   SafetyOutlined,
@@ -23,12 +22,10 @@ import {
   type TableColumnProps
 } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
-import { Tooltip } from 'antd';
+import { Flex, Tooltip } from 'antd';
 import { useAtom, useAtomValue } from 'jotai';
 import _ from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
-import semverCoerce from 'semver/functions/coerce';
-import semverGt from 'semver/functions/gt';
 import { status, WorkerStatusMap, WorkerStatusMapValue } from '../config';
 import { Filesystem, GPUDeviceItem, ListItem } from '../config/types';
 import workerCss from '../styles/worker.less';
@@ -49,9 +46,13 @@ const ActionList = [
   //   icon: <FileTextOutlined></FileTextOutlined>
   // },
   {
-    label: 'resources.worker.download.privatekey',
-    key: 'download_ssh_key',
-    icon: <DownloadOutlined />
+    // Opens a dialog holding both the connection details and the private key
+    // download: for Shuihua the reachable endpoint is a mapped port on a
+    // shared address that only `provider_config` knows, so the key alone does
+    // not get the user in.
+    label: 'resources.worker.ssh.view',
+    key: 'view_ssh',
+    icon: <IconFont type="icon-ssh-outlined" />
   },
   {
     label: 'resources.worker.maintenance.enable',
@@ -118,10 +119,9 @@ const showUpgrade = (
   workerVersion: string,
   currentVersion: string
 ): boolean => {
-  const w_ver = semverCoerce(workerVersion);
-  const c_ver = semverCoerce(currentVersion);
-
-  return !!w_ver && !!c_ver && semverGt(c_ver, w_ver);
+  return (
+    !!workerVersion && !!currentVersion && workerVersion !== currentVersion
+  );
 };
 
 const formateUtilization = (val1: number, val2: number): number =>
@@ -136,14 +136,14 @@ const calcStorage = (files: Filesystem[]) => {
 };
 
 const GPUCell = ({ devices }: { devices: GPUDeviceItem[] }) => (
-  <span className="flex-column gap-5" style={{ width: '100%' }}>
+  <Flex orientation="vertical" gap={4} style={{ width: '100%' }}>
     {_.map(
       _.sortBy(devices || [], ['index']),
       (item: GPUDeviceItem, index: number) => (
-        <span className="flex-center" key={index}>
+        <span className="flex-center" key={index} style={{ height: 18 }}>
           <span
             className="m-r-5"
-            style={{ display: 'flex', width: 25, lineHeight: 1 }}
+            style={{ display: 'flex', width: 30, lineHeight: 1 }}
           >
             [{item.index}]
           </span>
@@ -155,7 +155,7 @@ const GPUCell = ({ devices }: { devices: GPUDeviceItem[] }) => (
         </span>
       )
     )}
-  </span>
+  </Flex>
 );
 
 // index + ProgressBar
@@ -185,11 +185,11 @@ const VRAMItem = ({
       <span className="flex-center" style={{ cursor: 'pointer' }}>
         <span
           className="m-r-5"
-          style={{ display: 'flex', width: 25, lineHeight: 1.2 }}
+          style={{ display: 'flex', width: 30, lineHeight: 1 }}
         >
           <span
             style={{
-              paddingBottom: 2,
+              paddingBottom: 3,
               borderBottom: '1px dashed var(--ant-blue-6)'
             }}
           >
@@ -217,7 +217,7 @@ const VRAMCell = ({
   loadend: boolean;
   firstLoad: boolean;
 }) => (
-  <span className="flex-column flex-gap-2" style={{ width: '100%' }}>
+  <Flex orientation="vertical" gap={4} style={{ width: '100%' }}>
     {_.map(
       _.sortBy(devices || [], ['index']),
       (item: GPUDeviceItem, index: number) => (
@@ -228,7 +228,7 @@ const VRAMCell = ({
         />
       )
     )}
-  </span>
+  </Flex>
 );
 
 const StorageCell = ({ files }: { files: Filesystem[] }) => {
@@ -322,7 +322,13 @@ const useWorkerColumns = ({
 
   const setActions = (row: ListItem) => {
     return ActionList.filter((action) => {
-      if (action.key === 'download_ssh_key') {
+      // `ssh_key_id` marks a cloud-provisioned worker: the provisioning
+      // controller generates the keypair for every cloud provider, so this
+      // gates both DigitalOcean and Shuihua. The key exists from that moment,
+      // well before the instance has an address, and the dialog handles the
+      // gap — gating on a resolvable endpoint too would hide a key the user
+      // can already download.
+      if (action.key === 'view_ssh') {
         return !!row.ssh_key_id;
       }
       if (action.key === 'star_maintenance') {
@@ -384,7 +390,7 @@ const useWorkerColumns = ({
             {shouldUpgrade && (
               <span
                 style={{
-                  color: 'var(--ant-color-warning)'
+                  color: 'var(--color-status-warning-text)'
                 }}
               >
                 {intl.formatMessage({

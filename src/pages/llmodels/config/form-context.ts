@@ -1,6 +1,6 @@
 import { PageActionType } from '@/config/types';
 import React from 'react';
-import { BackendOption, DeployFormKey, FormData } from './types';
+import { BackendOption, ClusterOption, DeployFormKey, FormData } from './types';
 
 type EmptyObject = Record<never, never>;
 
@@ -21,6 +21,9 @@ interface FormContextProps {
   realAction?: PageActionType;
   gpuOptions: CascaderOption[];
   workerLabelOptions: CascaderOption[];
+  // The cluster dropdown's own options: fields deeper in the form read the
+  // selected cluster's `provider` off this list to gate what it can offer.
+  clusterList: ClusterOption[];
   backendOptions: {
     label: string;
     value: string;
@@ -32,6 +35,8 @@ interface FormContextProps {
   modelContextData?: Record<string, any>;
   submitAttempted?: boolean;
   clearCacheFormValues?: () => void;
+  imageModePicked: boolean;
+  setImageModePicked: React.Dispatch<React.SetStateAction<boolean>>;
   onValuesChange?: (changedValues: any, allValues: any) => void;
   onBackendChange: (backend: string, option: any) => void;
 }

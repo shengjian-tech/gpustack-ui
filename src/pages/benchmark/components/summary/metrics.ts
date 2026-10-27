@@ -3,7 +3,7 @@ import { BenchmarkResultItem } from '../../config/types';
 import { StageStatusKind, getStageStatus } from './ui';
 
 // ── The report's single data source ────────────────────────────────────────────
-// Every number the Summary tab renders (hero bar, operating curve, the nine
+// Every number the Summary tab renders (hero bar, load sweep, the nine
 // detail charts, the stage table, the stage detail) is derived HERE, once. Two
 // call sites computing the same metric two ways is how a p99 ends up reading
 // 62.82 in one panel and 71.03 in another.
@@ -54,10 +54,10 @@ const dist = (
 // TTFT / (n × TPOT), so at 16 output tokens it is ~40% — a queueing number
 // wearing a decode label.
 //
-// The `sla_*_tpot_ms` thresholds bound this same field — on the server
-// (SLA_THRESHOLDS), in the runner's bracketing, and in SLA_CHECKS below. One
+// The `slo_*_tpot_ms` thresholds bound this same field — on the server
+// (SLO_THRESHOLDS), in the runner's bracketing, and in SLO_CHECKS below. One
 // basis everywhere, so a ✓ in the table cannot disagree with the stored
-// sla_met_rate.
+// slo_met_rate.
 //
 // With one shared exception: the decode-only reading needs two token timestamps,
 // so a response that arrives as a single chunk (the whole output at once, common
@@ -66,6 +66,24 @@ const dist = (
 // `decodeMs` here, `t.fallback` on the server, `or` in the runner.
 const TPOT_FIELD = 'inter_token_latency_ms';
 const TPOT_FALLBACK_FIELD = 'time_per_output_token_ms';
+
+// ── Which field is "ITL" ──────────────────────────────────────────────────────
+// The other per-token metric, and a genuinely different one: its samples are the
+// MEASURED gaps between consecutive streamed outputs — one per gap, pooled
+// across requests — where TPOT above is one value per request.
+//
+// The difference only shows in the tail. A request that streams 500 tokens at
+// 10ms and stalls once for 800ms has a TPOT of 11.6ms (the stall divided by the
+// other 499 gaps, i.e. invisible), while its gaps put an 800ms sample into the
+// ITL distribution. So TPOT answers "how fast did this request type out" and
+// ITL answers "did the stream ever hitch" — the two are read together, not
+// interchangeably.
+//
+// Recorded by benchmark-runner, not by guidellm (which keeps only the first and
+// last token timestamp per request and reconstructs the rest with np.linspace).
+// Absent on every point measured before that landed, hence null-not-zero
+// throughout.
+const ITL_FIELD = 'inter_token_latency_per_chunk_ms';
 
 /** A per-token latency, or null; 0 means "not incrementally streamed", not 0 ms. */
 const positive = (v: number | null | undefined): number | null =>
@@ -120,6 +138,19 @@ export interface StagePoint {
   tpotP50: number | null;
   tpotP90: number | null;
   tpotP99: number | null;
+  /**
+   * Measured ITL (ms): the distribution of gaps between streamed outputs.
+   *
+   * null throughout when the run predates the gap recording — the report must
+   * render "-" there, never 0, which would read as a decode with no latency
+   * between tokens at all.
+   */
+  itlMean: number | null;
+  itlP50: number | null;
+  itlP90: number | null;
+  itlP99: number | null;
+  /** Worst single gap. The finding itself when hunting a stall. */
+  itlMax: number | null;
 
   total: number;
   ok: number;
@@ -127,7 +158,7 @@ export interface StagePoint {
   incomplete: number;
   duration: number | null;
   // Sample size behind the latency percentiles of THIS point. Below ~100, p99
-  // degenerates to max and a single outlier would be read as an SLA conclusion,
+  // degenerates to max and a single outlier would be read as an SLO conclusion,
   // so the tail is flagged rather than silently trusted.
   sampleCount: number;
   lowSample: boolean;
@@ -137,11 +168,11 @@ export interface StagePoint {
   isPeak: boolean;
   isOverloaded: boolean;
   /**
-   * SLA verdict for this stage. null = the run set no thresholds, which is NOT
+   * SLO verdict for this stage. null = the run set no thresholds, which is NOT
    * the same as false ("measured, and it breached") — conflating them would
-   * paint an SLA-failure marker over every throughput run.
+   * paint an SLO-failure marker over every throughput run.
    */
-  slaPass: boolean | null;
+  sloPass: boolean | null;
 }
 
 /**
@@ -164,58 +195,58 @@ export const LOW_SAMPLE_THRESHOLD = 1000;
 /** How many samples sit above p99 — what the tail estimate actually rests on. */
 export const tailSamples = (count: number): number => Math.floor(count / 100);
 
-// ── SLA verdict ───────────────────────────────────────────────────────────────
-// Mirrors the backend's _meets_sla so the table's ✓/✗, the curve's breach region
-// and the backend's own sla_met_rate cannot tell three different stories.
+// ── SLO verdict ───────────────────────────────────────────────────────────────
+// Mirrors the backend's _meets_slo so the table's ✓/✗, the curve's breach region
+// and the backend's own slo_met_rate cannot tell three different stories.
 
 /** The nine optional thresholds, each paired with the value it bounds. */
-const SLA_CHECKS: Array<{
+const SLO_CHECKS: Array<{
   field: string;
-  get: (p: SlaInputs) => number | null | undefined;
+  get: (p: SloInputs) => number | null | undefined;
   /** Onto milliseconds: request latency is stored in seconds. */
   scale: number;
 }> = [
-  { field: 'sla_avg_ttft_ms', get: (p) => p.ttft, scale: 1 },
+  { field: 'slo_avg_ttft_ms', get: (p) => p.ttft, scale: 1 },
   {
-    field: 'sla_p95_ttft_ms',
+    field: 'slo_p95_ttft_ms',
     get: (p) => p.raw.time_to_first_token_p95,
     scale: 1
   },
-  { field: 'sla_p99_ttft_ms', get: (p) => p.ttftP99, scale: 1 },
+  { field: 'slo_p99_ttft_ms', get: (p) => p.ttftP99, scale: 1 },
   // The tpot thresholds bound the decode-only metric, same as the displayed TPOT
-  // and same as the server's SLA_THRESHOLDS. p95 / p99 fall back to the dump
+  // and same as the server's SLO_THRESHOLDS. p95 / p99 fall back to the dump
   // because the two flat columns only exist for points measured after the basis
   // moved; without the fallback every stage of an older run would read as a
   // breach ("not measured" fails closed, by design).
-  { field: 'sla_avg_tpot_ms', get: (p) => p.tpot, scale: 1 },
+  { field: 'slo_avg_tpot_ms', get: (p) => p.tpot, scale: 1 },
   {
-    field: 'sla_p95_tpot_ms',
+    field: 'slo_p95_tpot_ms',
     get: (p) =>
       positive(p.raw.inter_token_latency_p95) ?? decodeMs(p.raw, 'p95'),
     scale: 1
   },
-  { field: 'sla_p99_tpot_ms', get: (p) => p.tpotP99, scale: 1 },
-  { field: 'sla_avg_latency_ms', get: (p) => p.latency, scale: 1000 },
+  { field: 'slo_p99_tpot_ms', get: (p) => p.tpotP99, scale: 1 },
+  { field: 'slo_avg_latency_ms', get: (p) => p.latency, scale: 1000 },
   {
-    field: 'sla_p95_latency_ms',
+    field: 'slo_p95_latency_ms',
     get: (p) => p.raw.request_latency_p95,
     scale: 1000
   },
-  { field: 'sla_p99_latency_ms', get: (p) => p.latP99, scale: 1000 }
+  { field: 'slo_p99_latency_ms', get: (p) => p.latP99, scale: 1000 }
 ];
 
-/** A stage below this success rate fails the SLA whatever its latencies say. */
-export const SLA_SUCCESS_FLOOR = 0.95;
+/** A stage below this success rate fails the SLO whatever its latencies say. */
+export const SLO_SUCCESS_FLOOR = 0.95;
 
-type SlaInputs = Omit<StagePoint, 'slaPass'>;
-type SlaTargets = Record<string, unknown> | null | undefined;
+type SloInputs = Omit<StagePoint, 'sloPass'>;
+type SloTargets = Record<string, unknown> | null | undefined;
 
-const evalSla = (p: SlaInputs, targets: SlaTargets): boolean | null => {
-  const active = SLA_CHECKS.filter(
+const evalSlo = (p: SloInputs, targets: SloTargets): boolean | null => {
+  const active = SLO_CHECKS.filter(
     (c) => typeof targets?.[c.field] === 'number'
   );
   if (!active.length) return null;
-  if (p.total <= 0 || p.ok / p.total < SLA_SUCCESS_FLOOR) return false;
+  if (p.total <= 0 || p.ok / p.total < SLO_SUCCESS_FLOOR) return false;
   // Every SET threshold must hold (AND). A threshold whose metric was never
   // recorded fails rather than being waived: "we did not measure it" is not
   // evidence that it held.
@@ -223,7 +254,7 @@ const evalSla = (p: SlaInputs, targets: SlaTargets): boolean | null => {
     const v = c.get(p);
     // Non-positive is "not measured" too, not "0 ms, passes". The decode-only
     // TPOT is undefined for single-token outputs and guidellm reports 0.0 for it;
-    // the worker's _sla_value draws the same line.
+    // the worker's _slo_value draws the same line.
     return v != null && v > 0 && v * c.scale <= (targets![c.field] as number);
   });
 };
@@ -234,9 +265,9 @@ interface BuildOpts {
   // True when the load axis is concurrency (so `load` is the configured
   // concurrency and the configured-vs-actual comparison is meaningful).
   isConcurrency?: boolean;
-  // The benchmark record, read for its flat sla_* threshold fields. Absent or
-  // threshold-free leaves every point's slaPass at null.
-  slaTargets?: SlaTargets;
+  // The benchmark record, read for its flat slo_* threshold fields. Absent or
+  // threshold-free leaves every point's sloPass at null.
+  sloTargets?: SloTargets;
 }
 
 /**
@@ -248,7 +279,7 @@ interface BuildOpts {
  */
 export const buildStagePoints = (
   results: BenchmarkResultItem[],
-  { recommendedRate, peakRate, isConcurrency, slaTargets }: BuildOpts
+  { recommendedRate, peakRate, isConcurrency, sloTargets }: BuildOpts
 ): StagePoint[] => {
   const measured = results
     .filter((r) => r.rate != null)
@@ -274,7 +305,7 @@ export const buildStagePoints = (
     const sampleCount =
       dist(r, 'time_to_first_token_ms', 'count') ?? r.request_successful ?? 0;
 
-    const point: SlaInputs = {
+    const point: SloInputs = {
       raw: r,
       id: r.id,
       load: r.rate as number,
@@ -311,6 +342,17 @@ export const buildStagePoints = (
       tpotP90: decodeMs(r, 'p90'),
       tpotP99: decodeMs(r, 'p99'),
 
+      // Flat column first, dump as the fallback: the columns only exist for
+      // points measured after the runner started writing them, while the dump
+      // carries the distribution for every point that has one. No `positive()`
+      // guard here — unlike the decode-only TPOT, a 0 is not how "not measured"
+      // shows up; an unmeasured point has no field at all and reads null.
+      itlMean: r.itl_per_chunk_mean ?? dist(r, ITL_FIELD, 'mean'),
+      itlP50: pct(r, ITL_FIELD, 'p50'),
+      itlP90: pct(r, ITL_FIELD, 'p90'),
+      itlP99: r.itl_per_chunk_p99 ?? pct(r, ITL_FIELD, 'p99'),
+      itlMax: r.itl_per_chunk_max ?? dist(r, ITL_FIELD, 'max'),
+
       total,
       ok: r.request_successful ?? 0,
       errored: r.request_errored ?? 0,
@@ -328,14 +370,14 @@ export const buildStagePoints = (
       isOverloaded: status === 'overloaded'
     };
 
-    return { ...point, slaPass: evalSla(point, slaTargets) };
+    return { ...point, sloPass: evalSlo(point, sloTargets) };
   });
 };
 
 // The saturation probe rows (rate == null) as StagePoints, so the table, the
 // stage-detail drill-down and the run totals treat them like any other stage.
 // A probe is NOT a ramp point: it has no load value (charts skip it), is never
-// best/peak/overloaded, and is not SLA-judged (no target rate to meet).
+// best/peak/overloaded, and is not SLO-judged (no target rate to meet).
 export const buildProbePoints = (probes: BenchmarkResultItem[]): StagePoint[] =>
   probes.map((r) => {
     const total = r.request_total ?? 0;
@@ -368,6 +410,17 @@ export const buildProbePoints = (probes: BenchmarkResultItem[]): StagePoint[] =>
       tpotP50: decodeMs(r, 'p50'),
       tpotP90: decodeMs(r, 'p90'),
       tpotP99: decodeMs(r, 'p99'),
+
+      // Flat column first, dump as the fallback: the columns only exist for
+      // points measured after the runner started writing them, while the dump
+      // carries the distribution for every point that has one. No `positive()`
+      // guard here — unlike the decode-only TPOT, a 0 is not how "not measured"
+      // shows up; an unmeasured point has no field at all and reads null.
+      itlMean: r.itl_per_chunk_mean ?? dist(r, ITL_FIELD, 'mean'),
+      itlP50: pct(r, ITL_FIELD, 'p50'),
+      itlP90: pct(r, ITL_FIELD, 'p90'),
+      itlP99: r.itl_per_chunk_p99 ?? pct(r, ITL_FIELD, 'p99'),
+      itlMax: r.itl_per_chunk_max ?? dist(r, ITL_FIELD, 'max'),
       total,
       ok: r.request_successful ?? 0,
       errored: r.request_errored ?? 0,
@@ -382,23 +435,23 @@ export const buildProbePoints = (probes: BenchmarkResultItem[]): StagePoint[] =>
       isBest: false,
       isPeak: false,
       isOverloaded: false,
-      slaPass: null
+      sloPass: null
     };
   });
 
 /**
- * Index of the stage from which the SLA is never met again, or -1.
+ * Index of the stage from which the SLO is never met again, or -1.
  *
  * NOT simply the first failing stage: a lone dip that recovers at a higher load
  * is noise, and shading from it would paint a red region over stages the table
  * marks ✓. The onset is the start of the failing SUFFIX, which is also the point
- * the backend's sla_met_rate is measured against.
+ * the backend's slo_met_rate is measured against.
  */
-export const slaBreachOnset = (points: StagePoint[]): number => {
+export const sloBreachOnset = (points: StagePoint[]): number => {
   let onset = -1;
   for (let i = points.length - 1; i >= 0; i--) {
-    if (points[i].slaPass === false) onset = i;
-    else if (points[i].slaPass === true) break;
+    if (points[i].sloPass === false) onset = i;
+    else if (points[i].sloPass === true) break;
   }
   return onset;
 };

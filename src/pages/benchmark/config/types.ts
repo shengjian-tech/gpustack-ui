@@ -1,3 +1,5 @@
+import type { Snapshot } from './detail-types';
+
 export interface ComputedResourceClaim {
   is_unified_memory: boolean;
   offload_layers: number;
@@ -74,9 +76,19 @@ export interface FormData {
   model_id: number;
   model_name: string;
   model_instance_name: string;
+  // What the load is aimed at: one instance (an engine) or the deployment's
+  // route. Absent on rows written before the field existed, which measured an
+  // instance.
+  target_mode?: string;
+  // The route to drive, in route mode. Submitted rather than derived: a model
+  // can sit behind several routes (an alias, a canary) and they are different
+  // measurements, so the one the user picked from the list is the one to send.
+  route_name?: string;
   dataset_name: string;
-  dataset_input_tokens: number;
-  dataset_output_tokens: number;
+  // Controls the optional ShareGPT token settings in the form only.
+  sharegpt_filter_enabled?: boolean;
+  dataset_input_tokens: number | null;
+  dataset_output_tokens: number | null;
   total_requests: number;
   request_rate: number;
   dataset_seed: number;
@@ -103,18 +115,18 @@ export interface FormData {
   stages?: StageRow[];
   // Global duration cap (guidellm --max-seconds) for non-stage runs
   max_seconds?: number;
-  // Latency SLA targets — optional "<= (ms)"; a point meets the SLA when every
+  // Latency SLO targets — optional "<= (ms)"; a point meets the SLO when every
   // set threshold holds (AND) + success >= 95%. avg + p95 + p99 of TTFT / TPOT /
   // e2e latency.
-  sla_avg_ttft_ms?: number; // avg TTFT
-  sla_avg_tpot_ms?: number; // avg TPOT
-  sla_p95_ttft_ms?: number;
-  sla_p95_tpot_ms?: number;
-  sla_p99_ttft_ms?: number;
-  sla_p99_tpot_ms?: number;
-  sla_avg_latency_ms?: number;
-  sla_p95_latency_ms?: number;
-  sla_p99_latency_ms?: number;
+  slo_avg_ttft_ms?: number; // avg TTFT
+  slo_avg_tpot_ms?: number; // avg TPOT
+  slo_p95_ttft_ms?: number;
+  slo_p95_tpot_ms?: number;
+  slo_p99_ttft_ms?: number;
+  slo_p99_tpot_ms?: number;
+  slo_avg_latency_ms?: number;
+  slo_p95_latency_ms?: number;
+  slo_p99_latency_ms?: number;
   output_tokens?: number;
   // Data distribution (spread token lengths around the mean)
   dataset_input_stdev?: number;
@@ -127,17 +139,25 @@ export interface FormData {
   prefix_buckets?: PrefixBucket[];
   // Advanced
   turns?: number;
-  warmup?: number;
-  cooldown?: number;
+  // Nullable on purpose: clearing the field must send an explicit null (an
+  // omitted key would leave the stored value in place on edit). The form seeds
+  // them as null too. Unit is a whole PERCENT here; the API column holds a
+  // fraction -- converted in `forms/index.tsx`.
+  warmup?: number | null;
+  cooldown?: number | null;
   max_errors?: number;
-  max_error_rate?: number;
+  // Same story as warmup / cooldown above: a whole PERCENT in the form, a
+  // fraction in the API column, and nullable so clearing it is explicit.
+  max_error_rate?: number | null;
   stop_on_saturation?: boolean;
   // Best operating points (server-computed, persisted on the parent row).
   peak_rate?: number;
-  sla_met_rate?: number;
+  slo_met_rate?: number;
   recommended_rate?: number;
   // Test-coverage validity (server-computed; language-neutral codes).
   validity?: {
+    // Manual stages have measurement findings but no search coverage verdict.
+    coverage_applicable?: boolean;
     // Absent while `in_progress`: mid-sweep there is no verdict to give.
     sufficient?: boolean;
     warnings?: { code: string; params?: Record<string, unknown> }[];
@@ -145,9 +165,9 @@ export interface FormData {
     // stage / legacy runs and for rows written before the runner reported it).
     stop_reason?: string;
     stopped_at?: number;
-    // Whether `sla_met_rate` is a measured boundary ("257 breaks it") or only a
-    // floor (">= 256, the search ended first"). Absent when no SLA was set.
-    sla_boundary_located?: boolean;
+    // Whether `slo_met_rate` is a measured boundary ("257 breaks it") or only a
+    // floor (">= 256, the search ended first"). Absent when no SLO was set.
+    slo_boundary_located?: boolean;
     // The saturation probe's reading, the soft cap it produced, and how many times
     // that cap gave way. Together they say whether the probe earned its cost:
     // relaxed > 0 = it read low; stopped_at == bound = it clamped the overshoot
@@ -176,24 +196,19 @@ export interface PrefixBucket {
   bucket_weight?: number | null; // weight in the overall prefix distribution
 }
 
-// One measured (input_tokens, rate) point, from GET /benchmarks/{id}/results.
-export interface BenchmarkResultItem {
-  id: number;
-  benchmark_id: number;
-  input_tokens: number | null;
-  rate: number | null;
-  strategy_type: string | null;
-  sequence: number;
+// The metric columns the API returns for a measured point, and the same set on
+// the parent row for its representative point (the server's BenchmarkMetricsLite).
+export interface BenchmarkMetricsLite {
   requests_per_second_mean: number | null;
   request_latency_mean: number | null;
   time_per_output_token_mean: number | null;
   inter_token_latency_mean: number | null;
   time_to_first_token_mean: number | null;
-  // Tail percentiles of the SLA-relevant latency metrics. TTFT / TPOT are ms,
+  // Tail percentiles of the SLO-relevant latency metrics. TTFT / TPOT are ms,
   // request latency is seconds (same units as their *_mean counterparts).
   //
   // TPOT means `inter_token_latency_*` — decode only, the industry definition,
-  // and what the sla_*_tpot_ms thresholds are judged on. The
+  // and what the slo_*_tpot_ms thresholds are judged on. The
   // `time_per_output_token_*` pair is guidellm's includes-TTFT variant: still
   // returned by the API, not displayed and not judged on.
   time_to_first_token_p95: number | null;
@@ -204,6 +219,17 @@ export interface BenchmarkResultItem {
   inter_token_latency_p99: number | null;
   time_per_output_token_p99: number | null;
   request_latency_p99: number | null;
+  // Measured ITL: the gaps BETWEEN consecutive streamed outputs, one sample per
+  // gap, pooled across requests. Every metric above is one value per REQUEST,
+  // so a single decode stall is averaged away by that request's other gaps —
+  // this is the only reading that keeps it. Same definition as vLLM's ITL.
+  //
+  // null means NOT MEASURED (a point recorded before the runner started
+  // capturing the gaps, or a non-streaming run), never "the gaps were 0 ms".
+  itl_per_chunk_mean: number | null;
+  itl_per_chunk_p95: number | null;
+  itl_per_chunk_p99: number | null;
+  itl_per_chunk_max: number | null;
   tokens_per_second_mean: number | null;
   output_tokens_per_second_mean: number | null;
   input_tokens_per_second_mean: number | null;
@@ -213,14 +239,27 @@ export interface BenchmarkResultItem {
   request_successful: number | null;
   request_errored: number | null;
   request_incomplete: number | null;
+}
+
+// One measured (input_tokens, rate) point, from GET /benchmarks/{id}/results.
+export interface BenchmarkResultItem extends BenchmarkMetricsLite {
+  id: number;
+  benchmark_id: number;
+  input_tokens: number | null;
+  rate: number | null;
+  strategy_type: string | null;
+  sequence: number;
   // This stage's benchmarks[i] dump (includes percentiles) for drill-down.
   raw_metrics?: any;
   created_at: string;
   updated_at: string;
 }
 
-export interface BenchmarkListItem extends FormData {
+// A list row carries the run's configuration plus the metrics of the point the
+// server picked to represent it, which is what the table's metric columns read.
+export interface BenchmarkListItem extends FormData, BenchmarkMetricsLite {
   id: number;
+  snapshot?: Snapshot | null;
   // Inherited from the parent cluster's owner_principal_id on the
   // wire so per-row tenant filtering works without joining.
   owner_principal_id?: number | null;
@@ -238,8 +277,10 @@ export interface ProfileOption {
   description: string;
   dataset_name: string;
   dataset_source: string;
-  dataset_input_tokens: number;
-  dataset_output_tokens: number;
+  dataset_input_tokens: number | null;
+  dataset_input_min?: number;
+  dataset_input_max?: number;
+  dataset_output_tokens: number | null;
   request_rate: number;
   total_requests: number;
   // preset fields (filled into the form when a preset is selected)
@@ -251,14 +292,23 @@ export interface ProfileOption {
   max_total_seconds?: number;
   max_seconds?: number;
   stages?: StageRow[];
-  sla_avg_ttft_ms?: number;
-  sla_avg_tpot_ms?: number;
-  sla_p95_ttft_ms?: number;
-  sla_p95_tpot_ms?: number;
-  sla_p99_ttft_ms?: number;
-  sla_p99_tpot_ms?: number;
-  sla_avg_latency_ms?: number;
-  sla_p95_latency_ms?: number;
-  sla_p99_latency_ms?: number;
+  slo_avg_ttft_ms?: number;
+  slo_avg_tpot_ms?: number;
+  slo_p95_ttft_ms?: number;
+  slo_p95_tpot_ms?: number;
+  slo_p99_ttft_ms?: number;
+  slo_p99_tpot_ms?: number;
+  slo_avg_latency_ms?: number;
+  slo_p95_latency_ms?: number;
+  slo_p99_latency_ms?: number;
   dataset_seed?: number;
+}
+
+export interface BenchmarkFilterValues {
+  search: string;
+  model_name: string;
+  gpu_summary: string;
+  profile: string;
+  target_mode?: string;
+  load_type?: string;
 }

@@ -205,7 +205,7 @@ const ResourceEvents: React.FC = () => {
           // Event column — surface it (with its detail) as an error message.
           if (row?.phase && /failed$/i.test(row.phase)) {
             return (
-              <span style={{ color: 'var(--ant-color-error)' }}>
+              <span style={{ color: 'var(--color-status-error-text)' }}>
                 {row.phase_message || humanizePhase(row.phase)}
               </span>
             );
@@ -261,6 +261,11 @@ const ResourceEvents: React.FC = () => {
               onChange={(v) => fetchEvents({ eventTypes: v, page: 1 })}
               options={EVENT_TYPE_OPTIONS}
               style={{ width: 240 }}
+              styles={{
+                wrapper: {
+                  flex: 'unset'
+                }
+              }}
             />
           </>
         }

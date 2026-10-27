@@ -88,10 +88,7 @@ const Users: React.FC = () => {
         open: false
       });
       message.success(intl.formatMessage({ id: 'common.message.success' }));
-    } catch (error) {
-      setOpenAddModalStatus({ ...openAddModalStatus, open: false });
-      message.error(intl.formatMessage({ id: 'common.message.fail' }));
-    }
+    } catch (error) {}
   };
 
   const handleModalCancel = () => {
@@ -122,9 +119,7 @@ const Users: React.FC = () => {
       });
       handleSearch();
       message.success(intl.formatMessage({ id: 'common.message.success' }));
-    } catch (error) {
-      message.error(intl.formatMessage({ id: 'common.message.fail' }));
-    }
+    } catch (error) {}
   };
 
   const handleSelect = useMemoizedFn((val: any, row: ListItem) => {
@@ -174,8 +169,6 @@ const Users: React.FC = () => {
     <>
       <PageBox>
         <FilterBar
-          marginBottom={22}
-          marginTop={30}
           buttonText={intl.formatMessage({ id: 'users.button.create' })}
           handleSearch={handleSearch}
           handleDeleteByBatch={handleDeleteBatch}

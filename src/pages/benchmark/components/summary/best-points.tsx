@@ -1,16 +1,17 @@
 import { useIntl } from '@umijs/max';
-import { Tooltip } from 'antd';
+import { Flex, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { round } from 'lodash';
 import React from 'react';
 import { loadAxisLabelId, loadValueDecimals } from '../../config';
 import { useDetailContext } from '../../config/detail-context';
-import { StagePoint, pctDelta } from './metrics';
+import { SLO_SUCCESS_FLOOR, StagePoint, pctDelta } from './metrics';
 
 // One horizontal band: the payoff number on the left, the operating point's six
 // defining metrics in a single row, and the "why this one" reasoning on the right.
-// Success rate is deliberately NOT here — it belongs on the Detailed metrics
-// header as a pill, since a 100% run has nothing to say.
+// The success rate on the right is THIS POINT's, standing as a credential on the
+// headline throughput; the RUN-wide rate is a separate pill on the Detailed
+// metrics header, where a 100% run has nothing to say.
 const useStyles = createStyles(({ css }) => ({
   wrapper: css`
     display: flex;
@@ -40,7 +41,7 @@ const useStyles = createStyles(({ css }) => ({
     .hero {
       display: flex;
       align-items: baseline;
-      gap: 7px;
+      gap: 8px;
     }
     .hero .v {
       font-size: 40px;
@@ -65,25 +66,27 @@ const useStyles = createStyles(({ css }) => ({
     @media (max-width: 1100px) {
       .col-stats {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        row-gap: 14px;
+        row-gap: 16px;
       }
     }
     .stat .k {
       font-size: 12px;
       color: var(--ant-color-text-tertiary);
       white-space: nowrap;
+      margin-bottom: 8px;
     }
     .stat .b {
       display: flex;
       align-items: baseline;
-      gap: 3px;
+      gap: 4px;
       white-space: nowrap;
     }
     .stat .b .n {
-      font-size: 20px;
+      font-size: 16px;
       color: var(--ant-color-text);
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.015em;
+      font-weight: 500;
     }
     .stat .b .u {
       font-size: 11px;
@@ -116,15 +119,19 @@ const useStyles = createStyles(({ css }) => ({
       font-variant-numeric: tabular-nums;
     }
     .why .badge.up {
-      color: var(--ant-color-success);
+      color: var(--color-status-success-text);
       background: var(--ant-color-success-bg);
     }
     .why .badge.flat {
       color: var(--ant-color-text-tertiary);
       background: var(--ant-color-fill-quaternary);
     }
+    .why .badge.warn {
+      color: var(--color-status-warning-text);
+      background: var(--ant-color-warning-bg);
+    }
     .why .cost {
-      color: var(--ant-color-error);
+      color: var(--color-status-error-text);
     }
     .why .capacity {
       cursor: help;
@@ -135,14 +142,14 @@ const useStyles = createStyles(({ css }) => ({
       font-variant-numeric: tabular-nums;
       margin-left: 5px;
     }
-    /* SLA budget: pills, so an SLA run makes its thresholds explicit next to the
+    /* SLO budget: pills, so an SLO run makes its thresholds explicit next to the
        point that was chosen to satisfy them. */
-    .sla {
+    .slo {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
-    .sla .pill {
+    .slo .pill {
       font-size: 11px;
       font-weight: 600;
       color: var(--ant-color-primary);
@@ -179,17 +186,27 @@ const BestPoints: React.FC<BestPointsProps> = ({ points, onSelect }) => {
       : 'benchmark.table.best.unit.rate'
   );
 
-  const idx = points.findIndex((p) => p.isBest);
-  const prev = idx > 0 ? points[idx - 1] : null;
   const peak = points.find((p) => p.isPeak);
 
-  // Reason 1 — what the extra load bought over the previous stage.
-  const gainOverPrev =
-    prev && prev.tps != null && best.tps != null
-      ? pctDelta(prev.tps, best.tps)
-      : null;
+  // Reason 1 — the credential on the headline number: was this throughput
+  // delivered, or reached by dropping requests? A peak measured while 20% of
+  // requests failed is not a peak anyone can run at.
+  //
+  // This is THIS POINT's success rate, not the run's. Every other figure in the
+  // card belongs to the best point, and the run-wide rate already has its own
+  // capsule in the section header (with the probe excluded from its denominator).
+  //
+  // It replaced "+N% throughput over {previous stage}", which got less meaningful
+  // the better the search became: Phase 2 converges AROUND the peak, so once it
+  // works the previous stage is one req/s away and the reader is told the best
+  // point beats a neighbour that exists only because the algorithm bisected there.
+  const okRate = best.total > 0 ? best.ok / best.total : null;
+  // Rounded ONCE, and the threshold is then read off the displayed figure: judging
+  // the raw ratio makes 0.9496 render "95%" while colouring it as a breach, so the
+  // badge would contradict its own number on exactly the boundary it exists for.
+  const okPct = okRate == null ? null : round(okRate * 100, 1);
   // Reason 2 — what pushing on to the throughput peak would cost. Latency is
-  // compared on p99, the metric an SLA is actually written against.
+  // compared on p99, the metric an SLO is actually written against.
   const peakGain =
     peak && peak.tps != null && best.tps != null
       ? pctDelta(best.tps, peak.tps)
@@ -199,23 +216,23 @@ const BestPoints: React.FC<BestPointsProps> = ({ points, onSelect }) => {
       ? pctDelta(best.ttftP99, peak.ttftP99)
       : null;
 
-  // Only meaningful for an SLA run; `sla_boundary_located` is absent for the rest.
-  const slaCapacity = detailData?.sla_met_rate ?? null;
-  const boundaryLocated = detailData?.validity?.sla_boundary_located === true;
+  // Only meaningful for an SLO run; `slo_boundary_located` is absent for the rest.
+  const sloCapacity = detailData?.slo_met_rate ?? null;
+  const boundaryLocated = detailData?.validity?.slo_boundary_located === true;
 
   // TPOT here is the decode-only metric the table shows: the thresholds, the
-  // stage verdicts and the server's sla_met_rate all sit on that one basis.
-  const slaTargets: string[] = (
+  // stage verdicts and the server's slo_met_rate all sit on that one basis.
+  const sloTargets: string[] = (
     [
-      [detailData?.sla_avg_ttft_ms, 'TTFT Avg'],
-      [detailData?.sla_p95_ttft_ms, 'TTFT p95'],
-      [detailData?.sla_p99_ttft_ms, 'TTFT p99'],
-      [detailData?.sla_avg_tpot_ms, 'TPOT Avg'],
-      [detailData?.sla_p95_tpot_ms, 'TPOT p95'],
-      [detailData?.sla_p99_tpot_ms, 'TPOT p99'],
-      [detailData?.sla_avg_latency_ms, 'Latency Avg'],
-      [detailData?.sla_p95_latency_ms, 'Latency p95'],
-      [detailData?.sla_p99_latency_ms, 'Latency p99']
+      [detailData?.slo_avg_ttft_ms, 'TTFT Avg'],
+      [detailData?.slo_p95_ttft_ms, 'TTFT p95'],
+      [detailData?.slo_p99_ttft_ms, 'TTFT p99'],
+      [detailData?.slo_avg_tpot_ms, 'TPOT Avg'],
+      [detailData?.slo_p95_tpot_ms, 'TPOT p95'],
+      [detailData?.slo_p99_tpot_ms, 'TPOT p99'],
+      [detailData?.slo_avg_latency_ms, 'Latency Avg'],
+      [detailData?.slo_p95_latency_ms, 'Latency p95'],
+      [detailData?.slo_p99_latency_ms, 'Latency p99']
     ] as Array<[number | undefined, string]>
   )
     .filter(([v]) => v != null)
@@ -228,7 +245,7 @@ const BestPoints: React.FC<BestPointsProps> = ({ points, onSelect }) => {
       ? '-'
       : round(v, digits ?? (Math.abs(v) < 10 ? 2 : 0)).toLocaleString();
 
-  const stats: Array<{ k: string; v: string; u: string }> = [
+  const stats: Array<{ k: string; v: string; u?: string }> = [
     {
       k: t(loadAxisLabelId(detailData)),
       v: String(round(best.load, dec)),
@@ -236,8 +253,8 @@ const BestPoints: React.FC<BestPointsProps> = ({ points, onSelect }) => {
     },
     {
       k: t('benchmark.detail.requests.concurrency'),
-      v: fmt(best.conc, 0),
-      u: t('benchmark.detail.unit.avg')
+      v: fmt(best.conc, 0)
+      // u: t('benchmark.detail.unit.avg')
     },
     {
       k: t('benchmark.detail.percentile.input'),
@@ -249,8 +266,11 @@ const BestPoints: React.FC<BestPointsProps> = ({ points, onSelect }) => {
       v: fmt(best.outTps, 0),
       u: 'tok/s'
     },
+    // Both latencies on p99, not one tail and one average: the two numbers sit
+    // side by side and are read against each other, so mixing the aggregations
+    // invites comparing a tail to a mean. The averages are in the stage detail.
     { k: 'TTFT p99', v: fmt(best.ttftP99), u: 'ms' },
-    { k: t('benchmark.detail.avg.tpot'), v: fmt(best.tpot), u: 'ms' }
+    { k: 'TPOT p99', v: fmt(best.tpotP99), u: 'ms' }
   ];
 
   return (
@@ -276,55 +296,71 @@ const BestPoints: React.FC<BestPointsProps> = ({ points, onSelect }) => {
       <div className="col-stats">
         {stats.map((s) => (
           <div className="stat" key={s.k}>
-            <div className="k">{s.k}</div>
+            <Flex gap={4} align="center" className="k">
+              <div>{s.k}</div>
+              {s.u && <div>({s.u})</div>}
+            </Flex>
             <div className="b">
               <span className="n">{s.v}</span>
-              <span className="u">{s.u}</span>
             </div>
           </div>
         ))}
       </div>
 
       <div className="col-why">
-        {slaTargets.length > 0 && (
-          <div className="sla">
-            {slaTargets.map((s) => (
+        {sloTargets.length > 0 && (
+          <div className="slo">
+            {sloTargets.map((s) => (
               <span className="pill" key={s}>
                 {s}
               </span>
             ))}
           </div>
         )}
-        {/* The SLA capacity, stated as what it actually is. Without a measured
+        {/* The SLO capacity, stated as what it actually is. Without a measured
             breach above it the number is a FLOOR, not the boundary — rendering
             "256" flat would invent a ceiling nobody measured, and capacity
             planning would then be done against it. */}
-        {slaCapacity != null && (
+        {sloCapacity != null && (
           <div className="why">
             <Tooltip
               title={t(
                 boundaryLocated
-                  ? 'benchmark.detail.sla.capacity.locatedHint'
-                  : 'benchmark.detail.sla.capacity.floorHint'
+                  ? 'benchmark.detail.slo.capacity.locatedHint'
+                  : 'benchmark.detail.slo.capacity.floorHint'
               )}
             >
               <span className="capacity">
-                {t('benchmark.detail.sla.capacity')}
+                {t('benchmark.detail.slo.capacity')}
                 <b>
                   {boundaryLocated ? '' : '≥ '}
-                  {round(slaCapacity, dec)} {loadUnit}
+                  {round(sloCapacity, dec)} {loadUnit}
                 </b>
               </span>
             </Tooltip>
           </div>
         )}
-        {gainOverPrev != null && gainOverPrev > 0 && prev && (
+        {okPct != null && (
           <div className="why">
-            <span className="badge up">+{gainOverPrev}%</span>
+            {/* SLO_SUCCESS_FLOOR is the floor the engine itself judges a point on
+                (below it a stage counts as overloaded and fails the SLO whatever
+                its latencies say), so the badge switches colour there rather than
+                at a number chosen for the display.
+                Below it the badge is a WARNING, not neutral: the stage table marks
+                the same fact in red, and grey would say nothing happened. Warning
+                rather than error because the recommendation still stands — it is a
+                caveat on the headline number, not a failed run. */}
+            <span
+              className={
+                okPct >= SLO_SUCCESS_FLOOR * 100 ? 'badge up' : 'badge warn'
+              }
+            >
+              {okPct}%
+            </span>
             <span>
-              {t('benchmark.detail.reason.throughputVsPrev', {
-                up: gainOverPrev,
-                prevRate: round(prev.load, dec)
+              {t('benchmark.detail.reason.requestsSucceeded', {
+                ok: best.ok,
+                total: best.total
               })}
             </span>
           </div>

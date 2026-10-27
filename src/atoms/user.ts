@@ -1,7 +1,19 @@
+import { nsSessionJSONStorage } from '@/atoms/utils';
+import { nsLocal, nsLocalJSONStorage } from '@gpustack/core-ui/utils';
 import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
-export const userAtom = atomWithStorage<any>('userInfo', null);
+// Exported because the login guard has to read these two out of storage
+// directly, before the atoms hydrate. Keep the atoms and the guard on
+// the same key.
+export const USER_INFO_KEY = 'userInfo';
+export const INITIAL_PASSWORD_KEY = 'initialPassword';
+
+export const userAtom = atomWithStorage<any>(
+  USER_INFO_KEY,
+  null,
+  nsLocalJSONStorage
+);
 
 // Backs the `currentOrganizationId` localStorage key. Stays null in
 // builds with no Org context (single-tenant), and is shared with any
@@ -9,7 +21,8 @@ export const userAtom = atomWithStorage<any>('userInfo', null);
 // without one side having to import from the other.
 export const currentOrganizationIdAtom = atomWithStorage<number | null>(
   'currentOrganizationId',
-  null
+  null,
+  nsLocalJSONStorage
 );
 
 export const GPUStackVersionAtom = atom<{
@@ -32,7 +45,32 @@ export const UpdateCheckAtom = atom<{
   latest_version: ''
 });
 
-export const initialPasswordAtom = atom<string>('');
+// Encrypted initial admin password, kept only for the forced
+// password-change form — it is the `current_password` that
+// `POST /auth/update-password` demands, and the user has no other copy
+// of it in the UI.
+//
+// Persisted rather than held in memory because `require_password_change`
+// rides on `userAtom` (localStorage) and so survives a refresh: an
+// in-memory credential leaves the form rendered after a refresh with
+// nothing valid to submit, and no way out but clearing site data.
+// `sessionStorage` keeps the two in step across a refresh while still
+// dropping the password when the tab closes, so a first-login flow the
+// user abandons doesn't leave it on disk indefinitely.
+//
+// `getOnInit` matters: without it jotai seeds the atom with `''` and
+// only hydrates from storage in `onMount`, one render late — long
+// enough for anything reading it on first paint to see an empty
+// credential.
+//
+// Cleared on a successful change, on logout, and on any login that
+// doesn't require one.
+export const initialPasswordAtom = atomWithStorage<string>(
+  INITIAL_PASSWORD_KEY,
+  '',
+  nsSessionJSONStorage,
+  { getOnInit: true }
+);
 
 // Namespace the server creates for an Org's resources on each Kubernetes
 // cluster. The format must match the backend's ``get_namespace_name``
@@ -70,7 +108,7 @@ export const getCurrentOrgNamespace = (
 
 const getStoredCurrentOrgId = (): number | null => {
   try {
-    const raw = localStorage.getItem('currentOrganizationId');
+    const raw = nsLocal.get('currentOrganizationId');
     if (!raw) return null;
     const value = JSON.parse(raw);
     return typeof value === 'number' ? value : null;
@@ -108,7 +146,7 @@ export const getOrgById = (
   const target = String(id);
   for (const key of ORG_CACHE_KEYS) {
     try {
-      const raw = localStorage.getItem(key);
+      const raw = nsLocal.get(key);
       if (!raw) continue;
       const list = JSON.parse(raw) as CachedOrg[];
       if (!Array.isArray(list)) continue;

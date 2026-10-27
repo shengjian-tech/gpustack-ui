@@ -17,7 +17,7 @@ import React, {
   useImperativeHandle,
   useState
 } from 'react';
-import { ProviderType, ProviderValueMap } from '../config';
+import { isCloudProvider, ProviderType, ProviderValueMap } from '../config';
 import { FormContext } from '../config/form-context';
 import {
   ClusterFormData as FormData,
@@ -25,10 +25,12 @@ import {
 } from '../config/types';
 import AdvanceConfig from '../step-forms/advance-config';
 import CloudProvider from './cloud-provider-form';
+import DefaultRegistryField from './default-registry-field';
 import K8sAdvancedOptions, {
   ClusterTypeSelector,
   K8sOptionsChangeWatcher
 } from './k8s-pod-spec';
+import ServerUrlField from './server-url-field';
 
 type AddModalProps = {
   action: PageActionType;
@@ -58,6 +60,9 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
     const [form] = Form.useForm();
     const intl = useIntl();
     const [activeKey, setActiveKey] = React.useState<string[]>([]);
+    // Chart Values are edited in monaco, outside the form store, so the
+    // watcher below is told about them rather than watching for them.
+    const [chartValuesDirty, setChartValuesDirty] = useState(false);
     const [submitAttempted, setSubmitAttempted] = useState(false);
     // Single source of truth for the K8s cluster type, seeded from the cluster
     // being edited. Shared via FormContext so the type selector and the
@@ -67,6 +72,8 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
     );
     const advanceConfigRef = React.useRef<any>(null);
     const systemConfig = useAtomValue(systemConfigAtom);
+
+    const handleChartValuesDirty = () => setChartValuesDirty(true);
 
     const handleOnCollapseChange = async (keys: string | string[]) => {
       setActiveKey(Array.isArray(keys) ? keys : [keys]);
@@ -85,13 +92,43 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
       }
     }, [activeKey, action]);
 
-    const normalizeOutgoing = (values: any): any => {
+    // Every Chart Values error — a local parse failure or the backend's 422 —
+    // is rendered *inside* the Advanced panel. The panel starts collapsed and
+    // is not an antd Form.Item, so `scrollToFirstError` will not reveal it:
+    // without this, a submit blocked by that field looks like a dead button.
+    const revealAdvanced = () =>
+      setActiveKey((prev) =>
+        prev.includes('advanceConfig') ? prev : [...prev, 'advanceConfig']
+      );
+
+    // Chart Values live in a monaco editor, not the form store, so they are
+    // read at submit like `worker_config`. Throws (after showing the reason
+    // under the editor) when the YAML does not parse to a mapping, which is
+    // what keeps a broken override from being requested.
+    const readHelmValues = () =>
+      provider === ProviderValueMap.Kubernetes
+        ? (advanceConfigRef.current?.getChartValues() ?? null)
+        : undefined;
+
+    const normalizeOutgoing = (values: any, helmValues?: any): any => {
       const base: any = { ...values };
 
       const opts = base.k8s_options;
-      if (!opts) return base;
+      // Chart Values are read from the editor, not the store, so they must
+      // survive a payload that carries no `k8s_options` at all. `null` when
+      // the editor is empty: the backend stores `{}` verbatim, so sending it
+      // would persist an empty override instead of no override.
+      if (!opts) {
+        return provider === ProviderValueMap.Kubernetes
+          ? { ...base, k8s_options: { helmValues: helmValues ?? null } }
+          : base;
+      }
 
       const next: any = { ...opts };
+
+      if (provider === ProviderValueMap.Kubernetes) {
+        next.helmValues = helmValues ?? null;
+      }
 
       // "model" clusters must not carry GPU-instance config. The field's UI is
       // unmounted when model is selected, but strip it here too so the payload
@@ -121,13 +158,27 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
 
     const handleOnFinish = (values: FormData) => {
       const workerConfig = yaml2Json(advanceConfigRef.current?.getYamlValue());
+      let helmValues: any;
+      try {
+        helmValues = readHelmValues();
+      } catch (e) {
+        // The editor is already showing why. Bail out the same way a failed
+        // field validation does, so nothing is requested.
+        setSubmitAttempted(true);
+        revealAdvanced();
+        onFinishFailed?.(e);
+        return;
+      }
       onFinish(
-        normalizeOutgoing({
-          ...values,
-          worker_config: {
-            ...workerConfig
-          }
-        })
+        normalizeOutgoing(
+          {
+            ...values,
+            worker_config: {
+              ...workerConfig
+            }
+          },
+          helmValues
+        )
       );
     };
 
@@ -177,15 +228,6 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
       }
     }, [currentData, systemConfig?.system_default_container_registry]);
 
-    useEffect(() => {
-      if (currentData) {
-        if (advanceConfigRef.current) {
-          const workerConfigYaml = json2Yaml(currentData.worker_config || {});
-          advanceConfigRef.current?.setYamlValue(workerConfigYaml);
-        }
-      }
-    }, [currentData, advanceConfigRef.current]);
-
     useImperativeHandle(ref, () => ({
       resetFields: () => {
         form.resetFields();
@@ -212,6 +254,13 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
           }
         };
       },
+      // Surfaces the backend's message for the Chart Values field under the
+      // editor. The rejected paths follow the chart, so the server's own text
+      // is the only list that stays correct.
+      setChartValuesError: (message: string) => {
+        advanceConfigRef.current?.setChartValuesError(message);
+        if (message) revealAdvanced();
+      },
       validateFields: async () => {
         try {
           await form.validateFields();
@@ -225,14 +274,37 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
           advanceConfigRef.current?.getYamlValue()
         );
 
-        return normalizeOutgoing({
-          ...values,
-          worker_config: {
-            ...workerConfig
-          }
-        });
+        // Throws on unparseable Chart Values, so the wizard's step gate treats
+        // it exactly like a failed field validation.
+        let helmValues: any;
+        try {
+          helmValues = readHelmValues();
+        } catch (e) {
+          setSubmitAttempted(true);
+          revealAdvanced();
+          // Carry the store on the rejection, the way antd's own
+          // `validateFields` does. The wizard keeps each step's snapshot from
+          // `reason.values` and falls back to `{}` without it — and a `{}`
+          // snapshot is fed back in as `currentData`, which resets this form's
+          // fields, wiping the volume mounts over a missing bracket in YAML.
+          throw Object.assign(e as Error, { values });
+        }
+
+        return normalizeOutgoing(
+          {
+            ...values,
+            worker_config: {
+              ...workerConfig
+            }
+          },
+          helmValues
+        );
       }
     }));
+
+    const descriptionIsLastField =
+      provider !== ProviderValueMap.Kubernetes &&
+      provider !== ProviderValueMap.Shuihua;
 
     const handleOnFinishFailed = (errorInfo: any) => {
       setSubmitAttempted(true);
@@ -241,7 +313,16 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
 
     return (
       <FormContext.Provider
-        value={{ submitAttempted, clusterType, setClusterType }}
+        // `action` is what tells a nested field whether it is registering or
+        // editing; `currentData` only says whether values are present, which in
+        // the wizard is also true for a step the user has merely revisited.
+        value={{
+          action,
+          currentData,
+          submitAttempted,
+          clusterType,
+          setClusterType
+        }}
       >
         <Form
           name="clusterForm"
@@ -273,7 +354,7 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
             ></CInput.Input>
           </Form.Item>
           <PluginExtraFields name="CreateOrgScopeField" context={{ action }} />
-          {provider === ProviderValueMap.DigitalOcean && (
+          {isCloudProvider(provider) && (
             <CloudProvider
               provider={provider}
               action={action}
@@ -286,8 +367,11 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
             name="description"
             rules={[{ required: false }]}
             style={{
-              marginBottom:
-                provider === ProviderValueMap.Kubernetes ? undefined : 8
+              // The tight gap is only right when the description is the last
+              // field before the "Advanced" collapse. Kubernetes (cluster
+              // type) and Shuihua (default registry) both render a field after
+              // it, which has to keep the normal 24px field rhythm.
+              marginBottom: descriptionIsLastField ? 8 : undefined
             }}
           >
             <SealTextArea
@@ -295,6 +379,11 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
               label={intl.formatMessage({ id: 'common.table.description' })}
             ></SealTextArea>
           </Form.Item>
+
+          {/* Shuihua pulls the registry out of "Advanced" and requires it. */}
+          {provider === ProviderValueMap.Shuihua && (
+            <DefaultRegistryField provider={provider} />
+          )}
 
           {provider === ProviderValueMap.Kubernetes && <ClusterTypeSelector />}
 
@@ -309,6 +398,12 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
                 forceRender: true,
                 children: (
                   <>
+                    {/* Docker and Kubernetes register their own workers, so the
+                        server URL is an optional override here. Cloud providers
+                        get a required copy in the basic form instead. */}
+                    {!isCloudProvider(provider) && (
+                      <ServerUrlField provider={provider} />
+                    )}
                     {provider === ProviderValueMap.Kubernetes && (
                       <K8sAdvancedOptions
                         key={currentData?.id ?? 'new'}
@@ -319,6 +414,7 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
                       action={action}
                       provider={provider}
                       currentData={currentData}
+                      onChartValuesDirty={handleChartValuesDirty}
                       ref={advanceConfigRef}
                     ></AdvanceConfig>
                   </>
@@ -331,6 +427,7 @@ const ClusterForm: React.FC<AddModalProps> = forwardRef(
             <K8sOptionsChangeWatcher
               action={action}
               currentData={currentData}
+              extraChanged={chartValuesDirty}
               onChange={onK8sOptionsChange}
             />
           )}

@@ -34,6 +34,12 @@ export interface SummaryDataKeys {
   // Multi-vendor selection for K8s register flow — array of GPU driver keys.
   // Falls back to `[currentGPU]` for the single-select default path.
   selectedGPUs: string[];
+  // K8s register flow only: drops the CPU worker DaemonSet from the rendered
+  // manifest. Set from the CPU Node card, which every registration starts
+  // unselected — so this defaults to `true`, the inverse of the chart's
+  // `worker.cpuEnabled`. A one-shot manifest choice, not a persisted cluster
+  // field.
+  disableCpuWorker: boolean;
   cluster_id: number;
   clusterName: string;
   dtkVersion: string;
@@ -67,6 +73,11 @@ export interface SummaryDataKeys {
     enable: boolean;
     ip: string;
     required: boolean;
+  };
+  // NVIDIA only: gives the worker container the InfiniBand devices and the
+  // privileges RDMA needs, which mirrored deployment passes on to its runners.
+  rdmaConfig: {
+    enable: boolean;
   };
 }
 

@@ -1,10 +1,6 @@
 import { PageAction } from '@/config';
 import { PageActionType } from '@/config/types';
-import {
-  ceilMilliToCore,
-  parseJsonSafe,
-  parseQuantityToGi
-} from '@/pages/gpu-service/utils';
+import { ceilMilliToCore, parseQuantityToGi } from '@/pages/gpu-service/utils';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   CheckboxField,
@@ -44,8 +40,15 @@ import {
   StorageModeValueMap
 } from '../config';
 import { FormContext } from '../config/form-context';
-import { FormData, InstanceTypeItem, ListItem } from '../config/types';
+import {
+  AcceleratorSlicedPhysicalDetailProfile,
+  FormData,
+  InstanceTypeItem,
+  InstanceTypeSnapshotSpec,
+  ListItem
+} from '../config/types';
 import instanceStyles from '../styles/instances.module.less';
+import { buildInstanceTypeSnapshot } from '../utils/type-snapshot';
 import Basic from './basic';
 import InstanceTypeFormItem from './instance-type';
 import PublicKeyOverlay from './public-key-overlay';
@@ -138,7 +141,6 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
     // sections; displayName and the SSH public keys keep following `disabled`.
     const sectionDisabled = disabled || restrictedEdit;
     const sshEnabled = Form.useWatch('enable_ssh', form);
-    const description = Form.useWatch(['description'], form);
     // `organization_id` is owned by the create-scope picker slot; it only
     // exists/changes when a platform admin retargets the form. Watch it
     // so the parent can re-scope offerings (see onScopeChange).
@@ -174,10 +176,24 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
       [ports]
     );
 
-    const isGPUType = useMemo(() => {
-      const spec = parseJsonSafe(description || '{}', {} as any)?.spec;
-      return spec?.acceleratable;
-    }, [description]);
+    const [selectedInstanceType, setSelectedInstanceType] = useState<
+      InstanceTypeItem | undefined
+    >(undefined);
+    const [onceMaxRequest, setOnceMaxRequest] = useState<BasicResourceMax>({
+      cpu: null,
+      memory: null,
+      localStorage: null
+    });
+
+    // A type picked this session (create, or a re-typed stopped edit) decides
+    // the form's shape — by selection, not truthiness, so a re-picked CPU
+    // type still turns the form CPU-shaped. With no pick, the row's
+    // server-resolved summary decides. The persisted description blob is not
+    // a source: edit init backfills it, so its spec cannot tell a fresh pick
+    // from a stale row.
+    const isGPUType = selectedInstanceType
+      ? !!selectedInstanceType.spec?.acceleratable
+      : !!currentData?.typeSnapshotDetail?.spec?.acceleratable;
 
     useEffect(() => {
       if (open) {
@@ -249,17 +265,13 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
       [intl]
     );
 
-    const [selectedInstanceType, setSelectedInstanceType] = useState<
-      InstanceTypeItem | undefined
-    >(undefined);
-    const [onceMaxRequest, setOnceMaxRequest] = useState<BasicResourceMax>({
-      cpu: null,
-      memory: null,
-      localStorage: null
-    });
-
     const buildResourcesData = (
-      instanceType: InstanceTypeItem | undefined,
+      instanceType:
+        | {
+            spec?: InstanceTypeSnapshotSpec;
+          }
+        | InstanceTypeItem
+        | undefined,
       options: {
         count: number;
       }
@@ -308,7 +320,8 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
       const partitionPercentage = isGPUType
         ? getPartitionPercentage(
             resources.acceleratorPartitionedProfile,
-            getCardMemory()
+            getCardMemory(),
+            getCardProfiles()
           )
         : null;
       if (partitionPercentage != null && unitResourcesParsed) {
@@ -440,7 +453,8 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
       const ramValue = unitResourcesParsed?.ram?.value;
       const percentage = getPartitionPercentage(
         profileName,
-        getCardMemory(instanceType)
+        getCardMemory(instanceType),
+        getCardProfiles(instanceType)
       );
 
       const scale = (value?: number | null) => {
@@ -731,12 +745,11 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
       // Prefill from the source row on edit / view.
       if (currentData) {
         console.log('currentData', currentData);
-        const currentSpec = parseJsonSafe(
-          currentData?.description || '{}',
-          {} as any
-        )?.spec;
+        const typeSnapshot = buildInstanceTypeSnapshot(
+          currentData?.typeSnapshotDetail
+        );
 
-        const count = currentSpec?.acceleratable
+        const count = typeSnapshot?.acceleratable
           ? _.toNumber(currentData?.spec?.resources?.accelerator)
           : _.toNumber(currentData?.spec?.resources?.cpu) || 0;
 
@@ -760,15 +773,20 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
           ...currentData,
           spec: {
             ...currentData?.spec,
-            resources: {
-              ...currentData?.spec?.resources,
-              ...buildResourcesData(
-                parseJsonSafe<any>(currentData?.description || '{}', {}),
-                {
-                  count
+            resources: typeSnapshot
+              ? {
+                  ...currentData?.spec?.resources,
+                  ...buildResourcesData(
+                    { spec: typeSnapshot },
+                    {
+                      count
+                    }
+                  )
                 }
-              )
-            }
+              : // No server-resolved summary (older server, or the type row
+                // is gone): there is no unit shape to rebuild CPU / RAM
+                // from, so the persisted resources stand as they are.
+                currentData?.spec?.resources
           },
           enable_ssh: !!currentData?.spec?.sshPublicKeys?.length,
           storageMode: detectMode(currentData?.spec?.volume)
@@ -776,9 +794,11 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
 
         // buildResourcesData above filled CPU / RAM for the whole card; rescale
         // them off the persisted percentage / profile for a divided instance.
-        if (persistedProfile) {
+        // Without a summary there is no unit shape to scale from — the
+        // persisted figures already say what the slice holds.
+        if (typeSnapshot && persistedProfile) {
           applyPartitionResourceScaling(persistedProfile);
-        } else if (persistedSliced) {
+        } else if (typeSnapshot && persistedSliced) {
           applySlicedResourceScaling();
         }
       }
@@ -794,29 +814,44 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
       if (parsed) {
         return parsed;
       }
-      try {
-        return (
-          parseJsonSafe<any>(currentData?.description || '{}', {})?.spec
-            ?.unitResourcesParsed ?? undefined
-        );
-      } catch {
-        return undefined;
-      }
+      return buildInstanceTypeSnapshot(currentData?.typeSnapshotDetail)
+        ?.unitResourcesParsed;
     };
 
     // Whole-card VRAM (status.detail.memory, e.g. "80Gi") — the denominator of
-    // the partition ratio. Falls back to the persisted description snapshot so
-    // a not-yet-re-typed edit can still scale.
+    // the partition ratio. Falls back to the server-resolved type summary so a
+    // not-yet-re-typed edit can still scale.
     const getCardMemory = (
       instanceType?: InstanceTypeItem
     ): string | undefined => {
       return (
         (instanceType ?? selectedInstanceType)?.status?.detail?.memory ??
-        parseJsonSafe<any>(currentData?.description || '{}', {})?.spec
-          ?.memory ??
+        buildInstanceTypeSnapshot(currentData?.typeSnapshotDetail)?.memory ??
         undefined
       );
     };
+
+    // The pool's partition profiles — the numerator of the partition ratio comes
+    // from a profile's reported `memoryMib`, not from parsing its name (which is
+    // the rounded marketing size and would disagree with what metering bills).
+    //
+    // Live type only, unlike getCardMemory: the profile list is NOT persisted in
+    // the description snapshot (it would overflow its 1024-char cap — see
+    // buildInstanceTypeSnapshotSpec). When it is unavailable, getPartitionPercentage
+    // falls back to the name, so the scaled CPU / RAM land a few percent high.
+    // That is a resource-sizing rounding, not a billing one: the server bills the
+    // reported memoryMib regardless of what the form submitted.
+    const getCardProfiles = (
+      instanceType?: InstanceTypeItem
+    ): AcceleratorSlicedPhysicalDetailProfile[] | undefined =>
+      (instanceType ?? selectedInstanceType)?.status?.detail?.slicedDetail
+        ?.physical?.profiles ??
+      // No fresh pick: an untouched partitioned edit still needs the ratio,
+      // which only the summary's ledger can supply — same precedence as
+      // getCardMemory above.
+      currentData?.typeSnapshotDetail?.status?.detail?.slicedDetail?.physical
+        ?.profiles ??
+      undefined;
 
     const handleFinish = async (values: InstanceFormValues) => {
       const submittedPorts = [...(values.spec?.ports ?? [])];
@@ -832,12 +867,24 @@ const GPUServiceInstanceForm: React.FC<InstanceFormProps> = forwardRef(
         });
       }
 
+      // Without a server-resolved summary the form falls back to the CPU
+      // shape, so the accelerator count never registers as a field and the
+      // submitted values drop it. The resources are not editable in that
+      // state — submit the persisted ones verbatim.
+      const keepExistingResources =
+        action === PageAction.EDIT &&
+        !!currentData &&
+        !selectedInstanceType &&
+        !currentData.typeSnapshotDetail;
+
       // Hardware and soft slices can't land on the same card, so only one set
       // of slice fields may ride the payload.
-      const resources = {
-        ...values.spec?.resources,
-        ...buildResourcesDataForSubmit(values)
-      };
+      const resources = keepExistingResources
+        ? { ...currentData?.spec?.resources }
+        : {
+            ...values.spec?.resources,
+            ...buildResourcesDataForSubmit(values)
+          };
       const exclusiveResources = resources.acceleratorPartitionedProfile
         ? _.omit(resources, [
             'acceleratorSlicedMemoryPercentage',

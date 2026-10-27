@@ -3,6 +3,7 @@ import { PageActionType } from '@/config/types';
 import { IconFont, ScrollSpyTabs, useWrapperContext } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
+import { createStyles } from 'antd-style';
 import {
   forwardRef,
   useEffect,
@@ -12,16 +13,26 @@ import {
 } from 'react';
 import {
   AUTO_TUNE_DEFAULTS,
+  benchmarkValidationGroups,
   DatasetValueMap,
   genBenchmarkName,
   genDatasetSeed,
-  profileAllowsSla,
-  slaTargetsFromFields
+  profileAllowsSlo,
+  sloTargetsFromFields,
+  TargetModeValueMap
 } from '../config';
 import FormContext from '../config/form-context';
 import { FormData, BenchmarkListItem as ListItem } from '../config/types';
 import Basic from './basic';
 import DatasetForm from './dataset';
+
+const useStyles = createStyles(({ css }) => ({
+  form: css`
+    [id^='benchmark_'] {
+      scroll-margin-top: 96px;
+    }
+  `
+}));
 
 interface ProviderFormProps {
   ref?: any;
@@ -35,6 +46,40 @@ interface ProviderFormProps {
   onFinishFailed?: (errorInfo: any) => void;
 }
 
+/**
+ * Warmup / cooldown / max error rate unit conversion.
+ *
+ * Every one of these is typed as a whole percent (the fields are labelled "%")
+ * while the API column carries guidellm's own scalar, a fraction below 1.
+ * Sending the typed number straight through was a footgun for warmup/cooldown,
+ * where guidellm reads 1-and-above as an absolute request count: "10" meant to
+ * be 10% landed as an absolute 10. Max error rate had the mirror problem — the
+ * field was the only one in the form asking for a raw fraction, so it read as
+ * inconsistent next to its neighbours.
+ *
+ * Only the percent range is offered in the form, so the conversion is
+ * unambiguous in both directions. A stored value of 1 or more predates warmup /
+ * cooldown being a percent — it is an absolute count, and is shown as-is rather
+ * than multiplied into a nonsensical 1000%. (Max error rate can't hold such a
+ * value: guidellm's constraint rejects anything outside the open interval.)
+ *
+ * 🔴 Which makes the submit direction NOT a plain inverse. Such a count comes
+ * back into the field unconverted, and dividing it on the way out would rewrite
+ * a run's meaning behind the user's back — an edit that touched nothing but the
+ * name would turn a warmup of 10 REQUESTS into 10% of them. So a legacy count
+ * survives for exactly as long as the field still holds it: `isLegacyCount`
+ * below is what the submit path asks before converting, and typing in the field
+ * is the statement in percent that the label has been promising all along.
+ */
+const isLegacyCount = (v?: number | null): v is number =>
+  v !== undefined && v !== null && v >= 1;
+
+const percentToFraction = (v?: number | null): number | undefined | null =>
+  v === undefined || v === null ? v : v / 100;
+
+const fractionToPercent = (v?: number | null): number | undefined | null =>
+  v === undefined || v === null || v >= 1 ? v : Math.round(v * 1000) / 10;
+
 const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
   const {
     action,
@@ -47,21 +92,39 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
     datasetList
   } = props;
   const intl = useIntl();
+  const { styles } = useStyles();
   const [form] = Form.useForm();
   const profile = Form.useWatch('profile', form);
   const { getScrollElementScrollableHeight } = useWrapperContext();
   const [activeKey, setActiveKey] = useState<string[]>(['name']);
-  const scrollTabsRef = useRef<any>(null);
+  const [selectedTarget, setSelectedTarget] = useState('name');
+  const [groupKeys, setGroupKeys] = useState<string[]>([
+    'dataset',
+    'slo',
+    'load',
+    'execution'
+  ]);
+  const errorScrollTimer = useRef<ReturnType<typeof setTimeout>>();
+  // What warmup / cooldown held when this form was seeded, for the two of them
+  // that came in as absolute counts (see `isLegacyCount`). A ref, not state:
+  // nothing renders from it, and it must not re-seed a form the user is typing
+  // into.
+  const seededCounts = useRef<{ warmup?: number; cooldown?: number }>({});
 
   // The nav jumps to each real section instead of a single "Configuration": Basic
-  // + Workload / SLA / Load / Stop Conditions. Each `field` matches the section
+  // + Workload / SLO / Load / Stop Conditions. Each `field` matches the section
   // header's data-field anchor (see random-settings).
   //
-  // SLA is shown per TARGET, not per axis: it is available on both load axes and
+  // SLO is shown per TARGET, not per axis: it is available on both load axes and
   // hidden only for a preset whose answer IS the throughput peak (see
-  // profileAllowsSla). Must stay in sync with random-settings' own gate, or the nav
+  // profileAllowsSlo). Must stay in sync with random-settings' own gate, or the nav
   // grows an anchor that scrolls to nothing.
-  const showSLA = profileAllowsSla(profile, profilesOptions as any[]);
+  const showSLO = profileAllowsSlo(profile, profilesOptions as any[]);
+  const visibleTarget =
+    !showSLO && selectedTarget === 'slo' ? 'dataset' : selectedTarget;
+  if (visibleTarget !== selectedTarget) {
+    setSelectedTarget(visibleTarget);
+  }
   const segmentOptions = [
     {
       value: 'name',
@@ -72,35 +135,82 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
     {
       value: 'dataset',
       label: intl.formatMessage({ id: 'benchmark.form.group.dataset' }),
-      icon: <IconFont type="icon-settings" />,
+      icon: <IconFont type="icon-database" />,
       field: 'dataset'
     },
-    ...(showSLA
+    ...(showSLO
       ? [
           {
-            value: 'sla',
-            label: intl.formatMessage({ id: 'benchmark.form.group.sla' }),
-            icon: <IconFont type="icon-settings" />,
-            field: 'sla'
+            value: 'slo',
+            label: intl.formatMessage({ id: 'benchmark.form.group.slo' }),
+            icon: <IconFont type="icon-track" />,
+            field: 'slo'
           }
         ]
       : []),
     {
       value: 'load',
       label: intl.formatMessage({ id: 'benchmark.form.group.load' }),
-      icon: <IconFont type="icon-settings" />,
+      icon: <IconFont type="icon-speed" />,
       field: 'load'
     },
     {
       value: 'execution',
       label: intl.formatMessage({ id: 'benchmark.form.group.execution' }),
-      icon: <IconFont type="icon-settings" />,
+      icon: <IconFont type="icon-rule_settings" />,
       field: 'execution'
     }
   ];
 
-  const handleActiveChange = (key: string[]) => {
-    setActiveKey(key);
+  const handleGroupChange = (keys: string | string[]) => {
+    setGroupKeys(Array.isArray(keys) ? keys : [keys]);
+  };
+
+  const cancelErrorScroll = () => clearTimeout(errorScrollTimer.current);
+  useEffect(() => cancelErrorScroll, [open]);
+
+  const handleTargetChange = (target: string) => {
+    cancelErrorScroll();
+    setSelectedTarget(target);
+  };
+  // Older core-ui releases ignore these optional props and keep their existing
+  // navigation behavior until controlled tabs are available in a published build.
+  const controlledTabsProps = {
+    value: visibleTarget,
+    onChange: handleTargetChange
+  };
+
+  const handleFinishFailed = (errorInfo: any) => {
+    onFinishFailed?.(errorInfo);
+    cancelErrorScroll();
+    if (open === false || !errorInfo.errorFields?.length) return;
+    const names = errorInfo.errorFields.map(
+      ({ name }: { name: (string | number)[] }) => String(name[0])
+    );
+    const sections = Object.entries(benchmarkValidationGroups);
+    const invalidGroups = sections
+      .filter(([, fields]) => fields.some((field) => names.includes(field)))
+      .map(([key]) => key);
+    const target =
+      names[0] === 'profile'
+        ? 'dataset'
+        : sections.find(([, fields]) => fields.includes(names[0]))?.[0] ||
+          'name';
+
+    const expanded = invalidGroups.some((key) => !groupKeys.includes(key));
+    setGroupKeys((previous) => [...new Set([...previous, ...invalidGroups])]);
+    setSelectedTarget(target);
+    // scrollToFirstError runs before collapsed fields finish revealing. Use
+    // the same antd scrolling method after the panel's expansion animation.
+    errorScrollTimer.current = setTimeout(
+      () => {
+        form.scrollToField(errorInfo.errorFields[0].name, {
+          behavior: 'smooth',
+          block: 'start'
+        });
+      },
+      expanded ? 300 : 0
+    );
   };
 
   // Auto default name = {model}-{profile}-{time}-{rand}. We only overwrite it
@@ -156,12 +266,46 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
     const datasetName = validTypes.includes(currentData.dataset_name)
       ? currentData.dataset_name
       : DatasetValueMap.Random;
+    seededCounts.current = {
+      ...(isLegacyCount(currentData.warmup)
+        ? { warmup: currentData.warmup }
+        : {}),
+      ...(isLegacyCount(currentData.cooldown)
+        ? { cooldown: currentData.cooldown }
+        : {})
+    };
     form.setFieldsValue({
       ...currentData,
       dataset_name: datasetName,
-      // Editable view of the 9 flat sla_*_ms thresholds (see config/index.ts).
-      sla_targets: slaTargetsFromFields(currentData),
-      model_instance: [currentData.model_name, currentData.model_instance_name],
+      dataset_input_tokens:
+        datasetName === DatasetValueMap.ShareGPT
+          ? null
+          : currentData.dataset_input_tokens,
+      sharegpt_filter_enabled:
+        datasetName === DatasetValueMap.ShareGPT &&
+        [
+          currentData.dataset_input_min,
+          currentData.dataset_input_max,
+          currentData.dataset_output_tokens
+        ].some((value) => value != null),
+      // Stored as a fraction, shown as a whole percent (see the onFinish note).
+      warmup: fractionToPercent(currentData.warmup),
+      cooldown: fractionToPercent(currentData.cooldown),
+      max_error_rate: fractionToPercent(currentData.max_error_rate),
+      // Editable view of the 9 flat slo_*_ms thresholds (see config/index.ts).
+      slo_targets: sloTargetsFromFields(currentData),
+      target_mode: currentData.target_mode || TargetModeValueMap.Instance,
+      // The API stores the measured route in the snapshot, not on the row.
+      route_name:
+        currentData.target_mode === TargetModeValueMap.Route
+          ? (currentData.snapshot?.route_name ?? currentData.route_name)
+          : undefined,
+      model_instance:
+        currentData.target_mode === TargetModeValueMap.Route
+          ? undefined
+          : currentData.model_instance_name
+            ? [currentData.model_name, currentData.model_instance_name]
+            : [currentData.model_name],
       // A clone of a random-seeded benchmark re-rolls: running the same config
       // twice is exactly the case that must not reuse the first run's prompts.
       // A seed the user pinned is carried over — that clone wants to reproduce.
@@ -204,15 +348,12 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
 
   return (
     <ScrollSpyTabs
-      ref={scrollTabsRef}
+      {...controlledTabsProps}
       defaultTarget="name"
       segmentOptions={segmentOptions}
       activeKey={activeKey}
-      setActiveKey={handleActiveChange}
-      segmentedTop={{
-        top: 0,
-        offsetTop: 96
-      }}
+      setActiveKey={setActiveKey}
+      segmentedTop={{ top: 0, offsetTop: 96 }}
       getScrollElementScrollableHeight={getScrollElementScrollableHeight}
     >
       <FormContext.Provider
@@ -223,11 +364,14 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
           profilesOptions: profilesOptions,
           datasetList: datasetList,
           currentData,
-          applyAutoName
+          applyAutoName,
+          groupKeys,
+          onGroupChange: handleGroupChange
         }}
       >
         <Form
           form={form}
+          className={styles.form}
           // Namespaces the auto-generated control ids ("benchmark_profile"
           // instead of "profile"). The list page's filter panel is a second form
           // on the same page with overlapping field names (profile / load_type /
@@ -235,15 +379,42 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
           // associations break, screen readers land on the wrong control, and any
           // id selector silently picks whichever came first in the DOM.
           name="benchmark"
-          onFinish={onFinish}
-          onFinishFailed={onFinishFailed}
+          // Warmup / cooldown / max error rate are entered as whole percents
+          // (the fields are labelled "%") but the API columns hold guidellm's
+          // own scalar convention, where a value below 1 is a FRACTION. Convert
+          // at the boundary so neither side has to know about the other's unit;
+          // see `percentToFraction`. A warmup / cooldown the form was seeded
+          // with as an absolute COUNT and that still holds that same number is
+          // sent back as it came, so an edit elsewhere in the form cannot
+          // rewrite what the run measures.
+          onFinish={(values: FormData) =>
+            onFinish({
+              ...values,
+              warmup:
+                values.warmup === seededCounts.current.warmup
+                  ? values.warmup
+                  : percentToFraction(values.warmup),
+              cooldown:
+                values.cooldown === seededCounts.current.cooldown
+                  ? values.cooldown
+                  : percentToFraction(values.cooldown),
+              max_error_rate: percentToFraction(values.max_error_rate)
+            })
+          }
+          onFinishFailed={handleFinishFailed}
+          scrollToFirstError={false}
           initialValues={{
             // Default to the Max Throughput preset: adaptive auto-tune on the
             // rate axis (ramps request rate to the throughput peak).
             dataset_name: 'Random',
+            sharegpt_filter_enabled: false,
             dataset_input_tokens: 1024,
             dataset_output_tokens: 128,
             profile: 'Max Throughput',
+            // An engine measurement, which is what every run was before the
+            // choice existed. `route` is opt-in because it puts the server's
+            // proxy in the path.
+            target_mode: TargetModeValueMap.Instance,
             load_type: 'fixed_rate',
             auto_tune: true,
             lower_bound: AUTO_TUNE_DEFAULTS.lower_bound,
@@ -270,7 +441,7 @@ const ProviderForm: React.FC<ProviderFormProps> = forwardRef((props, ref) => {
         >
           <Basic />
           {/* Configuration is the section (labeled by the top segment nav); its
-              fields — Profile + Dataset/SLA/Load/… groups — render directly, with
+              fields — Profile + Dataset/SLO/Load/… groups — render directly, with
               no redundant outer "Configuration" collapse wrapping them. */}
           <DatasetForm />
         </Form>

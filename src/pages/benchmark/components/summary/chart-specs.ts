@@ -44,7 +44,7 @@ export const buildChartSpecs = (
   const TPS = 'Tokens/s';
 
   const specs: ChartSpec[] = [
-    // 1. Where does my SLA still hold. The IQR band is the robust spread signal
+    // 1. Where does my SLO still hold. The IQR band is the robust spread signal
     //    (p25/p75 shrug off outliers), the p99 dashed line owns the tail — two
     //    signals with separate jobs, so "the band widens" means the bulk of the
     //    distribution is diverging, not that one request was slow.
@@ -215,7 +215,7 @@ export const buildChartSpecs = (
       marks: true,
       series: [{ name: 'TTFT p99', value: (p) => p.ttftP99, color: C.blue }],
       x: {
-        name: 'Total Tokens/s',
+        name: t('benchmark.detail.chart.axis.throughput'),
         value: (p) => p.tps,
         fmt: fmtTps
       }
@@ -264,7 +264,10 @@ export const buildChartSpecs = (
         }
       ],
       x: {
+        // Bare in the tooltip, unit-bearing on the axis: the tooltip prints the
+        // value beside the label ("Concurrency  256"), the axis has only ticks.
         name: t('benchmark.detail.requests.concurrency'),
+        title: t('benchmark.detail.chart.axis.concurrencyAvg'),
         value: (p) => p.conc,
         fmt: fmtInt,
         log: true
@@ -298,8 +301,7 @@ export const buildChartSpecs = (
     //    the percentiles over those per-request means — token-weighted, so a
     //    128-token request contributes one value replicated 127 times. p99 here
     //    is "the request whose average decode was slowest", not "the worst gap
-    //    between two tokens". The per-chunk arrival deltas that would show a
-    //    stall are discarded at collection time and cannot be recovered.
+    //    between two tokens". For that, read the ITL chart below.
     {
       key: 'tpot-percentiles',
       title: t('benchmark.detail.chart.tpotPercentiles'),
@@ -314,6 +316,30 @@ export const buildChartSpecs = (
       ]
     }
   ];
+
+  // 9. The stutter chart the one above cannot be. Same shape on purpose, so the
+  //    two read against each other: where TPOT's percentiles are per-request
+  //    averages, these are the measured gaps between streamed outputs, and a
+  //    single stall reaches this p99 while leaving TPOT's flat.
+  //
+  //    Conditional, like the success chart below: runs recorded before the gaps
+  //    were captured have nothing to draw, and an empty panel spends the space
+  //    saying so.
+  if (points.some((p) => p.itlP99 != null)) {
+    specs.push({
+      key: 'itl-percentiles',
+      title: t('benchmark.detail.chart.itlPercentiles'),
+      note: t('benchmark.detail.chart.itlPercentiles.note'),
+      yName: 'ITL (ms)',
+      log: true,
+      fmt: fmtMs,
+      series: [
+        { name: p50, value: (p) => p.itlP50, color: C.blue },
+        { name: p90, value: (p) => p.itlP90, color: C.green },
+        { name: p99, value: (p) => p.itlP99, color: C.red }
+      ]
+    });
+  }
 
   // The success-rate chart is earned, not scheduled: a flat 100% line spends a
   // whole panel saying nothing happened. It appears only once something failed.

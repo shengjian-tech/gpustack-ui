@@ -5,16 +5,17 @@ import { Form, Select, Tag } from 'antd';
 import React from 'react';
 import {
   AUTO_TUNE_DEFAULTS,
+  DatasetValueMap,
   genDatasetSeed,
-  slaFieldsFromTargets,
-  slaTargetsFromFields
+  sloFieldsFromTargets,
+  sloTargetsFromFields
 } from '../config';
 import { useFormContext } from '../config/form-context';
 import { FormData, ProfileOption, StageRow } from '../config/types';
 import RandomSettingsForm from './random-settings';
 
 // The Preset (profile) is the single top-level selector. Picking one auto-fills
-// the form from its builtin config (load_type / sla / dataset defaults); the
+// the form from its builtin config (load_type / slo / dataset defaults); the
 // "Custom" preset starts blank for fully manual config. `load_type` (not a
 // "mode") is the traffic-shape axis; field visibility derives from it.
 const DatasetForm: React.FC = () => {
@@ -68,8 +69,20 @@ const DatasetForm: React.FC = () => {
       max_total_seconds:
         config.max_total_seconds ?? AUTO_TUNE_DEFAULTS.max_total_seconds,
       dataset_name: config.dataset_name,
-      dataset_input_tokens: config.dataset_input_tokens ?? null,
+      dataset_input_tokens:
+        config.dataset_name === DatasetValueMap.ShareGPT
+          ? null
+          : (config.dataset_input_tokens ?? null),
       dataset_output_tokens: config.dataset_output_tokens ?? null,
+      dataset_input_min: config.dataset_input_min ?? null,
+      dataset_input_max: config.dataset_input_max ?? null,
+      sharegpt_filter_enabled:
+        config.dataset_name === DatasetValueMap.ShareGPT &&
+        [
+          config.dataset_input_min,
+          config.dataset_input_max,
+          config.dataset_output_tokens
+        ].some((value) => value != null),
       dataset_seed: seedRandom
         ? genDatasetSeed()
         : (form.getFieldValue('dataset_seed') ?? config.dataset_seed ?? null),
@@ -79,11 +92,11 @@ const DatasetForm: React.FC = () => {
       max_seconds: config.max_seconds ?? null,
       request_rate: config.request_rate ?? -1,
       stages: stages,
-      // The 9 flat thresholds are what the API takes; `sla_targets` is the form's
+      // The 9 flat thresholds are what the API takes; `slo_targets` is the form's
       // editable view of them and must be re-derived whenever the preset rewrites
       // them, or the list would still show the previous preset's rows.
-      ...slaFieldsFromTargets(slaTargetsFromFields(config)),
-      sla_targets: slaTargetsFromFields(config)
+      ...sloFieldsFromTargets(sloTargetsFromFields(config)),
+      slo_targets: sloTargetsFromFields(config)
     });
     applyAutoName?.();
   };
@@ -137,8 +150,8 @@ const DatasetForm: React.FC = () => {
         >
           <Tag
             color={isCustomProfile ? 'green' : 'blue'}
-            bordered={false}
-            style={{ marginInlineEnd: 0, fontWeight: 600, borderRadius: 6 }}
+            variant="filled"
+            style={{ marginInlineEnd: 0, borderRadius: 4 }}
           >
             {isCustomProfile
               ? intl.formatMessage({ id: 'backend.custom' })

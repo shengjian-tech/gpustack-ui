@@ -169,10 +169,6 @@
   flex-direction: column;
 }
 
-.gap-5 {
-  gap: 5px;
-}
-
 .gap-10 {
   gap: 10px;
 }
@@ -214,7 +210,7 @@
 }
 
 .font-size-14 {
-  font-size: var(--font-size-middle);
+  font-size: var(--font-size-base);
 }
 
 .font-size-16 {
@@ -258,15 +254,11 @@
 }
 
 .font-600 {
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
 }
 
 .font-500 {
-  font-weight: var(--font-weight-500);
-}
-
-.font-700 {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
 }
 
 .text-primary {
@@ -350,7 +342,7 @@ textarea:hover {
 
 .bold-text {
   color: var(--ant-color-text);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
 }
 
 .ant-result-extra {
@@ -358,7 +350,7 @@ textarea:hover {
 }
 
 .text-success {
-  color: var(--ant-color-success);
+  color: var(--color-status-success-text);
 }
 
 .desc-fill {
@@ -384,4 +376,13 @@ textarea:hover {
 
 .align-center {
   text-align: center;
+}
+
+// "There is more behind this" — a hairline dashed underline in the link colour,
+// marking text whose hover opens a popover with the detail. Carries its own
+// padding so the line clears the descenders. Previously hand-rolled inline in
+// the worker GPU cells, the instance type card and the dual arc gauge.
+.dashed-underline {
+  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--ant-blue-6);
 }

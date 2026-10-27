@@ -36,6 +36,30 @@ export const manfacturerValueMap = {
   THEAD: 'thead'
 };
 
+// A GPU device reports its manufacturer in `status.gpu_devices[].vendor` using
+// the slugs above. Map them back to the driver key the vendor cards are keyed
+// by, so a cluster's already-registered vendors can be resolved from its
+// workers.
+export const VendorDriverKeyMap: Record<string, string> = {
+  [manfacturerValueMap.NVIDIA]: GPUDriverMap.NVIDIA,
+  [manfacturerValueMap.AMD]: GPUDriverMap.AMD,
+  [manfacturerValueMap.ASCEND]: GPUDriverMap.ASCEND,
+  [manfacturerValueMap.HYGON]: GPUDriverMap.HYGON,
+  [manfacturerValueMap.MOORE_THREADS]: GPUDriverMap.MOORE_THREADS,
+  [manfacturerValueMap.ILUVATAR]: GPUDriverMap.ILUVATAR,
+  [manfacturerValueMap.CAMBRICON]: GPUDriverMap.CAMBRICON,
+  [manfacturerValueMap.METAX]: GPUDriverMap.METAX,
+  [manfacturerValueMap.THEAD]: GPUDriverMap.THEAD
+};
+
+export const getDriverKeysByVendors = (vendors: (string | undefined)[]) => {
+  return _.uniq(
+    vendors
+      .map((vendor) => VendorDriverKeyMap[_.toLower(vendor || '')])
+      .filter(Boolean)
+  );
+};
+
 export const GPUsConfigs: Record<
   string,
   {
@@ -222,6 +246,7 @@ interface AddWorkerCommandParams {
   gpustackDataVolume?: string;
   cacheDir?: string;
   dtkVersion?: string;
+  rdma?: boolean;
 }
 
 const generateEnvArgs = (params: any) => {
@@ -291,6 +316,19 @@ const setWorkerIPArg = (params: any) => {
       ${params.advertisAddress ? `--advertise-address ${params.advertisAddress} \\` : ''}`;
 };
 
+// Lists the ACTIVE InfiniBand ports as `device:port`. A host without RDMA
+// prints nothing, and an empty GPUSTACK_KV_TRANSFER_IFNAME counts as unset, so the
+// worker falls back to detecting the NIC itself.
+const RDMA_KV_IFNAME_PROBE =
+  "$(grep -l ACTIVE /sys/class/infiniband/*/ports/*/state 2>/dev/null | sed 's|.*/infiniband/||; s|/ports/|:|; s|/state||' | paste -sd, -)";
+
+// The IB devices. Mirrored deployment copies them from the worker onto every
+// runner container it starts, which is how an inference backend reaches the
+// fabric.
+const setRDMAArgs = () => {
+  return `--device /dev/infiniband \\`;
+};
+
 const setImageArgs = (params: any) => {
   return `${params.image} \\
       --server-url ${params.server} \\`;
@@ -299,11 +337,23 @@ const setImageArgs = (params: any) => {
 // avaliable for  NVIDIA、MThreads
 const registerWorker = (params: AddWorkerCommandParams) => {
   const config = GPUsConfigs[params.gpu];
-  const commonArgs = setNormalArgs(params);
+  // RDMA is only offered for NVIDIA, and this builder is shared with MThreads.
+  const enableRDMA = params.gpu === GPUDriverMap.NVIDIA && params.rdma;
+  const commonArgs = setNormalArgs(
+    enableRDMA
+      ? {
+          ...params,
+          extraEnv: {
+            GPUSTACK_KV_TRANSFER_IFNAME: RDMA_KV_IFNAME_PROBE
+          }
+        }
+      : params
+  );
   const imageArgs = setImageArgs(params);
 
   // remove empty enter lines and trailing backslash
   return `${commonArgs}
+      ${enableRDMA ? setRDMAArgs() : ''}
       --runtime ${config.runtime} \\
       ${imageArgs}
       ${setWorkerIPArg(params)}`;
@@ -317,6 +367,7 @@ const registerAMDWorker = (params: AddWorkerCommandParams) => {
   // remove empty enter lines and trailing backslash
   return `${commonArgs}
       --volume /opt/rocm:/opt/rocm:ro \\
+      --volume /opt/rocm/lib:/opt/rocm/lib:ro \\
       --runtime ${config.runtime} \\
       ${imageArgs}
       ${setWorkerIPArg(params)}`;
@@ -327,7 +378,13 @@ const registerAscendWorker = (params: AddWorkerCommandParams) => {
   const config = GPUsConfigs[params.gpu];
   const commonArgs = setNormalArgs(params);
   const imageArgs = setImageArgs(params);
+  // The host driver tree, which the containers this worker deploys inherit
+  // along with the rest of its mounts. A transport that puts KV cache on
+  // another node over Device RoCE reads the NPU NIC addresses through
+  // hccn_tool, which lives here and which neither the accelerator runtime
+  // nor the image supplies — without it that transport cannot start.
   return `${commonArgs}
+      --volume /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro \\
       --env "ASCEND_VISIBLE_DEVICES=$(sudo ls /dev/davinci* | head -1 | grep -o '[0-9]\\+' || echo "0")" \\
       --runtime ${config.runtime} \\
       ${imageArgs}
@@ -427,7 +484,10 @@ export const registerAddWokerCommandMap = {
 
 export const AddWorkerDockerNotes: Record<string, string[]> = {
   [GPUDriverMap.NVIDIA]: ['clusters.addworker.nvidiaNotes'],
-  [GPUDriverMap.AMD]: ['clusters.addworker.amdNotes-01'],
+  [GPUDriverMap.AMD]: [
+    'clusters.addworker.amdNotes-01',
+    'clusters.addworker.amdNotes-02'
+  ],
   [GPUDriverMap.MOORE_THREADS]: [],
   [GPUDriverMap.ASCEND]: [],
   [GPUDriverMap.HYGON]: [

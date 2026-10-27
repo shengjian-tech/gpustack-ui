@@ -17,11 +17,22 @@ export default {
   'providers.form.target.placeholder': '提供商/模型',
   'providers.form.fallback.token': '备用 API Key',
   'providers.form.custombeckendUrl': '自定义 Base URL',
+  'providers.form.claudeCustomUrl': '自定义 API 地址',
+  'providers.form.claudeCustomUrl.tips':
+    '填写后该提供商仅提供 Anthropic 协议（/v1/messages），OpenAI 协议的请求不会被转换。留空则使用 api.anthropic.com 并通过 OpenAI 协议访问。',
   'providers.form.more': '+{count} 更多',
   'providers.form.addAll': '添加全部',
   'providers.form.rules.models': '请选择至少一个模型',
   'providers.form.rules.tokens': '请输入有效的 API Key',
   'providers.form.rules.model': '请选择模型',
+  'providers.form.rules.absoluteHttpUrl':
+    '请输入带协议的完整地址（如有端口需一并写明），例如 https://gateway.example.com:8080',
+  'providers.form.rules.openaiCustomUrl':
+    '请输入带协议和路径的完整地址，例如 https://gateway.example.com:8080/v1',
+  'providers.form.rules.claudeCustomUrl.credentials':
+    '地址中不能携带用户名/密码等凭据：它们会被作为每个请求的 Host 头发送。请改为将访问密钥填入 Provider 的 API Key。',
+  'providers.form.rules.claudeCustomUrl.query':
+    '该地址只接受源站及可选的路径前缀，查询串（?…）或片段（#…）会被丢弃。',
   'providers.form.model.duplicate': '存在相同的模型',
   'providers.table.registerRoute': '注册路由',
   'providers.form.azureServiceUrl': 'Azure OpenAI 服务 URL',
@@ -35,5 +46,11 @@ export default {
   'providers.form.modelVersion.tips': '用于指定 Triton Server 中的模型版本。',
   'providers.form.tritonDomain': 'Triton Server 域名',
   'providers.form.tritonDomain.tips': 'Triton Server 部署的指定请求的域名。',
-  'providers.form.awsRegion': 'AWS 区域'
+  'providers.form.awsRegion': 'AWS 区域',
+  'providers.form.systemoneEndpoint': '自定义 Base URL',
+  'providers.form.systemoneEndpoint.tips':
+    '可选。Jev 兼容决策服务的自定义 Base URL,无需路径后缀(如 http://jev.example.com:8010);留空使用 TypeSafe 托管服务 https://api.typesafe.ai。',
+  'providers.form.decision': '决策',
+  'providers.form.decisionTest.tips':
+    '向决策服务发起一次决策调用(同时验证地址、token 与决策路径)。'
 };

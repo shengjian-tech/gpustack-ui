@@ -6,6 +6,87 @@ export interface RouteTargetFormItem {
   provider_id?: number;
   fallback_status_codes?: string[];
   parentId?: string | number;
+  max_running_requests?: number | null;
+}
+
+// Server-derived lb_mode has three named states. Null means pure round-robin
+// (shown as Policy) or no candidate targets (no routing mode to show).
+export type LbMode = 'weighted' | 'scoring' | 'invalid';
+
+export interface LbHealthConfig {
+  fail_open?: boolean;
+  unhealthy_threshold?: number;
+  cooldown_ms?: number;
+  ramp_ms?: number;
+}
+
+export interface LbRejectConfig {
+  status?: number;
+  message?: string;
+}
+
+export interface LbRedisConfig {
+  service_name: string;
+  service_port?: number;
+  username?: string;
+  password?: string;
+  database?: number;
+  timeout?: number;
+  key_prefix?: string;
+}
+
+export interface LbPluginConfig {
+  enabled?: boolean;
+  health?: LbHealthConfig;
+  reject?: LbRejectConfig;
+  max_body_bytes?: number;
+  redis?: LbRedisConfig;
+}
+
+export interface SessionKeyItem {
+  header?: string;
+  bodyKey?: string;
+}
+
+export interface SessionAffinityPluginConfig {
+  enabled?: boolean;
+  sessionKeys?: SessionKeyItem[];
+  enableOnPathSuffix?: string[];
+  weight?: number;
+}
+
+export interface LeastLoadPluginConfig {
+  enabled?: boolean;
+  weight?: number;
+}
+
+// `plugins["decision-service"]` section: route by task difficulty via a Jev
+// compatible decision service ("system-1"). providerId points to a
+// ModelProvider of type gpustack-lb-typesafe (required in the UI when the
+// card is enabled). weight maps to the wasm plugin's rankWeight (default 10).
+// criteria: model name -> capability description, the basis of the decision.
+export interface DecisionServicePluginConfig {
+  enabled?: boolean;
+  providerId?: number | null;
+  weight?: number;
+  // Route-level decision engine model, read from the selected provider's
+  // cached engines. Required in the UI when the card is enabled: without a
+  // valid model the server silently falls back and skips JEV-based routing
+  // (gpustack/gpustack#6353).
+  decisionModel?: string;
+  modelSelection?: {
+    instructions?: string;
+    criteria?: Record<string, string>;
+  };
+}
+
+// Route-level plugin namespace. A plugin key set to null means "delete the
+// plugin's config" on PUT; absent means "leave untouched".
+export interface RoutePlugins {
+  lb?: LbPluginConfig | null;
+  'session-affinity'?: SessionAffinityPluginConfig | null;
+  'least-load'?: LeastLoadPluginConfig | null;
+  'decision-service'?: DecisionServicePluginConfig | null;
 }
 
 export interface FormData {
@@ -16,6 +97,9 @@ export interface FormData {
   generic_proxy: boolean;
   fallback_target: RouteTargetFormItem | null;
   targets: RouteTargetFormItem[];
+  plugins?: RoutePlugins;
+  // Form-only field, stripped before submit.
+  lb_policy_mode?: string;
 }
 
 export interface RouteItem {
@@ -34,6 +118,10 @@ export interface RouteItem {
   // Org principal that owns this route. Drives the ``{org}/{name}`` model-id
   // prefix when opening the route in the Playground.
   owner_principal_id?: number;
+  // Derived by the server from the targets' weights and enabled plugins.
+  lb_mode?: LbMode | null;
+  // Only present on the detail endpoint (GET /model-routes/{id}).
+  plugins?: RoutePlugins;
 }
 
 export interface RouteTarget extends RouteTargetFormItem {

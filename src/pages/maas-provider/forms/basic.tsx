@@ -10,7 +10,10 @@ import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
 import ProviderLogo from '../components/provider-logo';
 import { useFormContext } from '../config/form-context';
-import { maasProviderOptions } from '../config/providers';
+import {
+  isDecisionServiceType,
+  maasProviderOptions
+} from '../config/providers';
 import { FormData } from '../config/types';
 import providerTypeStyles from '../styles/provider-type.less';
 import ProviderConfigs from './provider-configs';
@@ -20,7 +23,7 @@ const Basic: React.FC<{
 }> = ({ onAPIKeyBlur }) => {
   const intl = useIntl();
   const form = Form.useFormInstance<FormData>();
-  const { action } = useFormContext();
+  const { action, resetCustomConfig } = useFormContext();
   const providerType = Form.useWatch(['config', 'type'], form);
   const { getRuleMessage } = useAppUtils();
 
@@ -40,6 +43,20 @@ const Basic: React.FC<{
       option?.value?.toLowerCase().includes(input.toLowerCase()) ||
       option?.description?.toLowerCase().includes(input.toLowerCase())
     );
+  };
+
+  // config fields (claudeCustomUrl, awsRegion, ...), credentials and models all
+  // belong to the provider they were entered for — carrying them over would
+  // submit one provider's models under another, and fire get-models / test-model
+  // against the new upstream with the previous provider's key
+  const handleProviderTypeChange = (value: string) => {
+    // setFieldValue replaces the value at the path; setFieldsValue would deep
+    // merge and leave the previous type's config fields behind
+    form.setFieldValue('config', { type: value });
+    form.setFieldValue('models', []);
+    form.setFieldValue('api_key', '');
+    form.setFieldValue('api_tokens', []);
+    resetCustomConfig?.();
   };
 
   const renderLogoPrefix = () => {
@@ -95,17 +112,21 @@ const Basic: React.FC<{
           prefix={renderLogoPrefix()}
           options={maasProviderOptions}
           optionRender={optionRender}
+          onChange={handleProviderTypeChange}
           label={intl.formatMessage({
             id: 'common.table.type'
           })}
         />
       </Form.Item>
       <ProviderConfigs />
+      {/* A decision service's API key is optional and only the first token is
+          used as the decision Bearer (the managed flavour needs just a token
+          and the model pull). */}
       <Form.Item<FormData>
         name="api_key"
         rules={[
           {
-            required: true,
+            required: !isDecisionServiceType(providerType),
             message: getRuleMessage('input', 'providers.form.tokens.title')
           }
         ]}

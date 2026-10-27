@@ -13,12 +13,19 @@ import React, { useMemo, useState } from 'react';
 import {
   STOP_REASON_LABEL,
   loadAxisLabelId,
+  loadAxisTitleId,
   loadValueDecimals
 } from '../../config';
 import { useDetailContext } from '../../config/detail-context';
 import { RESIDENT_CHARTS, buildChartSpecs } from './chart-specs';
-import { StagePoint, fmtDuration, stageTotals, tailSamples } from './metrics';
-import OperatingCurve from './operating-curve';
+import LoadSweep from './load-sweep';
+import {
+  SLO_SUCCESS_FLOOR,
+  StagePoint,
+  fmtDuration,
+  stageTotals,
+  tailSamples
+} from './metrics';
 import StageChart, { C } from './stage-chart';
 import { Panel, SectionTitle, StatusTag, statusLabelId } from './ui';
 
@@ -35,24 +42,24 @@ const useStyles = createStyles(({ css }) => ({
     .pill {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       font-size: 12px;
       border-radius: 999px;
       padding: 1px 9px;
       white-space: nowrap;
     }
     .pill.ok {
-      color: var(--ant-color-success);
+      color: var(--color-status-success-text);
       background: var(--ant-color-success-bg);
     }
     .pill.bad {
-      color: var(--ant-color-error);
+      color: var(--color-status-error-text);
       background: var(--ant-color-error-bg);
     }
     .charts-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+      gap: 16px;
     }
     @media (max-width: 1200px) {
       .charts-grid {
@@ -66,7 +73,7 @@ const useStyles = createStyles(({ css }) => ({
     }
     .totals {
       display: flex;
-      gap: 22px;
+      gap: 24px;
       align-items: baseline;
     }
     .aux {
@@ -99,7 +106,7 @@ const useStyles = createStyles(({ css }) => ({
       margin-left: 4px;
     }
     .totals .n {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--ant-color-text);
       font-variant-numeric: tabular-nums;
@@ -222,7 +229,15 @@ const Overview: React.FC<OverviewProps> = ({
     intl.formatMessage({ id }, values);
 
   const dec = loadValueDecimals(detailData);
+  // Two forms of the same label, and the difference is not cosmetic:
+  //   * `loadAxisName` — no unit. Goes where the value is printed right next to
+  //     it: the stage table's column header and the charts' tooltip headers
+  //     ("Request Rate 29"). Adding the unit there reads as "Request rate
+  //     (req/s) 29".
+  //   * `loadAxisTitle` — unit included. Goes on the chart AXIS, whose ticks are
+  //     bare numbers with nothing else to say what 29 counts.
   const loadAxisName = t(loadAxisLabelId(detailData));
+  const loadAxisTitle = t(loadAxisTitleId(detailData));
   const isConcurrency =
     loadAxisLabelId(detailData) === 'benchmark.form.concurrency';
 
@@ -269,9 +284,9 @@ const Overview: React.FC<OverviewProps> = ({
   );
 
   // The verdict itself is derived once in buildStagePoints, alongside every other
-  // number on this page — the column only decides how to draw it. `slaPass` is
+  // number on this page — the column only decides how to draw it. `sloPass` is
   // null on a run with no thresholds, which is what hides the column entirely.
-  const hasSlaTargets = points.some((p) => p.slaPass != null);
+  const hasSloTargets = points.some((p) => p.sloPass != null);
 
   // Early-stop reason. A stage normally ends at max_requests; anything else means
   // it under-ran, so the shortfall isn't mistaken for lost data.
@@ -336,34 +351,43 @@ const Overview: React.FC<OverviewProps> = ({
       width: 130,
       render: (_v: unknown, p: StagePoint) => num(p.conc, 0)
     },
-    ...(hasSlaTargets
+    ...(hasSloTargets
       ? [
           {
-            title: 'SLA',
-            key: 'sla',
+            title: 'SLO',
+            key: 'slo',
             width: 70,
             align: 'center' as const,
             render: (_v: unknown, p: StagePoint) =>
-              p.slaPass ? (
-                <span style={{ color: 'var(--ant-color-success)' }}>✓</span>
+              p.sloPass ? (
+                <span style={{ color: 'var(--color-status-success-text)' }}>
+                  ✓
+                </span>
               ) : (
-                <span style={{ color: 'var(--ant-color-error)' }}>✗</span>
+                <span style={{ color: 'var(--color-status-error-text)' }}>
+                  ✗
+                </span>
               )
           }
         ]
       : []),
     {
-      title: unitTitle('TTFT', 'ms'),
+      // p99, not the mean: this is the column an SLO is written against, and a
+      // mean TTFT hides exactly the queueing the sweep exists to find. The mean
+      // stays available in the stage detail below.
+      title: unitTitle('TTFT p99', 'ms'),
       key: 'ttft',
-      width: 110,
+      width: 120,
       render: (_v: unknown, p: StagePoint) => {
-        const v = p.ttft;
+        const v = p.ttftP99;
         // Overloaded stages get red numbers: their latency describes a queue, so
         // the value should not read as this deployment's response time.
         return (
           <span
             style={
-              p.isOverloaded ? { color: 'var(--ant-color-error)' } : undefined
+              p.isOverloaded
+                ? { color: 'var(--color-status-error-text)' }
+                : undefined
             }
           >
             {num(v)}
@@ -385,10 +409,57 @@ const Overview: React.FC<OverviewProps> = ({
       render: (_v: unknown, p: StagePoint) => (
         <span
           style={
-            p.isOverloaded ? { color: 'var(--ant-color-error)' } : undefined
+            p.isOverloaded
+              ? { color: 'var(--color-status-error-text)' }
+              : undefined
           }
         >
           {num(p.tpot)}
+        </span>
+      )
+    },
+    {
+      // The decode tail next to its own mean. Kept as a separate column rather
+      // than replacing the mean: per-token latency is the one metric where the
+      // gap between mean and tail is the finding — a mean that holds while the
+      // tail runs away is what a saturating decode loop looks like.
+      title: (
+        <Tooltip title={t('benchmark.detail.tpot.tip')}>
+          {unitTitle('TPOT p99', 'ms')}
+        </Tooltip>
+      ),
+      key: 'tpotP99',
+      width: 120,
+      render: (_v: unknown, p: StagePoint) => (
+        <span
+          style={
+            p.isOverloaded ? { color: 'var(--ant-color-error)' } : undefined
+          }
+        >
+          {num(p.tpotP99)}
+        </span>
+      )
+    },
+    {
+      // Measured gaps between streamed outputs, not a per-request average —
+      // the column that answers "which stage did the stream start hitching at",
+      // which the TPOT columns cannot: they divide a stall away by the same
+      // request's healthy gaps. Renders "-" on runs recorded before the gaps
+      // were captured.
+      title: (
+        <Tooltip title={t('benchmark.detail.itl.tip')}>
+          {unitTitle('ITL p99', 'ms')}
+        </Tooltip>
+      ),
+      key: 'itlP99',
+      width: 120,
+      render: (_v: unknown, p: StagePoint) => (
+        <span
+          style={
+            p.isOverloaded ? { color: 'var(--ant-color-error)' } : undefined
+          }
+        >
+          {num(p.itlP99)}
         </span>
       )
     },
@@ -446,7 +517,7 @@ const Overview: React.FC<OverviewProps> = ({
       render: (_v: unknown, p: StagePoint) => {
         const total = p.total;
         const ok = p.ok;
-        const low = total > 0 && ok / total < 0.95;
+        const low = total > 0 && ok / total < SLO_SUCCESS_FLOOR;
         const term = (p.raw.raw_metrics as any)?.termination;
         const early = term?.reason && term.reason !== 'max_requests';
         return (
@@ -455,7 +526,7 @@ const Overview: React.FC<OverviewProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
-              ...(low ? { color: 'var(--ant-color-error)' } : {})
+              ...(low ? { color: 'var(--color-status-error-text)' } : {})
             }}
           >
             {ok}/{total}
@@ -494,10 +565,10 @@ const Overview: React.FC<OverviewProps> = ({
       <Panel>
         <div className="panel-head">
           <SectionTitle style={{ marginBottom: 0 }}>
-            {t('benchmark.detail.chart.operatingCurve')}
+            {t('benchmark.detail.chart.loadSweep')}
           </SectionTitle>
           <span className="sub">
-            {t('benchmark.detail.chart.operatingCurve.note')}
+            {t('benchmark.detail.chart.loadSweep.note')}
           </span>
           <span className="spacer" />
           {/* The two y-axes follow different rules while sharing one grid, which
@@ -508,17 +579,18 @@ const Overview: React.FC<OverviewProps> = ({
           </Tooltip>
         </div>
         <div className="panel-body">
-          <OperatingCurve
+          <LoadSweep
             points={points}
             loadAxisName={loadAxisName}
+            loadAxisTitle={loadAxisTitle}
             loadDecimals={dec}
             labels={{
               concurrency: t('benchmark.detail.requests.concurrency'),
               throughput: t('benchmark.detail.throughput.totalToken'),
-              throughputAxis: 'Total Tokens/s',
+              throughputAxis: t('benchmark.detail.chart.axis.throughput'),
               ttftP99: 'TTFT p99',
               overloaded: t('benchmark.detail.status.overloaded'),
-              slaBreached: t('benchmark.detail.chart.slaBreached')
+              sloBreached: t('benchmark.detail.chart.sloBreached')
             }}
           />
         </div>
@@ -562,6 +634,7 @@ const Overview: React.FC<OverviewProps> = ({
                 spec={spec}
                 points={points}
                 loadAxisName={loadAxisName}
+                loadAxisTitle={loadAxisTitle}
                 loadDecimals={dec}
                 logHint={t('benchmark.detail.chart.logHint')}
               />

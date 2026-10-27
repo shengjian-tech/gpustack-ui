@@ -34,6 +34,7 @@ export interface FormData {
       port: number;
       protocol?: string;
       name?: string;
+      accessParams?: Record<string, string>;
     }[];
     env: {
       name: string;
@@ -105,13 +106,31 @@ export interface InstanceStatusAllocationItem {
 export interface InstanceStatus {
   namespace?: string;
   phase?: string;
-  phaseMessage?: string;
+  phaseMessage?: string | null;
   nodeName?: string;
   accessAddresses?: string[];
   hostIPs?: InstanceIP[];
   podIPs?: InstanceIP[];
   ports?: InstanceServicePort[];
   allocations?: InstanceStatusAllocationItem[];
+}
+
+// Resolved read-only summary of the instance's type, joined by the server
+// from the type_snapshot stamped on the instance at create time
+// (GPUInstancePublic.typeSnapshotDetail). The type column / type card render
+// from it; `description` is display-only text. Only the fields the type
+// rendering reads are declared — the payload carries the type's timestamps
+// and provenance as well.
+export interface InstanceTypeSnapshotDetail {
+  id?: number;
+  clusterId?: number;
+  name?: string;
+  spec?: InstanceTypeSpec | null;
+  status?: {
+    detail?: InstanceTypeDetail | null;
+    phase?: string | null;
+    phaseMessage?: string | null;
+  } | null;
 }
 
 // instance list item
@@ -123,6 +142,7 @@ export interface ListItem extends FormData {
   creator_id?: number | null;
   clusterId: number;
   status?: InstanceStatus | null;
+  typeSnapshotDetail?: InstanceTypeSnapshotDetail | null;
 }
 
 // =========== Instance Types ===========
@@ -341,6 +361,9 @@ export interface InstanceTypeSnapshotSpec extends InstanceTypeSpec {
   sliceable?: boolean;
   // Accelerator CPU identity only (from status.detail.cpu).
   cpu?: Pick<CPUInfo, 'manufacturer' | 'product' | 'family'> | null;
+  // NOTE: the pool's partition profiles are NOT here on purpose — this object is
+  // serialized into the 1024-char `description` field and a full MIG pool's
+  // profile list overflows it. See buildInstanceTypeSnapshotSpec.
 }
 
 export interface InstanceTypeStatus {
@@ -395,3 +418,93 @@ export interface InstanceLogQueryParams {
   timestamps?: boolean;
   pretty?: string;
 }
+
+// =========== Instance Metrics (K8s proxy) ===========
+// Mirrors the worker.gpustack.ai/v1 InstanceMetrics subresource
+// (api/worker/v1/instance.metrics.go in the operator). Field names match the
+// JSON tags exactly.
+
+// Metrics of one accelerator device allocated to the instance. Every figure
+// comes from the manufacturer's device libraries and is optional: a field is
+// absent when the library could not read it at sampling time (a present zero
+// can mean "idle" or "unreadable" — the operator makes no distinction, so
+// absent is the only reliable no-data signal). Only `id` is always present.
+export interface InstanceAcceleratorMetrics {
+  id: string;
+  memoryTotalMiB?: number;
+  memoryUsedMiB?: number;
+  // Memory utilization in [0, 100].
+  memoryUtilizationPercent?: number;
+  // Cores (compute) utilization in [0, 100].
+  coresUtilizationPercent?: number;
+  temperatureCelsius?: number;
+  powerUsageWatts?: number;
+  unhealthy?: boolean;
+}
+
+// A single utilization sampling point of an instance. Every figure is one
+// half of a Total/Used pair reported in one unit (CPU in milli-cores, memory
+// and storage in MiB). A Total comes from the instance's own declaration and
+// is always populated; a Used figure is a measurement and is ABSENT when its
+// source is unavailable.
+export interface InstanceMetricsSample {
+  // RFC3339 time the CPU/memory/storage figures were measured by the kubelet.
+  timestamp: string;
+  cpuTotalMilliCores: number;
+  cpuUsedMilliCores?: number;
+  memoryTotalMiB: number;
+  memoryUsedMiB?: number;
+  storageTotalMiB: number;
+  // Absent when the figures came from the metrics.k8s.io fallback, which
+  // carries no storage metrics.
+  storageUsedMiB?: number;
+  // Absent when the instance has no allocated accelerator or the device
+  // manager is unreachable. Each element carries its device `id`.
+  accelerators?: InstanceAcceleratorMetrics[];
+}
+
+// The Instance metrics subresource payload: one up-to-date sample of the
+// underlying Pod's CPU/memory/storage usage and the allocated accelerators'
+// metrics. (The Kubernetes TypeMeta/ObjectMeta envelope is omitted, matching
+// how InstanceEvents drops everything but `items`.)
+export interface InstanceMetrics {
+  sample: InstanceMetricsSample;
+}
+
+// =========== Utilization gauges (view model) ===========
+// What the Utilization column renders, derived from a sample by
+// use-query-instance-metrics. Deliberately one step removed from the payload:
+// the gauges are display-shaped (a percent plus the figures behind it), and a
+// key the current sample says nothing about is simply absent, which is what
+// lets the poller keep the previous value.
+
+export type GaugeKey = 'gpu' | 'vram' | 'cpu' | 'memory' | 'storage';
+
+// One accelerator's own figures behind a multi-card gpu/vram gauge. `index` is
+// the card's position in the instance's accelerator list, kept explicitly so a
+// card dropped for unreadable figures doesn't renumber the cards after it.
+export interface AcceleratorGaugeItem {
+  index: number;
+  percent: number;
+  used?: number;
+  total?: number;
+}
+
+// percent: null = no data → the gauge renders "--". used/total carry the exact
+// figures behind it for the hover tooltip, and are absent when the sample
+// cannot account for the whole instance. items holds the per-card breakdown
+// for gpu/vram when the instance holds multiple accelerators.
+export interface GaugeState {
+  percent: number | null;
+  used?: number;
+  total?: number;
+  items?: AcceleratorGaugeItem[];
+}
+
+// Partial by design: a gauge with no entry has never had data (or was reset),
+// and the cell renders it as "--".
+export type GaugeValues = Partial<Record<GaugeKey, GaugeState>>;
+
+// instance id → its gauges. Instances that are no longer polled (stopped,
+// filtered out, on another page) drop out of the map entirely.
+export type InstanceMetricsMap = Record<number, GaugeValues>;

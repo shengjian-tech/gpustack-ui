@@ -1,6 +1,8 @@
 // @ts-nocheck
 import avatarImg from '@/assets/images/avatar.png';
+import { documentationPaths } from '@/constants/documentation';
 import externalLinks from '@/constants/external-links';
+import { getDocumentationUrl } from '@/utils/documentation';
 import {
   DiscordOutlined,
   GithubOutlined,
@@ -95,7 +97,7 @@ export const getRightRenderContent = (opts: {
       key: 'faq',
       icon: <IconFont type="icon-fankuifaqs"></IconFont>,
       label: intl.formatMessage({ id: 'common.button.faq' }),
-      url: externalLinks.faq
+      url: getDocumentationUrl(documentationPaths.faq, intl.locale)
     },
     {
       key: 'Discord',
@@ -107,7 +109,13 @@ export const getRightRenderContent = (opts: {
       key: 'docs',
       icon: <ReadOutlined />,
       label: intl.formatMessage({ id: 'common.button.docs' }),
-      url: externalLinks.documentation
+      url: getDocumentationUrl(documentationPaths.home, intl.locale)
+    },
+    {
+      key: 'imageSelector',
+      icon: <IconFont type="icon-docker"></IconFont>,
+      label: intl.formatMessage({ id: 'common.button.imageSelector' }),
+      url: getDocumentationUrl(documentationPaths.imageSelector, intl.locale)
     },
     {
       key: 'version',

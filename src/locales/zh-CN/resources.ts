@@ -94,6 +94,15 @@ export default {
   'resource.register.windows.support': 'win 10, win 11',
   'resources.model.instance': '模型实例',
   'resources.worker.download.privatekey': '下载私钥',
+  'resources.worker.ssh.view': '查看 SSH 访问信息',
+  'resources.worker.ssh.title': 'SSH 访问信息',
+  'resources.worker.ssh.host': '主机',
+  'resources.worker.ssh.port': '端口',
+  'resources.worker.ssh.command': '连接命令',
+  'resources.worker.ssh.privatekey': '私钥',
+  'resources.worker.ssh.pending': '暂不可用',
+  'resources.worker.ssh.tip':
+    '使用该节点的私钥登录：先下载私钥，对文件执行 chmod 600，然后连接。',
   'resources.modelfiles.form.exsting': '已下载',
   'resources.modelfiles.form.added': '已添加',
   'resources.modelfiles.form.isLora': '是否 LoRA',
@@ -106,10 +115,16 @@ export default {
     '进入维护模式后，节点将停止调度新的模型实例部署任务，正在运行的实例不会受到影响。',
   'resources.worker.noCluster.tips': '当前无可用集群，请先创建集群再添加节点。',
   'resources.metrics.details': '监控',
-  'resoureces.worker.upgrade.tips': '请升级到与 GPUStack Server 版本一致。',
+  'resoureces.worker.upgrade.tips':
+    '节点版本与 GPUStack Server 版本不一致，请将两者保持一致。',
   'resources.worker.version': '节点版本：{version}',
   'resources.server.version': 'Server 版本：{version}',
   'resources.worker.currentVersion': '当前版本：{version}',
   'resources.worker.targetVersion': '目标版本：{version}',
-  'resources.driver.version': '驱动版本：{version}'
+  'resources.driver.version': '驱动版本：{version}',
+
+  'resources.worker.setLabels': '设置标签',
+  'resources.worker.setLabels.count': '已选 {count} 台 worker',
+  'resources.worker.setLabels.hint':
+    '为所有选中的 worker 添加新标签，并更新同名标签的值，其他标签保持不变。如需删除标签，请单独编辑 worker。'
 };

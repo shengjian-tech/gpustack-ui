@@ -1,10 +1,12 @@
 import PluginExtraFields from '@/components/plugin-extra-fields';
 import useTableFetch from '@/hooks/use-table-fetch';
-import { SyncOutlined } from '@ant-design/icons';
+import { getGPUStackPlugin } from '@/plugins';
+import { SearchOutlined, SyncOutlined } from '@ant-design/icons';
 import {
   BaseSelect,
   InfiniteScrollerProvider,
   PageTools,
+  StatusDot,
   TemplateCardList
 } from '@gpustack/core-ui';
 import { useAccess, useIntl, useNavigate } from '@umijs/max';
@@ -15,32 +17,23 @@ import PageBox from '../_components/page-box';
 import { MY_MODELS_API, queryMyModels } from './apis';
 import APIAccessInfoModal from './components/api-access-info';
 import ModelItem from './components/model-item';
-import { categoryOptions, MyModelsStatusValueMap } from './config';
+import {
+  categoryOptions,
+  MyModelsStatusMap,
+  MyModelsStatusValueMap
+} from './config';
 import useFormInitialValues from './hooks/use-form-initial-values';
 import useNoResourceResult from './hooks/use-no-resource-result';
 import useViewApIInfo from './hooks/use-view-api-info';
-const Dot = ({ color }: { color: string }) => {
-  return (
-    <span
-      style={{
-        backgroundColor: color,
-        borderRadius: '50%',
-        height: 8,
-        width: 8,
-        display: 'flex'
-      }}
-    ></span>
-  );
-};
-
-const optionRender = (item: any) => {
-  return (
-    <span className="flex-center gap-8">
-      <Dot color={item.data?.color}></Dot>
-      {item.label}
-    </span>
-  );
-};
+// Keep filter and model-card status dots consistent through the shared map.
+const renderStatusOption = (item: any) => (
+  <StatusDot
+    statusValue={{
+      status: MyModelsStatusMap[item.value],
+      text: item.label
+    }}
+  />
+);
 
 const UserModels: React.FC = () => {
   const {
@@ -64,6 +57,11 @@ const UserModels: React.FC = () => {
   const access = useAccess();
   const navigate = useNavigate();
   const { apiAccessInfo, openViewAPIInfo, closeViewAPIInfo } = useViewApIInfo();
+  // A card action contributed by the plugin opens an overlay the plugin
+  // owns (enterprise: the pricing-detail drawer). Mount it once here —
+  // the action's `onClick` drives its open state, so the host never
+  // learns what the overlay is. OSS renders nothing.
+  const CardActionOverlay = getGPUStackPlugin()?.myModels?.CardActionOverlay;
 
   // Only managers (platform admin or org owner) can see / manage
   // clusters and workers, so only they hit those endpoints. A plain
@@ -90,23 +88,22 @@ const UserModels: React.FC = () => {
 
   const statusOptions = useMemo(() => {
     return [
+      // No `color` field any more — the dot's colour comes from
+      // `MyModelsStatusMap` via `StatusDot`, the same route the card uses.
       {
         value: MyModelsStatusValueMap.Ready,
-        color: 'var(--ant-color-success)',
         label: intl.formatMessage({
           id: 'models.mymodels.status.active'
         })
       },
       {
         value: MyModelsStatusValueMap.Stopped,
-        color: 'var(--ant-color-fill)',
         label: intl.formatMessage({
           id: 'models.mymodels.status.inactive'
         })
       },
       {
         value: MyModelsStatusValueMap.NotReady,
-        color: 'var(--ant-color-warning)',
         label: intl.formatMessage({
           id: 'models.mymodels.status.degrade'
         })
@@ -138,16 +135,6 @@ const UserModels: React.FC = () => {
     handleQueryChange({
       state: value
     });
-  };
-
-  const labelRender = (item: any) => {
-    const current = statusOptions.find((option) => option.value === item.value);
-    return (
-      <span className="flex-center gap-8">
-        <Dot color={current!.color}></Dot>
-        {item.label}
-      </span>
-    );
   };
 
   const getStatus = useCallback((model: any) => {
@@ -217,8 +204,8 @@ const UserModels: React.FC = () => {
     <>
       <PageBox>
         <PageTools
-          marginBottom={22}
           marginTop={0}
+          marginBottom={16}
           left={
             <Space>
               <Input
@@ -226,6 +213,11 @@ const UserModels: React.FC = () => {
                 style={{ width: 230 }}
                 size="large"
                 allowClear
+                prefix={
+                  <SearchOutlined
+                    style={{ color: 'var(--ant-color-text-placeholder)' }}
+                  ></SearchOutlined>
+                }
                 onClear={() =>
                   handleNameChange({
                     target: {
@@ -254,8 +246,8 @@ const UserModels: React.FC = () => {
                 style={{ width: 180 }}
                 size="large"
                 maxTagCount={1}
-                optionRender={optionRender}
-                labelRender={labelRender}
+                optionRender={renderStatusOption}
+                labelRender={renderStatusOption}
                 options={statusOptions}
                 value={queryParams.state}
                 onChange={handleStatusChange}
@@ -296,6 +288,7 @@ const UserModels: React.FC = () => {
         data={apiAccessInfo.data}
         onClose={closeViewAPIInfo}
       ></APIAccessInfoModal>
+      {CardActionOverlay && <CardActionOverlay />}
     </>
   );
 };

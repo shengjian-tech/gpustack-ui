@@ -31,6 +31,24 @@ export default {
   'usage.tabs.users': '用户',
   'usage.export.chart': '导出图表数据',
   'usage.export.table': '导出表格数据',
+  'usage.export.rows': '本次将导出约 {total} 行。',
+  'usage.export.rowsSlow':
+    '本次将导出约 {total} 行，可能需要一些时间，请勿关闭页面。',
+  'usage.export.rowsExceeded':
+    '本次约 {total} 行，超出单次导出上限 {limit} 行。请把时间范围缩短到 {days} 天以内，或增加过滤条件。',
+  'usage.export.error.tooLarge':
+    '本次结果约 {total} 行，超出单次导出上限 {limit} 行。请把时间范围缩短到 {days} 天以内，或增加过滤条件。',
+  'usage.export.splitAsCsv':
+    '结果过大，无法放进单个文件，将拆成 {parts} 个 CSV 文件打包下载。',
+  'usage.export.csvFallback':
+    '结果超出 Excel 单表 {limit} 行的上限，将改为 CSV 格式导出（不是 xlsx）。',
+  'usage.export.error.splitTooManyParts':
+    '拆分会产生 {total} 个文件，超出 {limit} 个的上限。请缩小时间范围，或一次少导几张表。',
+  'usage.export.estimateFailed':
+    '无法预估本次导出的规模，因此预览没有可显示的列。仍可直接下载，上限由服务端强制执行。',
+  'usage.export.error.failed': '导出失败。',
+  'usage.export.suggest.shortenRange': '缩短到 {days} 天',
+  'usage.export.suggest.split': '分片导出（{parts} 个 CSV 文件）',
   'usage.user.currentAccount': '当前账户',
   'usage.table.cluster': '集群',
   'usage.table.provider': '提供商',
@@ -38,6 +56,19 @@ export default {
   'usage.chart.cached': '缓存',
   'usage.chart.uncached': '非缓存',
   'usage.chart.inputTokensCached': '输入 Token 数（缓存/非缓存）',
+  'usage.chart.moreGroups':
+    '还有 {count} 项（合计 {value} Token）。点击柱子查看全部。',
+  'usage.chart.apiKeyDetails': 'API 密钥',
+  'usage.chart.groupCount': '共 {count} 项',
+  'usage.chart.searchModels': '搜索模型',
+  'usage.chart.searchUsers': '搜索用户',
+  'usage.chart.searchApiKeys': '搜索 API 密钥',
+  'usage.chart.modelName': '模型名称',
+  'usage.chart.userName': '用户名',
+  'usage.chart.apiKeyName': '密钥名称',
+  'usage.chart.pageOf': '第 {page} / {total} 页',
+  'usage.chart.previousPage': '上一页',
+  'usage.chart.nextPage': '下一页',
   'usage.table.inputTokensCached': '输入 Token 缓存数',
 
   // --- Resource usage: shared metrics & units ---
@@ -45,7 +76,8 @@ export default {
   'usage.metric.input': '输入',
   'usage.metric.output': '输出',
   'usage.metric.gpuHours': 'GPU 小时',
-  'usage.metric.instanceHours': '实例小时',
+  'usage.metric.runningTime': '运行时长',
+  'usage.metric.usage': '用量',
   'usage.metric.gbDays': 'GB·天',
   'usage.metric.gbHours': 'GB·小时',
   'usage.metric.activeUsers': '活跃用户',
@@ -55,8 +87,10 @@ export default {
   'usage.metric.storageTypes': '存储类型',
   'usage.metric.gpuHours.tip':
     '实例运行时长按 GPU 数量加权：一个使用 N 个 GPU 的实例运行 H 小时记为 N × H GPU 小时。当每个实例仅使用单个 GPU 时，等于实例小时。',
-  'usage.metric.instanceHours.tip':
-    '所有实例运行时长的总和，与每个实例使用的 GPU 数量无关。一个实例运行 2 小时 = 2 实例小时。',
+  'usage.metric.runningTime.tip':
+    '实例实际运行的墙钟时长，与它占了几份无关 —— 一台实例跑 2 小时就是 2 h，无论占 1 张卡还是 8 张。用量则是它按份数加权后的结果。',
+  'usage.metric.usage.tip':
+    '运行时长按实例占用的计费单位数加权：加速实例按 GPU 卡数，CPU 实例按基础规格份数。格子里在数字下面写出它的构成；期间变配过的实例按每种规格分行显示。',
   'usage.metric.gbDays.tip':
     '存储容量随时间的积分，单位为 GB × 天：10 GB 保留 5 天 = 50 GB·天。（= GB·小时 ÷ 24）',
   'usage.metric.gbHours.tip':
@@ -71,6 +105,9 @@ export default {
   'usage.table.users': '用户',
   'usage.table.type': '类型',
   'usage.table.instance': '实例',
+  'usage.table.resized': '已变配',
+  'usage.table.currentShape': '当前',
+  'usage.table.shapeAndMore': '{shape}，另 {count} 种',
   'usage.table.instanceType': '实例类型',
   'usage.table.instanceTypes': '实例类型',
   'usage.table.instances': '实例',
@@ -80,7 +117,7 @@ export default {
   // --- Summary tab ---
   'usage.summary.compute': '算力',
   'usage.summary.tokensOverTime': 'Token 数趋势',
-  'usage.summary.gpuHoursOverTime': 'GPU 小时趋势',
+  'usage.summary.usageOverTime': '用量趋势',
   'usage.summary.gbDaysOverTime': 'GB·天趋势',
 
   // --- GPU Instances / Storage filters ---

@@ -4,19 +4,23 @@ import PageBox from '@/pages/_components/page-box';
 import { DeleteModal, FilterBar, IconFont, NoResult } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { useMemoizedFn } from 'ahooks';
-import { ConfigProvider, Table } from 'antd';
+import { ConfigProvider, message, Table } from 'antd';
 import _ from 'lodash';
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import {
   deleteModelInstance,
   MODEL_INSTANCE_API,
+  queryModelDetail,
   queryModelsInstances
 } from '../apis';
 import ViewLogsModal from '../components/view-logs-modal';
+import { status as instanceStatus } from '../config';
 import { useDeploymentsContext } from '../config/deploments-context';
 import { ModelInstanceListItem as ListItem } from '../config/types';
+import { fetchCatalog } from '../hooks/use-query-pd-modes';
 import useViewInstanceLogs from '../hooks/use-view-instance-logs';
 import useQueryModelList from '../services/use-query-model-list';
+import { instanceDeleteMessages } from '../utils/instance-recreation';
 import LeftFilters from './left-filters';
 import useInstanceColumns from './use-instance-columns';
 
@@ -25,22 +29,22 @@ const filterOptions = {
     {
       label: 'Running',
       value: 'running',
-      color: 'var(--ant-color-success)'
+      status: instanceStatus.running
     },
     {
       label: 'Error',
       value: 'error',
-      color: 'var(--ant-color-error)'
+      status: instanceStatus.error
     },
     {
       label: 'Pending',
       value: 'pending',
-      color: 'var(--ant-color-info)'
+      status: instanceStatus.pending
     },
     {
       label: 'Starting',
       value: 'starting',
-      color: 'var(--ant-color-info)'
+      status: instanceStatus.starting
     }
   ]
 };
@@ -67,6 +71,16 @@ const InstanceView = forwardRef((props, ref) => {
     deleteAPI: deleteModelInstance,
     watch: true,
     API: MODEL_INSTANCE_API,
+    // The hook's default is `['UPDATE', 'DELETE']`, and on this list that
+    // silently loses rows: an instance the scheduler has just created arrives
+    // as a CREATE event, whose branch the default skips entirely, and the
+    // UPDATE that follows it carries an id the list has never seen — which
+    // `useUpdateChunkedList` only inserts when 'INSERT' is among the events
+    // too. With neither, a new instance can reach the list by no path at all
+    // and the table sits a row short of the API until the next full fetch.
+    // Spelled out here rather than fixed in the default, which every other
+    // list page shares.
+    events: ['CREATE', 'UPDATE', 'DELETE', 'INSERT'],
     contentForDelete: 'menu.models.instances',
     // the models page routes pause/resume by which view tab is active
     pauseOnHidden: false
@@ -81,11 +95,28 @@ const InstanceView = forwardRef((props, ref) => {
   useEffect(() => {
     fetchModelList({ page: -1 });
   }, []);
-  const handleSelect = useMemoizedFn((val: any, row: ListItem) => {
+  const handleSelect = useMemoizedFn(async (val: any, row: ListItem) => {
     if (val === 'delete') {
-      handleDelete(row, {
-        okText: 'common.button.delrecreate'
-      });
+      try {
+        const model = await queryModelDetail(row.model_id);
+        const modes = model.roles?.length ? await fetchCatalog() : [];
+        const { okText, tip } = instanceDeleteMessages(
+          model,
+          modes.find((mode) => mode.name === model.disaggregation?.mode)
+        );
+        handleDelete(row, {
+          okText,
+          tips: tip ? intl.formatMessage({ id: tip }) : undefined
+        });
+      } catch (error: any) {
+        // HTTP errors are reported globally; transport failures need local feedback.
+        if (!error?.response?.status) {
+          message.error(
+            error?.message || intl.formatMessage({ id: 'common.delete.fail' })
+          );
+        }
+        return;
+      }
     }
 
     if (val === 'viewlog') {
@@ -153,8 +184,6 @@ const InstanceView = forwardRef((props, ref) => {
       <PageBox>
         <FilterBar
           showSelect={false}
-          marginBottom={22}
-          marginTop={30}
           widths={{ input: 300 }}
           rowSelection={rowSelection}
           handleInputChange={handleNameChange}

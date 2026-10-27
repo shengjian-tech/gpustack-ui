@@ -1,6 +1,6 @@
 import { defineConfig } from '@umijs/max';
 import keepAlive from './keep-alive';
-import { extraMfsuExclude } from './mfsu.extensions';
+import { extraMfsuExclude, extraMfsuInclude } from './mfsu.extensions';
 import { compressionPluginConfig, monacoPluginConfig } from './plugins';
 import proxy from './proxy';
 import routes from './routes';
@@ -32,11 +32,17 @@ export default defineConfig({
     defaultSizes: 'parsed' // stat  // gzip
   },
   mfsu: {
-    exclude: ['lodash', 'ml-pca', ...extraMfsuExclude]
+    exclude: ['lodash', 'ml-pca', ...extraMfsuExclude],
+    // MFSU only pre-bundles what it finds by analyzing `src`; a package no
+    // file under `src` imports has to be named here or it lands in the host
+    // bundle with its own copy of React.
+    include: [...extraMfsuInclude]
   },
   base: process.env.npm_config_base || '/',
   ...(isProduction
     ? {
+        // Extracted CSS lives in css/, while fonts and images live in static/.
+        cssPublicPath: '../',
         jsMinifierOptions: {
           compress: {
             drop_console: true,
@@ -80,6 +86,23 @@ export default defineConfig({
   model: {},
   initialState: {},
   request: {},
+  // This block has to stay. It is what makes umi emit
+  // `window.__umi_route_prefetch__`, and a route's chunk is only pulled behind
+  // a check on that global — remove the block and `preloadRoute` still
+  // resolves and still gets called, it just silently stops fetching anything.
+  // The sider menu calls it directly, so it would break with no error.
+  //
+  // The value is live too: it is the fallback for a Link that omits the prop,
+  // and the credential link in cloud-provider-form is one. Nothing wraps that
+  // Link, so umi's own hover handler survives there and does the work. The
+  // sider menu is the exception — Tooltip replaces the handler on its Link,
+  // which is why it wires preloading by hand instead.
+  //
+  // `defaultPrefetchTimeout` is deliberately left at umi's 50ms. The only
+  // Link reaching this path is an isolated one inside a form, so there is no
+  // row above it to cross on the way and nothing to debounce against; a longer
+  // delay would only cut into the head start. The sider menu holds its own,
+  // much longer delay, for the opposite reason.
   routePrefetch: {
     defaultPrefetch: 'intent'
   },

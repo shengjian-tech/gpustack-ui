@@ -13,6 +13,8 @@ export default {
   'clusters.button.addNodePool': '添加节点池',
   'clusters.button.add.credential': '添加 {provider} 凭证',
   'clusters.credential.title': '云凭证',
+  'clusters.credential.signinToCreate':
+    '还没有{name}？<a href="{link}" target="_blank">登录或注册</a>后创建。',
   'clusters.credential.token': '访问令牌',
   'clusters.workerpool.region': '区域',
   'clusters.workerpool.zone': '可用区',
@@ -70,8 +72,13 @@ export default {
     '<span class="bold-text">非 Docker</span> 集群请前往集群页面注册集群或管理节点池。',
   'clusters.addworker.selectGPU': '选择 GPU 厂商',
   'clusters.addworker.selectGPU.multiTag': '可多选',
-  'clusters.addworker.selectGPU.subtitle':
-    '可选择多个 GPU 厂商，或不选择以用于仅 CPU 的集群',
+  'clusters.addworker.selectHardware': '选择硬件类型',
+  'clusters.addworker.selectHardware.subtitle':
+    '选择该集群需要部署 Worker 的所有硬件类型',
+  'clusters.addworker.cpuNode.tips':
+    '在所有没有 GPU 的节点上部署 Worker。若控制平面与 GPU 节点在同一集群，且不希望 CPU 节点上运行 Worker，请不要选中。',
+  'clusters.addworker.noWorkerSelected.error':
+    '请至少选择一种硬件类型 —— CPU Node 和 GPU 厂商都不选时，不会部署任何 Worker。',
   'clusters.addworker.checkEnv': '检查环境',
   'clusters.addworker.checkEnv.cpuOnlyTips':
     '使用以下命令验证 Kubernetes 集群中至少有一个就绪节点。你正在注册仅 CPU 的集群。',
@@ -90,6 +97,9 @@ export default {
   'clusters.addworker.enterWorkerIP.error': '请输入节点 IP',
   'clusters.addworker.enterWorkerAddress': '输入节点外部地址',
   'clusters.addworker.enterWorkerAddress.error': '请输入节点外部地址',
+  'clusters.addworker.rdma': 'RDMA / InfiniBand',
+  'clusters.addworker.rdma.tips':
+    '若该节点配有 InfiniBand/RoCE 网卡则开启，跨节点 KV 缓存传输需要。',
   'clusters.addworker.extraVolume': '额外卷挂载',
   'clusters.addworker.cacheVolume': '缓存卷挂载',
   'clusters.addworker.cacheVolume.tips':
@@ -105,18 +115,31 @@ export default {
   'clusters.addworker.cacheVolume.holder':
     '例如：/data/cache（路径需以 / 开头）',
   'clusters.addworker.vendorNotes.title': '{vendor}设备注意事项',
-  'clusters.button.genToken':
-    '需要创建令牌？点击<a href="{link}" target="_blank">这里</a>。',
   'clusters.addworker.amdNotes-01': `如果 <span class="bold-text">/opt/rocm</span> 目录不存在，请创建一个指向已安装 ROCm 路径的符号链接：
     <span class="bold-text">ln -s /path/to/rocm /opt/rocm</span>。`,
+  'clusters.addworker.amdNotes-02': `如果主机上管理了多个 ROCm 版本，必须挂载 <span class="bold-text">/opt/rocm/lib</span>，以避免设备检测失败。`,
   'clusters.addworker.message.success_single':
     '已将 {count} 个新节点添加到集群中。',
   'clusters.addworker.message.success_multiple':
     '已将 {count} 个新节点添加到集群中。',
-  'clusters.create.serverUrl': 'GPUStack Server 节点地址',
+  'clusters.create.serverUrl': 'GPUStack Server URL',
   'clusters.create.workerConfig': '节点配置',
-  'clusters.edit.k8sOptions.changed.tip':
-    '您已修改 Kubernetes 选项，需要在目标集群上重新运行注册命令才会生效。',
+  'clusters.chartValues.title': 'Chart Values（YAML）',
+  'clusters.chartValues.tip':
+    'GPUStack Helm chart 的 values，key 就是 chart 自己的 key，原样合并到服务端派生的值之上。上面没有对应字段、但 chart 及其子 chart 提供的能力都可以在这里配置 —— 例如关掉集群已自备的组件。与 Helm 一致，list 是整体替换而非追加。',
+  'clusters.chartValues.reapply.tip':
+    '保存集群不会改动 Kubernetes 里的任何东西。改完需要重新走「注册集群」拿到 manifest 并再次 apply —— 集群内的 Job 会比较 manifest 要求的配置与 release 实际安装的配置，只在不同时才升级。',
+  'clusters.chartValues.doc.chart': 'Chart values',
+  'clusters.chartValues.doc.operator': 'Operator chart',
+  'clusters.chartValues.error.invalidYaml': 'YAML 格式错误：{reason}',
+  'clusters.chartValues.error.notJson':
+    '{path} 的值不是字符串、数字、布尔、列表或映射 —— YAML 把它解析成了日期或二进制值，无法原样传递。加引号可以让它保持为文本。',
+  'clusters.chartValues.error.unsafeInteger':
+    '{path} 的整数超出了可精确表示的范围 —— 解析 YAML 时已经发生舍入，发送出去的会是另一个值。加引号可以保住原始数字。',
+  'clusters.chartValues.error.notMapping':
+    'Chart values 必须是 YAML 键值映射，不能是单个值或数组。',
+  'clusters.edit.registration.changed.tip':
+    '您已修改注册节点时生效的配置，需要在目标集群上重新运行注册命令才会生效。',
   'clusters.addworker.containerName': '节点容器名称',
   'clusters.addworker.containerName.tips': '为节点容器指定一个名称。',
   'clusters.addworker.dataVolume': 'GPUStack 数据卷',
@@ -124,7 +147,7 @@ export default {
   'clusters.table.ip.internal': '内',
   'clusters.table.ip.external': '外',
   'clusters.form.serverUrl.tips':
-    '如果节点无法直接访问 GPUStack Server，则指定一个可访问的外部 GPUStack Server 地址。',
+    '如果节点无法直接访问 GPUStack Server，则指定一个可访问的外部 GPUStack Server 地址。例如：{example}',
   'clusters.form.setDefault': '设为默认',
   'clusters.form.setDefault.tips': '部署时的默认集群。',
   'clusters.addworker.noClusters': '无可用的 Docker 集群',
@@ -167,6 +190,8 @@ export default {
   'clusters.systemDefaultContainerRegistry.title': '默认容器镜像仓库',
   'clusters.systemDefaultContainerRegistry.tip':
     '用于解析该集群 GPUStack 镜像的默认镜像仓库。未设置时回退到服务端默认值。',
+  'clusters.systemDefaultContainerRegistry.dockerHubUnreachable':
+    '{provider} 的实例无法访问 Docker Hub，请填写镜像加速地址或私有仓库。',
   'clusters.k8sOptions.title': 'Kubernetes 部署选项',
   'clusters.imageCredentials.title': '镜像仓库凭证',
   'clusters.imageCredentials.add': '添加凭证',
@@ -191,5 +216,178 @@ export default {
     '适用于按需分配 GPU 计算资源的场景，例如交互式开发、训练任务或自定义运行环境。',
   'clusters.gpuInstances.staticAddress': 'GPU 服务静态访问地址',
   'clusters.gpuInstances.staticAddress.tip':
-    'Operator 访问该集群 GPU 实例所使用的静态地址（例如 LoadBalancer VIP）。可选。'
+    'Operator 访问该集群 GPU 实例所使用的静态地址（例如 LoadBalancer VIP）。Operator 默认值：留空，此时访问地址由主机 IP 生成。修改后不会改写已部署实例的访问地址，仅对新建的实例生效。',
+  'clusters.gpuInstances.derivedFromNode': '从节点自动推导实例类型',
+  'clusters.gpuInstances.derivedFromNode.tip':
+    'Operator 是否根据节点硬件自动推导实例类型（及其对应的队列）。启用：Operator 为每种节点规格自动创建实例类型。禁用：Operator 仅对齐资源规格，实例类型全部由管理员自行定义。Operator 默认值：启用。',
+  'clusters.gpuInstances.mixedOnNode': '允许节点混合实例类型',
+  'clusters.gpuInstances.mixedOnNode.tip':
+    '同一个节点是否可以同时提供加速型和纯 CPU 实例类型。启用：节点会被归入其所能承载的每一种类型。禁用：带加速卡的节点只产生加速型实例类型，纯 CPU 节点只产生通用实例类型。Operator 默认值：启用。',
+  'clusters.gpuInstances.setting.enabled': '启用',
+  'clusters.gpuInstances.setting.disabled': '禁用',
+  'clusters.gpuInstances.setting.unmanaged': '未托管（沿用集群自身的设置）',
+
+  // 拓扑：这个集群的 worker 相距多远。
+  // Topology: where this cluster's workers sit.
+  'clusters.topology.title': '拓扑配置',
+  'clusters.topology.load.failed': '拓扑信息加载失败。',
+  'clusters.topology.save.failed': '保存失败。',
+  'clusters.topology.preview.failed': '无法按这份映射预览。',
+  'clusters.topology.preview.noWorkers': '这个集群还没有 worker。',
+  'clusters.topology.preview.capacity':
+    '{workers} 台 · {gpus} 卡 · 未分配 {free}',
+  'clusters.topology.cluster': '集群',
+  'clusters.topology.discard.ok': '放弃修改',
+  'clusters.topology.field.region': '地域',
+  'clusters.topology.field.zone': '可用区',
+  'clusters.topology.field.room': '机房',
+  'clusters.topology.field.row': '机柜列',
+  'clusters.topology.field.rack': '机柜',
+  'clusters.topology.field.switch': '接入交换机',
+  'clusters.topology.field.acceleratorDomain': '加速器域',
+  'clusters.topology.field.host': '主机',
+  'clusters.topology.field.region.tips': '云地域或数据中心',
+  'clusters.topology.field.zone.tips': '云可用区或机房',
+  'clusters.topology.field.room.tips': '机房',
+  'clusters.topology.field.row.tips': '机柜所在的列',
+  'clusters.topology.field.rack.tips': '机柜',
+  'clusters.topology.field.switch.tips': '手填，或由 Topograph 等工具写入',
+  'clusters.topology.field.acceleratorDomain.tips': '设备未自报时手填',
+  'clusters.topology.overview.workers': '{count} 台 worker',
+  'clusters.topology.overview.domains': '{field} {count} 个',
+  'clusters.topology.overview.unfilled': '{count} 台还没有{field}',
+  'clusters.topology.previewing': '● 预览中',
+  'clusters.topology.previewing.long': '● 预览中：主抽屉正按未保存的映射显示',
+  'clusters.topology.view.table': '表格',
+  'clusters.topology.view.tree': '树',
+  'clusters.topology.search.placeholder': '搜索主机',
+  'clusters.topology.columns': '列设置',
+  'clusters.topology.columns.fields': '拓扑层级',
+  'clusters.topology.columns.manage': '管理层级',
+  'clusters.topology.columns.mapping': '管理层级',
+  'clusters.topology.batch.button': '设置层级值',
+  'clusters.topology.batch.title': '设置层级值',
+  'clusters.topology.batch.selected': '已选 {count} 台',
+  'clusters.topology.batch.field': '拓扑层级',
+  'clusters.topology.batch.value': '标签值',
+  'clusters.topology.batch.value.placeholder': '选择或输入标签值',
+  'clusters.topology.batch.labelKey': '标签：{key}',
+  'clusters.topology.batch.summary':
+    '将为 {count} 台 Worker 设置{field}值：{value}',
+  'clusters.topology.batch.noWritableLayers':
+    '暂无可设置的层级，请先在「管理层级」中配置标签键。',
+  'clusters.topology.batch.clearHint':
+    '移除写入的标签后，层级可能恢复为其他候选标签或设备自报的值。',
+  'clusters.topology.batch.clearSummary':
+    '将从 {count} 台 Worker 移除该层级写入的标签。',
+  'clusters.topology.batch.clearExisting':
+    '将移除 {count} 台 Worker 的标签：{names}',
+  'clusters.topology.batch.overwrite':
+    '将覆盖 {count} 台 Worker 的已有值：{names}',
+  'clusters.topology.batch.overwriteAuto':
+    '将覆盖 {count} 台 Worker 的设备自报值',
+  'clusters.topology.batch.more': '{names} 等 {count} 台',
+  'clusters.topology.batch.apply': '应用到 {count} 台',
+  'clusters.topology.toast.setOne': '{host} 的{field}已设为 {value}',
+  'clusters.topology.toast.clearedOne': '{host} 的{field}已清除',
+  'clusters.topology.toast.set': '{count} 台的{field}已设为 {value}',
+  'clusters.topology.toast.cleared': '{count} 台的{field}已清除',
+  'clusters.topology.toast.firstWrite': '（只影响之后的调度）',
+  'clusters.topology.undo': '撤销',
+  'clusters.topology.undo.done': '已撤销',
+  'clusters.topology.undo.failed': '撤销失败：{reason}',
+  'clusters.topology.cell.fill': '填写{field}',
+  'clusters.topology.cell.unfilled': '未设置层级值',
+  'clusters.topology.cell.noKeys.tips':
+    '请先在「管理层级」中为该层级设置标签键。',
+  'clusters.topology.cell.aria': '{field}，{state}，{host}',
+  'clusters.topology.state.unfilled': '未填',
+  'clusters.topology.state.discovered.aria': '{value}，设备自报',
+  'clusters.topology.state.override.aria': '{value}，手填覆盖',
+  'clusters.topology.state.discovered.tips':
+    '设备自报（{key}）。手填会覆盖它。',
+  'clusters.topology.state.override.tips':
+    '手填。清除后恢复为设备自报的 {value}',
+  'clusters.topology.state.user.tips': '来自标签：{key}',
+  'clusters.topology.override.confirm': '这个值来自设备自报，手填会覆盖它。',
+  'clusters.topology.override.ok': '覆盖',
+  'clusters.topology.value.count': '{count} 台',
+  'clusters.topology.value.create': '新建 “{value}”',
+  'clusters.topology.value.clear': '清除',
+  'clusters.topology.value.empty': '暂无可选值，请输入标签值',
+  'clusters.topology.column.menu': '{field} 列菜单',
+  'clusters.topology.column.fillUnfilled': '给未填的 {count} 台批量填…',
+  'clusters.topology.column.fillBySwitch': '按接入交换机分批填（{count} 组）…',
+  'clusters.topology.source.user': '手填',
+  'clusters.topology.source.discovered': '自动',
+  'clusters.topology.source.node': 'K8s 节点',
+  'clusters.topology.host.online': '在线',
+  'clusters.topology.host.offline': '离线',
+  'clusters.topology.tree.byLayer': '按层级',
+  'clusters.topology.tree.byField': '按{field}',
+  'clusters.topology.tree.expandAll': '全部展开',
+  'clusters.topology.tree.collapseAll': '全部折叠',
+  'clusters.topology.tree.unfilled': '未设置',
+  'clusters.topology.tree.unmatched.tips':
+    '这些 Worker 尚未匹配到该层级的标签值。',
+  'clusters.topology.tree.candidateKeys': '候选标签键（设置任一标签即可）',
+  'clusters.topology.tree.more': '还有 {count} 台',
+  'clusters.topology.tree.hostCapacity': '{gpus} 卡 · 未分配 {free}',
+  'clusters.topology.mapping.title': '管理层级',
+  'clusters.topology.mapping.intro':
+    '层级值按候选标签键从 Worker 标签中读取。键的排列顺序决定优先级，优先使用第一个非空值。',
+  'clusters.topology.mapping.keysPriority': '候选标签键（按优先级排序）',
+  'clusters.topology.mapping.classified': '识别 {classified} / {total}',
+  'clusters.topology.mapping.noKeys': '未设置标签键',
+  'clusters.topology.mapping.noKeys.add': '未设置标签键（点击添加）',
+  'clusters.topology.layer.builtin': '[内置]',
+  'clusters.topology.layer.labelKeys': '标签键',
+  'clusters.topology.layer.addKey': '添加候选键',
+  'clusters.topology.layer.insert': '插入层级',
+  'clusters.topology.layer.rename': '重命名',
+  'clusters.topology.layer.rename.tips':
+    '只改显示名称，不影响该层级的标识、标签键，以及模型里已保存的拓扑亲和性设置。留空可恢复默认名称。层级标识：',
+  'clusters.topology.layer.rename.taken':
+    '该名称已被同一条链上的其他层级使用。',
+  'clusters.topology.layer.disable': '停用',
+  'clusters.topology.layer.disabled': '（已停用）',
+  'clusters.topology.layer.enable': '启用',
+  'clusters.topology.layer.inUse': '该层级仍被模型使用',
+  'clusters.topology.layer.inUse.tips':
+    '以下模型的拓扑亲和性指向该层级，删除会使它们失去约束：{models}。请先修改这些模型。',
+  'clusters.topology.layer.name': '名称',
+  'clusters.topology.advanced.hostKeys': '内置，按 worker 名',
+  'clusters.topology.advanced.locked':
+    'GPUStack 自有键：表格里手填的值写在这里，不可删、不可移。',
+  'clusters.topology.advanced.suggestions': '发现的标签键',
+  'clusters.topology.advanced.suggestion':
+    '{workers} 台 · {values} 个值 · 看起来像 {field}',
+  'clusters.topology.advanced.discard': '放弃未保存的层级修改？',
+  'clusters.topology.advanced.discard.tips':
+    '本次对层级及候选标签键的修改将不会保存。',
+  'clusters.topology.advanced.discard.cancel': '继续编辑',
+  'clusters.topology.advanced.saved':
+    '已保存，只影响之后的调度；已运行的组不会被重新放置。',
+  'clusters.topology.keys.workerLabels': 'Worker 标签',
+  'clusters.topology.keys.placeholder': '输入或选择标签键',
+  'clusters.topology.keys.invalid':
+    '不是合法的 Kubernetes 标签键（前缀 ≤ 253、名称 ≤ 63、字母数字 - _ .）',
+  'clusters.topology.keys.usage': '{count} 台 worker 带这个键（{values} 个值）',
+  'clusters.topology.keys.exists': '这个键已经加过了',
+  'clusters.topology.custom.title': '添加层级',
+  'clusters.topology.custom.insertHere': '在此插入层级',
+  'clusters.topology.custom.name.placeholder': '层级名称',
+  'clusters.topology.custom.name.required': '请输入名称',
+  'clusters.topology.custom.name.taken': '这个名称已被占用或是保留字',
+  'clusters.topology.custom.name.tips': '会出现在部署表单的档位里',
+  'clusters.topology.custom.position': '放在链里的哪一层',
+  'clusters.topology.custom.slot.insert': '插入到这里',
+  'clusters.topology.custom.slot.placeholder': '新层级',
+  'clusters.topology.custom.slot.explain':
+    '一个{parent}里有多个{name}，一个{name}里有多个{child}',
+  'clusters.topology.custom.slot.explain.top': '一个{name}里有多个{child}',
+  'clusters.topology.custom.keys.tips':
+    '自定义层级没有自有键；表格里要能手填，请把第一个键设为你打算写入的键。',
+  'clusters.topology.custom.referenced':
+    '不能删除「{name}」：以下模型的 KV 传输局部性引用了它'
 };

@@ -1,7 +1,6 @@
 import { PageAction } from '@/config';
 import {
   ControlOutlined,
-  LockOutlined,
   MinusOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
@@ -25,6 +24,7 @@ import {
   InputNumber,
   Segmented,
   Switch,
+  Tag,
   Tooltip
 } from 'antd';
 import { createStyles } from 'antd-style';
@@ -36,19 +36,20 @@ import {
   DATASET_SEED_MIN,
   DatasetValueMap,
   LoadTypeValueMap,
-  SLA_AGGS,
-  SLA_METRICS,
-  type SlaAgg,
-  type SlaMetric,
-  type SlaTarget,
+  SLO_AGGS,
+  SLO_METRICS,
+  type SloAgg,
+  type SloMetric,
+  type SloTarget,
   genDatasetSeed,
   loadTypeOptions,
-  profileAllowsSla,
-  slaFieldsFromTargets,
-  slaTargetKey
+  profileAllowsSlo,
+  sloFieldsFromTargets,
+  sloTargetKey
 } from '../config';
 import { useFormContext } from '../config/form-context';
 import { FormData } from '../config/types';
+import { optionalPositiveIntegerRule } from './sharegpt-token-validation';
 
 const useStyles = createStyles(({ token, css }) => ({
   // Opt-in sub-feature card (Data Distribution / Shared Prefix): a bordered
@@ -71,6 +72,7 @@ const useStyles = createStyles(({ token, css }) => ({
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      color: ${token.colorTextTertiary};
     }
     .title-help {
       color: ${token.colorTextTertiary};
@@ -88,6 +90,13 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     /* "managed by profile" next to a locked control in the card header. */
     .title-hint {
+      font-size: 12px;
+      color: ${token.colorTextTertiary};
+    }
+    /* A unit / example under a pair of fields, where a placeholder cannot go. */
+    .field-hint {
+      margin-top: -6px;
+      margin-bottom: 12px;
       font-size: 12px;
       color: ${token.colorTextTertiary};
     }
@@ -171,7 +180,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `
 }));
 
-// SLA target rows live in config/index.ts (SLA_METRICS / SLA_AGGS + the
+// SLO target rows live in config/index.ts (SLO_METRICS / SLO_AGGS + the
 // list <-> flat-field mapping), since the detail page and the preset prefill
 // need the same mapping.
 
@@ -181,7 +190,8 @@ const RandomSettingsForm: React.FC<{
   const { datasetList } = props;
   const { styles } = useStyles();
   const intl = useIntl();
-  const { action, currentData, profilesOptions } = useFormContext();
+  const { action, currentData, profilesOptions, groupKeys, onGroupChange } =
+    useFormContext();
   const form = Form.useFormInstance();
   const profile = Form.useWatch('profile', form);
   const loadType = Form.useWatch('load_type', form);
@@ -202,13 +212,17 @@ const RandomSettingsForm: React.FC<{
   // can switch to manual stages. Derive from that so the section renders correctly
   // even if the auto_tune field value lags/is missing.
   const effectiveAutoTune = isCustom ? !!autoTune : true;
-  // SLA is gated by TARGET, not by axis: setting a threshold switches the delivered
-  // answer from "peak throughput" to "max load meeting the SLA", so it is available
+  // SLO is gated by TARGET, not by axis: setting a threshold switches the delivered
+  // answer from "peak throughput" to "max load meeting the SLO", so it is available
   // on BOTH axes (asking for req/s under a TTFT budget is the more common capacity
   // question) and hidden only for a preset whose answer IS the peak. See
-  // profileAllowsSla; keep in sync with the nav's copy in forms/index.tsx.
-  const showSLA = profileAllowsSla(profile, profilesOptions as any[]);
+  // profileAllowsSlo; keep in sync with the nav's copy in forms/index.tsx.
+  const showSLO = profileAllowsSlo(profile, profilesOptions as any[]);
   const isRandom = datasetName === DatasetValueMap.Random;
+  const isShareGPT = datasetName === DatasetValueMap.ShareGPT;
+  const shareGPTTokenRule = optionalPositiveIntegerRule(
+    intl.formatMessage({ id: 'benchmark.form.sharegpt.positiveInteger' })
+  );
   // Random seed is the default; only an explicit false means the user pinned one.
   const randomSeed = Form.useWatch('dataset_seed_random', form) !== false;
 
@@ -243,19 +257,23 @@ const RandomSettingsForm: React.FC<{
   const outStdev = Form.useWatch('dataset_output_stdev', form);
   const outMin = Form.useWatch('dataset_output_min', form);
   const outMax = Form.useWatch('dataset_output_max', form);
+  const showShareGPTFilter =
+    Form.useWatch('sharegpt_filter_enabled', form) === true;
 
   const hasVal = (...vs: any[]) => vs.some((v) => v != null && v !== '');
   // Initialize the disclosure from the prefilled config (clone / edit) — useWatch
   // can't see the still-unmounted distribution fields, so seed from currentData.
-  const [distToggle, setDistToggle] = useState(() =>
-    hasVal(
-      currentData?.dataset_input_stdev,
-      currentData?.dataset_input_min,
-      currentData?.dataset_input_max,
-      currentData?.dataset_output_stdev,
-      currentData?.dataset_output_min,
-      currentData?.dataset_output_max
-    )
+  const [distToggle, setDistToggle] = useState(
+    () =>
+      currentData?.dataset_name === DatasetValueMap.Random &&
+      hasVal(
+        currentData?.dataset_input_stdev,
+        currentData?.dataset_input_min,
+        currentData?.dataset_input_max,
+        currentData?.dataset_output_stdev,
+        currentData?.dataset_output_min,
+        currentData?.dataset_output_max
+      )
   );
   const showDist =
     distToggle || hasVal(inStdev, inMin, inMax, outStdev, outMin, outMax);
@@ -364,103 +382,90 @@ const RandomSettingsForm: React.FC<{
     revalidateStages();
   };
 
-  // Auto <-> Manual are two ways of producing the same thing (the stages), and the
-  // backend reads only one side per `auto_tune`. Clear the side being left so the
-  // saved row — and anything cloned from it — carries no values that never ran.
-  // Switching to Manual seeds one empty row so the table isn't just an Add button.
-  const handleStagesModeChange = (mode: 'auto' | 'manual') => {
-    if (mode === 'auto') {
-      form.setFieldsValue({
-        auto_tune: true,
-        stages: [],
-        lower_bound: AUTO_TUNE_DEFAULTS.lower_bound,
-        upper_bound: AUTO_TUNE_DEFAULTS.upper_bound,
-        max_points: AUTO_TUNE_DEFAULTS.max_points,
-        max_total_seconds: AUTO_TUNE_DEFAULTS.max_total_seconds
-      });
-      setStagesValidated(false);
-    } else {
-      form.setFieldsValue({
-        auto_tune: false,
-        lower_bound: null,
-        upper_bound: null,
-        max_points: null,
-        max_total_seconds: null,
-        stages: stages?.length ? stages : [{ rate: undefined }]
-      });
-    }
+  // Changing the load type or stage mode starts a fresh stage configuration.
+  // Auto-tune restores all defaults, including its point and duration budgets;
+  // Manual starts with one empty row, clearing each stage's load and limits.
+  const resetStageConfig = (autoTune: boolean) => {
+    form.setFieldsValue(
+      autoTune
+        ? { auto_tune: true, stages: [], ...AUTO_TUNE_DEFAULTS }
+        : {
+            auto_tune: false,
+            lower_bound: null,
+            upper_bound: null,
+            max_points: null,
+            max_total_seconds: null,
+            stages: [{ rate: undefined }]
+          }
+    );
+    // Load-type changes leave the list mounted. Clear both the row highlights
+    // and list errors so a failed submit cannot outlive the discarded stages.
+    setStagesValidated(false);
+    form.setFields([{ name: 'stages', errors: [] }]);
   };
 
-  // SLA targets: same controlled MetadataList pattern as the bucket / stage
-  // lists. `sla_targets` is form-only — every mutation writes through to the 9
-  // flat `sla_*_ms` fields the API actually takes (unused ones nulled), and the
-  // page strips `sla_targets` before the request.
-  const slaTargets: SlaTarget[] = Form.useWatch('sla_targets', form) || [];
-  const [slaValidated, setSlaValidated] = useState(false);
-  const revalidateSla = () => {
-    if (slaValidated) form.validateFields(['sla_targets']).catch(() => {});
+  const handleStagesModeChange = (mode: 'auto' | 'manual') =>
+    resetStageConfig(mode === 'auto');
+
+  const handleLoadTypeChange = () => resetStageConfig(effectiveAutoTune);
+
+  // SLO targets: same controlled MetadataList pattern as the bucket / stage
+  // lists. `slo_targets` is form-only — every mutation writes through to the 9
+  // flat `slo_*_ms` fields the API actually takes (unused ones nulled), and the
+  // page strips `slo_targets` before the request.
+  const sloTargets: SloTarget[] = Form.useWatch('slo_targets', form) || [];
+  const [sloValidated, setSloValidated] = useState(false);
+  const revalidateSlo = () => {
+    if (sloValidated) form.validateFields(['slo_targets']).catch(() => {});
   };
-  const writeSlaTargets = (next: SlaTarget[]) => {
+  const writeSloTargets = (next: SloTarget[]) => {
     form.setFieldsValue({
-      sla_targets: next,
-      ...slaFieldsFromTargets(next)
+      slo_targets: next,
+      ...sloFieldsFromTargets(next)
     } as any);
   };
   // (metric, agg) pairs claimed by the OTHER rows. Used to disable them in this
   // row's selectors, so a duplicate threshold is impossible to build rather than
   // something the user has to be told about after submitting.
-  const slaTakenByOthers = (index: number) =>
+  const sloTakenByOthers = (index: number) =>
     new Set(
-      slaTargets
+      sloTargets
         .filter((_, i) => i !== index)
-        .map((t) => slaTargetKey(t.metric, t.agg))
+        .map((t) => sloTargetKey(t.metric, t.agg))
     );
-  const handleSlaAdd = () => {
+  const handleSloAdd = () => {
     // Default the new row to the first (metric, agg) pair still free.
-    const taken = new Set(slaTargets.map((t) => slaTargetKey(t.metric, t.agg)));
-    const free = SLA_METRICS.flatMap((m) =>
-      SLA_AGGS.map((a) => ({ metric: m.value, agg: a.value }))
-    ).find((c) => !taken.has(slaTargetKey(c.metric, c.agg)));
-    writeSlaTargets([...slaTargets, { ...(free || {}), value: null }]);
+    const taken = new Set(sloTargets.map((t) => sloTargetKey(t.metric, t.agg)));
+    const free = SLO_METRICS.flatMap((m) =>
+      SLO_AGGS.map((a) => ({ metric: m.value, agg: a.value }))
+    ).find((c) => !taken.has(sloTargetKey(c.metric, c.agg)));
+    writeSloTargets([...sloTargets, { ...(free || {}), value: null }]);
   };
-  const handleSlaDelete = (index: number) => {
-    const next = [...slaTargets];
+  const handleSloDelete = (index: number) => {
+    const next = [...sloTargets];
     next.splice(index, 1);
-    writeSlaTargets(next);
-    revalidateSla();
+    writeSloTargets(next);
+    revalidateSlo();
   };
-  const handleSlaChange = (index: number, partial: Partial<SlaTarget>) => {
-    const next = [...slaTargets];
+  const handleSloChange = (index: number, partial: Partial<SloTarget>) => {
+    const next = [...sloTargets];
     let row = { ...next[index], ...partial };
     // Switching metric can collide with another row that already holds this
     // aggregation; move to the first free one for the new metric instead of
     // leaving a duplicate the validator would then have to reject.
     if (partial.metric) {
-      const taken = slaTakenByOthers(index);
-      if (taken.has(slaTargetKey(row.metric, row.agg))) {
-        const freeAgg = SLA_AGGS.find(
-          (a) => !taken.has(slaTargetKey(row.metric, a.value))
+      const taken = sloTakenByOthers(index);
+      if (taken.has(sloTargetKey(row.metric, row.agg))) {
+        const freeAgg = SLO_AGGS.find(
+          (a) => !taken.has(sloTargetKey(row.metric, a.value))
         );
         row = { ...row, agg: freeAgg?.value };
       }
     }
     next[index] = row;
-    writeSlaTargets(next);
-    revalidateSla();
+    writeSloTargets(next);
+    revalidateSlo();
   };
-
-  // Collapsible field groups, all open by default: Workload / SLA / Load / Stop
-  // Conditions. Every field now has a real home (no "Advanced" catch-all), so
-  // there is nothing left to hide behind a collapsed section. Uses the app's
-  // CollapsePanel for a style consistent with the model form & Configuration.
-  const [groupKeys, setGroupKeys] = useState<string[]>([
-    'dataset',
-    'sla',
-    'load',
-    'execution'
-  ]);
-  const handleGroupChange = (keys: string | string[]) =>
-    setGroupKeys(Array.isArray(keys) ? keys : [keys]);
 
   // ---- Group 1: Dataset (what data to send) ----
   const datasetContent = (
@@ -476,6 +481,25 @@ const RandomSettingsForm: React.FC<{
       >
         <SealSelect
           disabled={disabled}
+          onChange={(value) => {
+            form.setFieldsValue({
+              dataset_input_tokens:
+                value === DatasetValueMap.ShareGPT
+                  ? null
+                  : (form.getFieldValue('dataset_input_tokens') ?? 1024),
+              dataset_output_tokens:
+                value === DatasetValueMap.ShareGPT
+                  ? null
+                  : (form.getFieldValue('dataset_output_tokens') ?? 128),
+              dataset_input_min: null,
+              dataset_input_max: null,
+              sharegpt_filter_enabled: false,
+              dataset_input_stdev: null,
+              dataset_output_stdev: null,
+              dataset_output_min: null,
+              dataset_output_max: null
+            });
+          }}
           options={datasetList?.map((item) => ({
             ...item,
             label: item.label,
@@ -500,7 +524,7 @@ const RandomSettingsForm: React.FC<{
             ]}
           >
             <CInputNumber
-              min={0}
+              min={1}
               disabled={disabled}
               label={intl.formatMessage({
                 id: 'benchmark.table.inputTokenLength'
@@ -521,7 +545,7 @@ const RandomSettingsForm: React.FC<{
             ]}
           >
             <CInputNumber
-              min={0}
+              min={1}
               disabled={disabled}
               label={intl.formatMessage({
                 id: 'benchmark.table.outputTokenLength'
@@ -667,7 +691,8 @@ const RandomSettingsForm: React.FC<{
                       matches the design (fields never crowd the chart). */}
                   <div
                     style={{
-                      fontWeight: 600,
+                      fontWeight: 500,
+                      fontSize: 14,
                       color: 'var(--ant-color-text-secondary)',
                       margin: '4px 0 8px'
                     }}
@@ -698,7 +723,7 @@ const RandomSettingsForm: React.FC<{
                       style={{ marginBottom: 0 }}
                     >
                       <CInputNumber
-                        min={0}
+                        min={1}
                         disabled={disabled}
                         style={{ width: '100%' }}
                         label={intl.formatMessage({
@@ -711,7 +736,7 @@ const RandomSettingsForm: React.FC<{
                       style={{ marginBottom: 0 }}
                     >
                       <CInputNumber
-                        min={0}
+                        min={1}
                         disabled={disabled}
                         style={{ width: '100%' }}
                         label={intl.formatMessage({
@@ -730,7 +755,8 @@ const RandomSettingsForm: React.FC<{
                   </div>
                   <div
                     style={{
-                      fontWeight: 600,
+                      fontWeight: 500,
+                      fontSize: 14,
                       color: 'var(--ant-color-text-secondary)',
                       margin: '4px 0 8px'
                     }}
@@ -761,7 +787,7 @@ const RandomSettingsForm: React.FC<{
                       style={{ marginBottom: 0 }}
                     >
                       <CInputNumber
-                        min={0}
+                        min={1}
                         disabled={disabled}
                         style={{ width: '100%' }}
                         label={intl.formatMessage({
@@ -774,7 +800,7 @@ const RandomSettingsForm: React.FC<{
                       style={{ marginBottom: 0 }}
                     >
                       <CInputNumber
-                        min={0}
+                        min={1}
                         disabled={disabled}
                         style={{ width: '100%' }}
                         label={intl.formatMessage({
@@ -817,104 +843,106 @@ const RandomSettingsForm: React.FC<{
                 />
               </div>
               {showPrefix && (
-                <Form.Item
-                  name="prefix_buckets"
-                  style={{ marginBottom: 0 }}
-                  rules={[
-                    {
-                      validator: async (_r, value: any[]) => {
-                        if (!value?.length) return;
-                        if (value.some((b) => b?.prefix_tokens == null)) {
-                          setPrefixValidated(true);
-                          throw new Error(
-                            getRuleMessage(
-                              'input',
-                              'benchmark.form.prefix.length'
-                            )
-                          );
+                <div id="benchmark_prefix_buckets">
+                  <Form.Item
+                    name="prefix_buckets"
+                    style={{ marginBottom: 0 }}
+                    rules={[
+                      {
+                        validator: async (_r, value: any[]) => {
+                          if (!value?.length) return;
+                          if (value.some((b) => b?.prefix_tokens == null)) {
+                            setPrefixValidated(true);
+                            throw new Error(
+                              getRuleMessage(
+                                'input',
+                                'benchmark.form.prefix.length'
+                              )
+                            );
+                          }
                         }
                       }
-                    }
-                  ]}
-                >
-                  {/* Same list UX as Add Cluster's Image Credentials: a
+                    ]}
+                  >
+                    {/* Same list UX as Add Cluster's Image Credentials: a
                       MetadataList (bordered card stripped here since the section
                       is already a card) with a block "Add" button and a circular
                       per-row delete button. */}
-                  <MetadataList
-                    label={null}
-                    dataList={prefixBuckets || []}
-                    disabled={disabled}
-                    btnText={intl.formatMessage({
-                      id: 'benchmark.form.prefix.add'
-                    })}
-                    onAdd={handlePrefixAdd}
-                    onDelete={handlePrefixDelete}
-                    styles={{
-                      wrapper: {
-                        border: 'none',
-                        borderRadius: 0,
-                        padding: 0
-                      }
-                    }}
-                  >
-                    {(item: any, index: number) => (
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {index !== 0 && <div style={{ height: 12 }} />}
-                        <div style={{ display: 'flex', gap: 12 }}>
-                          <CInputNumber
-                            required
-                            min={1}
-                            disabled={disabled}
-                            value={item.prefix_tokens}
-                            onChange={(v) =>
-                              handlePrefixItemChange(index, {
-                                prefix_tokens: v
-                              })
-                            }
-                            checkStatus={
-                              prefixValidated && item.prefix_tokens == null
-                                ? 'error'
-                                : 'success'
-                            }
-                            label={intl.formatMessage({
-                              id: 'benchmark.form.prefix.length'
-                            })}
-                            style={{ width: '100%' }}
-                          ></CInputNumber>
-                          <CInputNumber
-                            min={1}
-                            disabled={disabled}
-                            value={item.prefix_count}
-                            onChange={(v) =>
-                              handlePrefixItemChange(index, {
-                                prefix_count: v
-                              })
-                            }
-                            label={intl.formatMessage({
-                              id: 'benchmark.form.prefix.count'
-                            })}
-                            style={{ width: '100%' }}
-                          ></CInputNumber>
-                          <CInputNumber
-                            min={1}
-                            disabled={disabled}
-                            value={item.bucket_weight}
-                            onChange={(v) =>
-                              handlePrefixItemChange(index, {
-                                bucket_weight: v
-                              })
-                            }
-                            label={intl.formatMessage({
-                              id: 'benchmark.form.prefix.weight'
-                            })}
-                            style={{ width: '100%' }}
-                          ></CInputNumber>
+                    <MetadataList
+                      label={null}
+                      dataList={prefixBuckets || []}
+                      disabled={disabled}
+                      btnText={intl.formatMessage({
+                        id: 'benchmark.form.prefix.add'
+                      })}
+                      onAdd={handlePrefixAdd}
+                      onDelete={handlePrefixDelete}
+                      styles={{
+                        wrapper: {
+                          border: 'none',
+                          borderRadius: 0,
+                          padding: 0
+                        }
+                      }}
+                    >
+                      {(item: any, index: number) => (
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {index !== 0 && <div style={{ height: 12 }} />}
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <CInputNumber
+                              required
+                              min={1}
+                              disabled={disabled}
+                              value={item.prefix_tokens}
+                              onChange={(v) =>
+                                handlePrefixItemChange(index, {
+                                  prefix_tokens: v
+                                })
+                              }
+                              checkStatus={
+                                prefixValidated && item.prefix_tokens == null
+                                  ? 'error'
+                                  : 'success'
+                              }
+                              label={intl.formatMessage({
+                                id: 'benchmark.form.prefix.length'
+                              })}
+                              style={{ width: '100%' }}
+                            ></CInputNumber>
+                            <CInputNumber
+                              min={1}
+                              disabled={disabled}
+                              value={item.prefix_count}
+                              onChange={(v) =>
+                                handlePrefixItemChange(index, {
+                                  prefix_count: v
+                                })
+                              }
+                              label={intl.formatMessage({
+                                id: 'benchmark.form.prefix.count'
+                              })}
+                              style={{ width: '100%' }}
+                            ></CInputNumber>
+                            <CInputNumber
+                              min={1}
+                              disabled={disabled}
+                              value={item.bucket_weight}
+                              onChange={(v) =>
+                                handlePrefixItemChange(index, {
+                                  bucket_weight: v
+                                })
+                              }
+                              label={intl.formatMessage({
+                                id: 'benchmark.form.prefix.weight'
+                              })}
+                              style={{ width: '100%' }}
+                            ></CInputNumber>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </MetadataList>
-                </Form.Item>
+                      )}
+                    </MetadataList>
+                  </Form.Item>
+                </div>
               )}
             </div>
             {/* Multi-turn: synthetic `turns`. A data-shape knob (each request
@@ -1002,6 +1030,119 @@ const RandomSettingsForm: React.FC<{
           </>
         </>
       )}
+      {isShareGPT && (
+        <div className={styles.sectionCard}>
+          <div
+            className="section-title"
+            style={{ marginBottom: showShareGPTFilter ? 16 : 0 }}
+          >
+            <span className="title-label">
+              {intl.formatMessage({
+                id: 'benchmark.form.sharegpt.tokenLengthSettings'
+              })}
+              <Tooltip
+                title={intl.formatMessage({
+                  id: 'benchmark.form.sharegpt.tokenLengthSettings.tip'
+                })}
+              >
+                <QuestionCircleOutlined className="title-help" />
+              </Tooltip>
+            </span>
+            <Form.Item<FormData>
+              name="sharegpt_filter_enabled"
+              valuePropName="checked"
+              noStyle
+            >
+              <Switch
+                size="small"
+                disabled={disabled}
+                onChange={(checked) => {
+                  if (!checked) {
+                    form.setFieldsValue({
+                      dataset_input_min: null,
+                      dataset_input_max: null,
+                      dataset_output_tokens: null
+                    });
+                  }
+                }}
+              />
+            </Form.Item>
+          </div>
+          {showShareGPTFilter && (
+            <>
+              <div
+                style={{
+                  fontWeight: 500,
+                  fontSize: 14,
+                  color: 'var(--ant-color-text-secondary)',
+                  margin: '4px 0 8px'
+                }}
+              >
+                {intl.formatMessage({ id: 'benchmark.table.inputTokenLength' })}
+              </div>
+              <Flex gap={12}>
+                <Form.Item<FormData>
+                  name="dataset_input_min"
+                  style={{ flex: 1 }}
+                  rules={[shareGPTTokenRule]}
+                >
+                  <CInputNumber
+                    min={1}
+                    disabled={disabled}
+                    label={intl.formatMessage({
+                      id: 'benchmark.form.dist.min'
+                    })}
+                  />
+                </Form.Item>
+                <Form.Item<FormData>
+                  name="dataset_input_max"
+                  style={{ flex: 1 }}
+                  dependencies={['dataset_input_min']}
+                  rules={[
+                    shareGPTTokenRule,
+                    {
+                      validator: async (_, value) => {
+                        const min = form.getFieldValue('dataset_input_min');
+                        if (
+                          Number.isSafeInteger(value) &&
+                          Number.isSafeInteger(min) &&
+                          value < min
+                        ) {
+                          throw new Error(
+                            intl.formatMessage({
+                              id: 'benchmark.form.sharegpt.inputRangeError'
+                            })
+                          );
+                        }
+                      }
+                    }
+                  ]}
+                >
+                  <CInputNumber
+                    min={1}
+                    disabled={disabled}
+                    label={intl.formatMessage({
+                      id: 'benchmark.form.dist.max'
+                    })}
+                  />
+                </Form.Item>
+              </Flex>
+              <Form.Item<FormData>
+                name="dataset_output_tokens"
+                rules={[shareGPTTokenRule]}
+              >
+                <CInputNumber
+                  min={1}
+                  disabled={disabled}
+                  label={intl.formatMessage({
+                    id: 'benchmark.table.outputTokenLength'
+                  })}
+                />
+              </Form.Item>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 
@@ -1033,9 +1174,11 @@ const RandomSettingsForm: React.FC<{
   const loadContent = (
     <>
       {/* Load Type (axis). Locked for named presets — the value then reads
-          "… (managed by profile)" to make the read-only nature explicit. */}
+          "… (managed by profile)" to make the read-only nature explicit. Changing
+          it resets the full stage configuration for the current mode. */}
       <Form.Item<FormData> name="load_type">
         <SealSelect
+          onChange={handleLoadTypeChange}
           disabled={disabled || presetLocked}
           label={intl.formatMessage({ id: 'benchmark.form.loadType' })}
           options={loadTypeOptions.map((o) => ({
@@ -1076,13 +1219,17 @@ const RandomSettingsForm: React.FC<{
               so show a locked "Auto-tune" pill instead of a disabled Segmented.
               Custom keeps the auto/manual toggle. */}
           {presetLocked ? (
-            <span className={styles.autoTunePill}>
-              <LockOutlined />
+            <Tag
+              icon={<ThunderboltOutlined />}
+              color="geekblue"
+              variant="outlined"
+            >
               {intl.formatMessage({ id: 'benchmark.form.autoTune' })}
-            </span>
+            </Tag>
           ) : (
             <Segmented
-              className={styles.modeSwitch}
+              style={{ fontSize: 13 }}
+              size="middle"
               value={stagesMode}
               disabled={disabled}
               options={stagesModeOptions}
@@ -1168,115 +1315,119 @@ const RandomSettingsForm: React.FC<{
              Same list UX as Add Cluster's Image Credentials (MetadataList with a
              block "Add" button and a circular per-row delete); the card border is
              stripped since this card already provides one. */
-          <Form.Item
-            name="stages"
-            style={{ marginBottom: 0 }}
-            rules={[
-              {
-                validator: async (_r, value: any[]) => {
-                  if (!value || value.length === 0) {
-                    setStagesValidated(true);
-                    throw new Error(
-                      getRuleMessage('input', 'benchmark.form.stages')
-                    );
-                  }
-                  if (value.some((s) => s?.rate == null)) {
-                    setStagesValidated(true);
-                    throw new Error(
-                      getRuleMessage('input', 'benchmark.form.rate')
-                    );
-                  }
-                  if (
-                    value.some(
-                      (s) => s?.max_requests == null && s?.max_seconds == null
-                    )
-                  ) {
-                    setStagesValidated(true);
-                    throw new Error(
-                      intl.formatMessage({
-                        id: 'benchmark.form.requestsOrSeconds'
-                      })
-                    );
+          <div id="benchmark_stages">
+            <Form.Item
+              name="stages"
+              style={{ marginBottom: 0 }}
+              rules={[
+                {
+                  validator: async (_r, value: any[]) => {
+                    if (!value || value.length === 0) {
+                      setStagesValidated(true);
+                      throw new Error(
+                        getRuleMessage('input', 'benchmark.form.stages')
+                      );
+                    }
+                    if (value.some((s) => s?.rate == null)) {
+                      setStagesValidated(true);
+                      throw new Error(
+                        getRuleMessage('input', 'benchmark.form.rate')
+                      );
+                    }
+                    if (
+                      value.some(
+                        (s) => s?.max_requests == null && s?.max_seconds == null
+                      )
+                    ) {
+                      setStagesValidated(true);
+                      throw new Error(
+                        intl.formatMessage({
+                          id: 'benchmark.form.requestsOrSeconds'
+                        })
+                      );
+                    }
                   }
                 }
-              }
-            ]}
-          >
-            <MetadataList
-              label={null}
-              dataList={stages || []}
-              disabled={disabled}
-              btnText={intl.formatMessage({ id: 'benchmark.form.addStage' })}
-              onAdd={handleStageAdd}
-              onDelete={handleStageDelete}
-              styles={{
-                wrapper: { border: 'none', borderRadius: 0, padding: 0 }
-              }}
+              ]}
             >
-              {(item: any, index: number) => (
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {index !== 0 && <div style={{ height: 12 }} />}
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    {/* Wrap each field in a flex div (Rate wider — its label is
+              <MetadataList
+                label={null}
+                dataList={stages || []}
+                disabled={disabled}
+                btnText={intl.formatMessage({ id: 'benchmark.form.addStage' })}
+                onAdd={handleStageAdd}
+                onDelete={handleStageDelete}
+                styles={{
+                  wrapper: { border: 'none', borderRadius: 0, padding: 0 }
+                }}
+              >
+                {(item: any, index: number) => (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {index !== 0 && <div style={{ height: 12 }} />}
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      {/* Wrap each field in a flex div (Rate wider — its label is
                       the longest); the SealInputNumber's own `style` is passed
                       to the inner input, so the column width must live on the
                       wrapper. */}
-                    <div style={{ flex: 1.7, minWidth: 0 }}>
-                      <CInputNumber
-                        required
-                        min={1}
-                        disabled={disabled}
-                        value={item.rate}
-                        onChange={(v) => handleStageChange(index, { rate: v })}
-                        checkStatus={
-                          stagesValidated && item.rate == null
-                            ? 'error'
-                            : 'success'
-                        }
-                        label={rateLabel}
-                        style={{ width: '100%' }}
-                      ></CInputNumber>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <CInputNumber
-                        min={1}
-                        disabled={disabled}
-                        value={item.max_requests}
-                        onChange={(v) =>
-                          handleStageChange(index, { max_requests: v })
-                        }
-                        checkStatus={
-                          stagesValidated &&
-                          item.max_requests == null &&
-                          item.max_seconds == null
-                            ? 'error'
-                            : 'success'
-                        }
-                        label={intl.formatMessage({
-                          id: 'benchmark.form.requests'
-                        })}
-                        style={{ width: '100%' }}
-                      ></CInputNumber>
-                    </div>
-                    <div style={{ flex: 1.2, minWidth: 0 }}>
-                      <CInputNumber
-                        min={1}
-                        disabled={disabled}
-                        value={item.max_seconds}
-                        onChange={(v) =>
-                          handleStageChange(index, { max_seconds: v })
-                        }
-                        label={intl.formatMessage({
-                          id: 'benchmark.form.maxSeconds'
-                        })}
-                        style={{ width: '100%' }}
-                      ></CInputNumber>
+                      <div style={{ flex: 1.7, minWidth: 0 }}>
+                        <CInputNumber
+                          required
+                          min={1}
+                          disabled={disabled}
+                          value={item.rate}
+                          onChange={(v) =>
+                            handleStageChange(index, { rate: v })
+                          }
+                          checkStatus={
+                            stagesValidated && item.rate == null
+                              ? 'error'
+                              : 'success'
+                          }
+                          label={rateLabel}
+                          style={{ width: '100%' }}
+                        ></CInputNumber>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <CInputNumber
+                          min={1}
+                          disabled={disabled}
+                          value={item.max_requests}
+                          onChange={(v) =>
+                            handleStageChange(index, { max_requests: v })
+                          }
+                          checkStatus={
+                            stagesValidated &&
+                            item.max_requests == null &&
+                            item.max_seconds == null
+                              ? 'error'
+                              : 'success'
+                          }
+                          label={intl.formatMessage({
+                            id: 'benchmark.form.requests'
+                          })}
+                          style={{ width: '100%' }}
+                        ></CInputNumber>
+                      </div>
+                      <div style={{ flex: 1.2, minWidth: 0 }}>
+                        <CInputNumber
+                          min={1}
+                          disabled={disabled}
+                          value={item.max_seconds}
+                          onChange={(v) =>
+                            handleStageChange(index, { max_seconds: v })
+                          }
+                          label={intl.formatMessage({
+                            id: 'benchmark.form.maxSeconds'
+                          })}
+                          style={{ width: '100%' }}
+                        ></CInputNumber>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </MetadataList>
-          </Form.Item>
+                )}
+              </MetadataList>
+            </Form.Item>
+          </div>
         )}
       </div>
       {/* Warmup / Cooldown trim the first / last slice of each stage's requests
@@ -1287,135 +1438,202 @@ const RandomSettingsForm: React.FC<{
       <Flex gap={12}>
         <Form.Item<FormData> name="warmup" style={{ flex: 1 }}>
           <CInputNumber
+            // A whole percent, bounded. Unbounded it was a footgun: the label
+            // says "%", but the API column uses guidellm's scalar convention
+            // where only values BELOW 1 are fractions -- so "10", typed as
+            // "10%", used to be sent as an absolute 10. The form now owns the
+            // percent unit and converts on submit (see `forms/index.tsx`).
+            //
+            // 99, not 100, and for the same reason the conversion exists: 100%
+            // converts to exactly 1.0, which is the first value guidellm reads
+            // as an ABSOLUTE COUNT -- so a run trimmed by "100%" would trim one
+            // request, and reload showing "1". There is nothing to measure in a
+            // stage trimmed away entirely, so the ceiling costs nothing.
             min={0}
+            max={99}
             disabled={disabled}
-            label={intl.formatMessage({ id: 'benchmark.form.warmup' })}
+            label={
+              <>
+                {intl.formatMessage({ id: 'benchmark.form.warmup' })}
+                <Tooltip
+                  title={intl.formatMessage({
+                    id: 'benchmark.form.warmup.tips'
+                  })}
+                >
+                  {/* Every other `title-help` in this file sits in a
+                      `.title-label` flex row and takes its spacing from that
+                      row's `gap`. These two are appended straight onto the
+                      label text, so without this the glyph collides with the
+                      "(%)" it follows. */}
+                  <QuestionCircleOutlined
+                    className="title-help"
+                    style={{ marginInlineStart: 6 }}
+                  />
+                </Tooltip>
+              </>
+            }
             style={{ width: '100%' }}
           ></CInputNumber>
         </Form.Item>
         <Form.Item<FormData> name="cooldown" style={{ flex: 1 }}>
           <CInputNumber
+            // Same ceiling as warmup above, for the same reason.
             min={0}
+            max={99}
             disabled={disabled}
-            label={intl.formatMessage({ id: 'benchmark.form.cooldown' })}
+            label={
+              <>
+                {intl.formatMessage({ id: 'benchmark.form.cooldown' })}
+                <Tooltip
+                  title={intl.formatMessage({
+                    id: 'benchmark.form.cooldown.tips'
+                  })}
+                >
+                  {/* Every other `title-help` in this file sits in a
+                      `.title-label` flex row and takes its spacing from that
+                      row's `gap`. These two are appended straight onto the
+                      label text, so without this the glyph collides with the
+                      "(%)" it follows. */}
+                  <QuestionCircleOutlined
+                    className="title-help"
+                    style={{ marginInlineStart: 6 }}
+                  />
+                </Tooltip>
+              </>
+            }
             style={{ width: '100%' }}
           ></CInputNumber>
         </Form.Item>
       </Flex>
+      {/* 🔴 The unit used to be a `field-hint` line of its own under both
+          fields. It said one thing ("enter a percentage, 10 means 10%") in a
+          sentence phrased for Warmup only, sitting under Cooldown as well —
+          and it is the same topic the two tooltips already cover, so it now
+          lives at the end of each of them, phrased per field (first N% vs last
+          N%). Still worth saying at all because the number is easy to get
+          wrong by an order of magnitude: the API column carries guidellm's
+          convention where only values BELOW 1 are fractions, so "10" used to
+          mean an absolute 10 rather than 10%. */}
     </>
   );
 
-  // ---- Group: Latency SLA (concurrency axis only) ----
+  // ---- Group: Latency SLO (concurrency axis only) ----
   // Optional "<= (ms)" targets — the benchmark's GOAL (auto-tune finds the max
-  // concurrency that stays within them). A point meets the SLA when every SET
+  // concurrency that stays within them). A point meets the SLO when every SET
   // threshold holds (AND) + success >= 95%.
   //
   // A LIST rather than one row per metric, so a metric can carry several
   // aggregations ("TTFT avg <= 500 AND TTFT p99 <= 2000"). Same MetadataList UX
-  // as Shared Prefix / manual stages. Empty list = no SLA, which is what makes
-  // the whole latency-SLA analysis opt-in.
-  const slaContent = (
-    <Form.Item
-      name="sla_targets"
-      rules={[
-        {
-          validator: async (_r, value: SlaTarget[]) => {
-            if (!value?.length) return;
-            if (value.some((t) => !t?.metric || !t?.agg || t?.value == null)) {
-              setSlaValidated(true);
-              throw new Error(
-                getRuleMessage('input', 'benchmark.form.sla.threshold')
-              );
+  // as Shared Prefix / manual stages. Empty list = no SLO, which is what makes
+  // the whole latency-SLO analysis opt-in.
+  const sloContent = (
+    <div id="benchmark_slo_targets">
+      <Form.Item
+        name="slo_targets"
+        rules={[
+          {
+            validator: async (_r, value: SloTarget[]) => {
+              if (!value?.length) return;
+              if (
+                value.some((t) => !t?.metric || !t?.agg || t?.value == null)
+              ) {
+                setSloValidated(true);
+                throw new Error(
+                  getRuleMessage('input', 'benchmark.form.slo.threshold')
+                );
+              }
             }
           }
-        }
-      ]}
-    >
-      <MetadataList
-        label={null}
-        dataList={slaTargets}
-        disabled={disabled}
-        btnText={intl.formatMessage({ id: 'benchmark.form.sla.add' })}
-        onAdd={handleSlaAdd}
-        onDelete={handleSlaDelete}
-        styles={{
-          // Keep MetadataList's own border (unlike the Shared Prefix list, which
-          // strips it because its sectionCard already draws one). Without a box
-          // the full-width grey "Add SLA Target" button butts straight up against
-          // the equally grey "Load" group header below it and the two read as one
-          // control. Only the top padding is overridden: the component reserves
-          // 34px there for an absolutely-positioned label we don't render.
-          wrapper: { paddingTop: 14 }
-        }}
+        ]}
       >
-        {(item: SlaTarget, index: number) => {
-          const taken = slaTakenByOthers(index);
-          return (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {index !== 0 && <div style={{ height: 12 }} />}
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1.2, minWidth: 0 }}>
-                  <CSelect
-                    disabled={disabled}
-                    value={item.metric}
-                    onChange={(v: SlaMetric) =>
-                      handleSlaChange(index, { metric: v })
-                    }
-                    label={intl.formatMessage({
-                      id: 'benchmark.form.sla.metric'
-                    })}
-                    options={SLA_METRICS.map((m) => ({
-                      label: intl.formatMessage({ id: m.label }),
-                      value: m.value,
-                      // A metric whose every aggregation is already claimed has
-                      // nothing left to offer this row.
-                      disabled: SLA_AGGS.every((a) =>
-                        taken.has(slaTargetKey(m.value, a.value))
-                      )
-                    }))}
-                  />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <CSelect
-                    disabled={disabled}
-                    value={item.agg}
-                    onChange={(v: SlaAgg) => handleSlaChange(index, { agg: v })}
-                    label={intl.formatMessage({
-                      id: 'benchmark.form.sla.aggregation'
-                    })}
-                    options={SLA_AGGS.map((a) => ({
-                      label: intl.formatMessage({ id: a.label }),
-                      value: a.value,
-                      disabled: taken.has(slaTargetKey(item.metric, a.value))
-                    }))}
-                  />
-                </div>
-                <div style={{ flex: 1.3, minWidth: 0 }}>
-                  <CInputNumber
-                    required
-                    min={0}
-                    disabled={disabled}
-                    value={item.value}
-                    onChange={(v) =>
-                      handleSlaChange(index, {
-                        value: v == null || v === '' ? null : Number(v)
-                      })
-                    }
-                    checkStatus={
-                      slaValidated && item.value == null ? 'error' : 'success'
-                    }
-                    label={intl.formatMessage({
-                      id: 'benchmark.form.sla.threshold'
-                    })}
-                    style={{ width: '100%' }}
-                  ></CInputNumber>
+        <MetadataList
+          label={null}
+          dataList={sloTargets}
+          disabled={disabled}
+          btnText={intl.formatMessage({ id: 'benchmark.form.slo.add' })}
+          onAdd={handleSloAdd}
+          onDelete={handleSloDelete}
+          styles={{
+            // Keep MetadataList's own border (unlike the Shared Prefix list, which
+            // strips it because its sectionCard already draws one). Without a box
+            // the full-width grey "Add SLO Target" button butts straight up against
+            // the equally grey "Load" group header below it and the two read as one
+            // control. Only the top padding is overridden: the component reserves
+            // 34px there for an absolutely-positioned label we don't render.
+            wrapper: { paddingTop: 14 }
+          }}
+        >
+          {(item: SloTarget, index: number) => {
+            const taken = sloTakenByOthers(index);
+            return (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {index !== 0 && <div style={{ height: 12 }} />}
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ flex: 1.2, minWidth: 0 }}>
+                    <CSelect
+                      disabled={disabled}
+                      value={item.metric}
+                      onChange={(v: SloMetric) =>
+                        handleSloChange(index, { metric: v })
+                      }
+                      label={intl.formatMessage({
+                        id: 'benchmark.form.slo.metric'
+                      })}
+                      options={SLO_METRICS.map((m) => ({
+                        label: intl.formatMessage({ id: m.label }),
+                        value: m.value,
+                        // A metric whose every aggregation is already claimed has
+                        // nothing left to offer this row.
+                        disabled: SLO_AGGS.every((a) =>
+                          taken.has(sloTargetKey(m.value, a.value))
+                        )
+                      }))}
+                    />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <CSelect
+                      disabled={disabled}
+                      value={item.agg}
+                      onChange={(v: SloAgg) =>
+                        handleSloChange(index, { agg: v })
+                      }
+                      label={intl.formatMessage({
+                        id: 'benchmark.form.slo.aggregation'
+                      })}
+                      options={SLO_AGGS.map((a) => ({
+                        label: intl.formatMessage({ id: a.label }),
+                        value: a.value,
+                        disabled: taken.has(sloTargetKey(item.metric, a.value))
+                      }))}
+                    />
+                  </div>
+                  <div style={{ flex: 1.3, minWidth: 0 }}>
+                    <CInputNumber
+                      required
+                      min={0}
+                      disabled={disabled}
+                      value={item.value}
+                      onChange={(v) =>
+                        handleSloChange(index, {
+                          value: v == null || v === '' ? null : Number(v)
+                        })
+                      }
+                      checkStatus={
+                        sloValidated && item.value == null ? 'error' : 'success'
+                      }
+                      label={intl.formatMessage({
+                        id: 'benchmark.form.slo.threshold'
+                      })}
+                      style={{ width: '100%' }}
+                    ></CInputNumber>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        }}
-      </MetadataList>
-    </Form.Item>
+            );
+          }}
+        </MetadataList>
+      </Form.Item>
+    </div>
   );
 
   // ---- Group: Stop Conditions (when the benchmark stops) ----
@@ -1439,13 +1657,13 @@ const RandomSettingsForm: React.FC<{
         </Form.Item>
         <Form.Item<FormData> name="max_error_rate" style={{ flex: 1 }}>
           <CInputNumber
-            // A FRACTION in the open interval (0, 1): guidellm's constraint
-            // rejects both endpoints, so the form must not be able to produce
-            // them. "Tolerate everything" is expressed by leaving this empty,
-            // not by entering 1.
-            min={0.01}
-            max={0.99}
-            step={0.01}
+            // A whole percent, like Warmup / Cooldown above — the API column
+            // holds guidellm's fraction and the form converts on submit (see
+            // `forms/index.tsx`). Bounded to 1-99 because guidellm's constraint
+            // rejects both endpoints of (0, 1): "tolerate everything" is
+            // expressed by leaving this empty, not by entering 100.
+            min={1}
+            max={99}
             disabled={disabled}
             label={
               <>
@@ -1455,7 +1673,14 @@ const RandomSettingsForm: React.FC<{
                     id: 'benchmark.form.maxErrorRate.tips'
                   })}
                 >
-                  <QuestionCircleOutlined className="title-help" />
+                  {/* Same as Warmup / Cooldown: the glyph is appended straight
+                      onto the label text rather than sitting in a `.title-label`
+                      flex row, so it needs its own leading space or it collides
+                      with the "(%)" it follows. */}
+                  <QuestionCircleOutlined
+                    className="title-help"
+                    style={{ marginInlineStart: 6 }}
+                  />
                 </Tooltip>
               </>
             }
@@ -1491,19 +1716,17 @@ const RandomSettingsForm: React.FC<{
   );
 
   // Top-level collapsible groups (order = the user's flow: what data → the goal
-  // → how to drive → when to stop). SLA is the goal, so it sits right after
+  // → how to drive → when to stop). SLO is the goal, so it sits right after
   // Workload and before Load. The header carries a data-field anchor so the top
   // scroll-spy nav can jump to each section (see segmentOptions in ./index).
   const groupLabel = (field: string, id: string) => (
-    <span data-field={field} style={{ scrollMarginTop: 160 }}>
-      {intl.formatMessage({ id })}
-    </span>
+    <span data-field={field}>{intl.formatMessage({ id })}</span>
   );
   return (
     <CollapsePanel
       activeKey={groupKeys}
       accordion={false}
-      onChange={handleGroupChange}
+      onChange={onGroupChange}
       items={[
         {
           key: 'dataset',
@@ -1511,13 +1734,13 @@ const RandomSettingsForm: React.FC<{
           forceRender: true,
           children: datasetContent
         },
-        ...(showSLA
+        ...(showSLO
           ? [
               {
-                key: 'sla',
-                label: groupLabel('sla', 'benchmark.form.group.sla'),
+                key: 'slo',
+                label: groupLabel('slo', 'benchmark.form.group.slo'),
                 forceRender: true,
-                children: slaContent
+                children: sloContent
               }
             ]
           : []),

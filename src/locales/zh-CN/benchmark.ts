@@ -5,7 +5,7 @@ export default {
   'benchmark.button.clone': '克隆基准测试',
   'benchmark.button.compare': '对比',
   'benchmark.table.model': '模型',
-  'benchmark.table.instance': '模型实例',
+  'benchmark.form.target': '压测目标',
   'benchmark.table.dataset': '数据集',
   'benchmark.table.requestRate': '请求率',
   'benchmark.table.gpu': 'GPU ',
@@ -27,7 +27,7 @@ export default {
   'benchmark.form.autoTune.rate.tip':
     '本次压测要测的负载点，一个阶段 = 一个实测点。自动探测会自动抬高请求速率，直到输出吞吐不再增长（即峰值），无需手填负载点；切到「手动」则按你列出的速率逐档运行。',
   'benchmark.form.autoTune.concurrency.tip':
-    '本次压测要测的负载点，一个阶段 = 一个实测点。自动探测会自动增加并发，直到无法满足延迟目标（即 SLA 边界），无需手填负载点；切到「手动」则按你列出的并发逐档运行。',
+    '本次压测要测的负载点，一个阶段 = 一个实测点。自动探测会自动增加并发，直到无法满足延迟目标（即 SLO 边界），无需手填负载点；切到「手动」则按你列出的并发逐档运行。',
   'benchmark.form.autoTune.rangeRate': '搜索范围 · 请求速率 (req/s)',
   'benchmark.form.autoTune.rangeFrom': '从',
   'benchmark.form.autoTune.rateFrom': '起始速率 (req/s)',
@@ -39,9 +39,9 @@ export default {
   'benchmark.form.autoTune.rangeMin': '最小',
   'benchmark.form.autoTune.rangeMax': '最大',
   'benchmark.form.autoTune.range.rate.tip':
-    '自适应爬坡的搜索范围——硬范围:范围外的负载一律不测。从最小值起按倍增探测直到最大上限。若服务器在最小值处已经饱和,本次会报出实测到的可承载速率并提示你调小范围,而不会自行往下探。默认 4–1024。',
+    '自适应爬坡的搜索范围——硬范围:范围外的负载一律不测。从最小值起按倍增探测直到最大上限。若服务器在最小值处已经饱和,本次会报出实测到的可承载速率并提示你调小范围,而不会自行往下探。',
   'benchmark.form.autoTune.range.concurrency.tip':
-    '自适应爬坡的搜索范围——硬范围:范围外的负载一律不测。从最小值起按倍增探测直到最大上限。若服务器在最小值处已经饱和,本次会报出实测到的可承载速率并提示你调小范围,而不会自行往下探。默认 4–1024。',
+    '自适应爬坡的搜索范围——硬范围:范围外的负载一律不测。从最小值起按倍增探测直到最大上限。若服务器在最小值处已经饱和,本次会报出实测到的可承载速率并提示你调小范围,而不会自行往下探。',
   'benchmark.form.autoTune.maxRate': '最大请求速率',
   'benchmark.form.autoTune.maxConcurrency': '最大并发',
   'benchmark.form.load.managedByProfile': '由预设管理',
@@ -72,8 +72,14 @@ export default {
     '当吞吐达到平台不再上升时停止（guidellm 过饱和约束），不再继续加压越过饱和点。',
   'benchmark.form.warmup': '预热（%）',
   'benchmark.form.cooldown': '冷却（%）',
+  'benchmark.form.warmup.tips':
+    '从测量窗口里裁掉每个阶梯「前 N% 的请求」（不是前 N% 的时间）。用于排除冷启动影响——一次运行的头几个请求可能比稳态慢好几倍。填百分比，例：10 = 裁掉每个阶梯前 10% 的请求。',
+  'benchmark.form.cooldown.tips':
+    '从测量窗口里裁掉每个阶梯「最后 N% 的请求」，排除阶梯收尾排空的那一段。填百分比，例：10 = 裁掉每个阶梯最后 10% 的请求。',
   'benchmark.form.maxErrors': '最大错误数',
-  'benchmark.form.maxErrorRate': '最大错误率（0–1）',
+  'benchmark.form.maxErrorRate': '最大错误率（%）',
+  'benchmark.form.maxErrorRate.tips':
+    '当失败请求占比达到该值时停止当前阶梯——用来限定一次运行最多允许失败到什么程度，再往下测数据也没有意义了。填百分比，例：5 = 错误率到 5% 就停。留空表示不限制错误率。',
   'benchmark.form.stopOnSaturation': '过饱和时停止',
   'benchmark.form.datasetSeed.tips':
     '生成随机数据的种子。多档运行时这是初始种子,每档实际种子 = 初始 + 档序号(在"高级"中关闭"每档使用不同 seed"可固定为同一 seed)。',
@@ -83,32 +89,33 @@ export default {
   'benchmark.form.seedIncrement': '每档使用不同 seed',
   'benchmark.form.seedIncrement.tips':
     '开启(默认):每档 seed = 初始 + 档序号,各档数据不同,降低跨档缓存偏差。关闭:所有档共用同一 seed。仅对 Random 数据集生效。',
-  'benchmark.form.sla.ttft': '平均 TTFT ≤ (ms)',
-  'benchmark.form.sla.p95Ttft': 'P95 TTFT ≤ (ms)',
-  'benchmark.form.sla.p99Ttft': 'P99 TTFT ≤ (ms)',
-  'benchmark.form.sla.tpot': '平均 TPOT ≤ (ms)',
-  'benchmark.form.sla.p95Tpot': 'P95 TPOT ≤ (ms)',
-  'benchmark.form.sla.p99Tpot': 'P99 TPOT ≤ (ms)',
-  'benchmark.form.sla.avgLatency': '平均延迟 ≤ (ms)',
-  'benchmark.form.sla.p95Latency': 'P95 延迟 ≤ (ms)',
-  'benchmark.form.sla.p99Latency': 'P99 延迟 ≤ (ms)',
-  'benchmark.form.sla.metric': '指标',
-  'benchmark.form.sla.aggregation': '聚合口径',
-  'benchmark.form.sla.threshold': '阈值 (ms)',
-  'benchmark.form.sla.add': '添加 SLA 目标',
-  'benchmark.form.sla.metric.ttft': 'TTFT',
-  'benchmark.form.sla.metric.tpot': 'TPOT',
-  'benchmark.form.sla.metric.latency': '延迟',
-  'benchmark.form.sla.agg.avg': '平均',
-  'benchmark.form.sla.agg.p95': 'P95',
-  'benchmark.form.sla.agg.p99': 'P99',
-  'benchmark.form.sla.col.metric': '指标',
-  'benchmark.form.sla.col.threshold': '阈值',
+  'benchmark.form.slo.ttft': '平均 TTFT ≤ (ms)',
+  'benchmark.form.slo.p95Ttft': 'P95 TTFT ≤ (ms)',
+  'benchmark.form.slo.p99Ttft': 'P99 TTFT ≤ (ms)',
+  'benchmark.form.slo.tpot': '平均 TPOT ≤ (ms)',
+  'benchmark.form.slo.p95Tpot': 'P95 TPOT ≤ (ms)',
+  'benchmark.form.slo.p99Tpot': 'P99 TPOT ≤ (ms)',
+  'benchmark.form.slo.avgLatency': '平均延迟 ≤ (ms)',
+  'benchmark.form.slo.p95Latency': 'P95 延迟 ≤ (ms)',
+  'benchmark.form.slo.p99Latency': 'P99 延迟 ≤ (ms)',
+  'benchmark.form.slo.metric': '指标',
+  'benchmark.form.slo.aggregation': '聚合口径',
+  'benchmark.form.slo.threshold': '阈值 (ms)',
+  'benchmark.form.slo.add': '添加 SLO 目标',
+  'benchmark.form.slo.metric.ttft': 'TTFT',
+  'benchmark.form.slo.metric.tpot': 'TPOT',
+  'benchmark.form.slo.metric.latency': '延迟',
+  'benchmark.form.slo.agg.avg': '平均',
+  'benchmark.form.slo.agg.p95': 'P95',
+  'benchmark.form.slo.agg.p99': 'P99',
+  'benchmark.form.slo.col.metric': '指标',
+  'benchmark.form.slo.col.threshold': '阈值',
   'benchmark.form.preset': '预设',
   'benchmark.form.rate': '请求速率 (req/s)',
   'benchmark.form.concurrency': '并发数',
   'benchmark.form.stages': '阶段 (Stages)',
   'benchmark.form.stages.mode.manual': '手动',
+  'benchmark.detail.stageLimits': '各级上限',
   'benchmark.form.addStage': '添加阶段',
   'benchmark.form.maxRequests': '最大请求数',
   'benchmark.form.maxSeconds': '最大时长 (秒)',
@@ -135,12 +142,17 @@ export default {
   'benchmark.form.distribution.intro':
     '让请求长度围绕上面设的均值浮动(而非固定长度)。留空则用默认值。浮动 = 长度的离散程度(标准差);Min/Max 限定上下界。',
   'benchmark.form.group.constraints': '约束',
-  'benchmark.form.group.sla': '延迟 SLA',
+  'benchmark.form.group.slo': '延迟 SLO',
   'benchmark.form.group.execution': '停止条件',
   'benchmark.form.group.advanced': '高级',
   'benchmark.form.inputStdev': '输入长度浮动 (±)',
   'benchmark.form.inputMin': '输入最小值',
   'benchmark.form.inputMax': '输入最大值',
+  'benchmark.form.sharegpt.tokenLengthSettings': 'Token 长度设置',
+  'benchmark.form.sharegpt.tokenLengthSettings.tip':
+    '输入 Token 长度可只设最小值、只设最大值，或同时设置。输出 Token 长度也可留空，届时使用每条数据原始回答的长度。',
+  'benchmark.form.sharegpt.inputRangeError': '输入最大值不能小于输入最小值',
+  'benchmark.form.sharegpt.positiveInteger': '请输入正整数',
   'benchmark.form.outputStdev': '输出长度浮动 (±)',
   'benchmark.form.outputMin': '输出最小值',
   'benchmark.form.outputMax': '输出最大值',
@@ -158,7 +170,7 @@ export default {
   'benchmark.form.concurrencyList.placeholder': '例如 40, 60, 80',
   'benchmark.form.profile.maxThroughput.tips':
     '找出吞吐峰值。对比 GPU 与模型的常用基准。',
-  'benchmark.form.profile.latencySla.tips':
+  'benchmark.form.profile.latencySlo.tips':
     '找出仍满足 TTFT/TPOT 目标的最大负载。用于容量规划。',
   'benchmark.form.profile.custom': '自定义',
   'benchmark.form.profile.custom.tips':
@@ -173,6 +185,7 @@ export default {
   'benchmark.table.filter.bymodel': '模型查询',
   'benchmark.table.filter.bydataset': '按数据集过滤',
   'benchmark.table.filter.byLoadType': '按负载类型过滤',
+  'benchmark.table.filter.byTargetMode': '按目标形态过滤',
   'benchmark.table.filter.byProfile': '按 Profile 筛选',
   'benchmark.table.best': '最佳点',
   'benchmark.table.best.unit.concurrency': '并发',
@@ -180,6 +193,7 @@ export default {
   'benchmark.table.coverage': '覆盖度',
   'benchmark.table.coverage.insufficient': '覆盖度不足',
   'benchmark.table.avg': '均值',
+  'benchmark.table.tailLatency': '尾延迟',
   'benchmark.table.columnSettings': '列设置',
   'benchmark.detail.summary.results': '测试结果',
   'benchmark.detail.summary.recommendation': '最佳工作点',
@@ -198,10 +212,10 @@ export default {
     '提前停止({reason}):仅完成 {processed}/{requested} 个请求。',
   'benchmark.detail.summary.stageDetail': '阶段详情',
   'benchmark.detail.summary.performance': '性能',
-  'benchmark.detail.reason.throughputVsPrev': '比 {prevRate} 吞吐高 {up}%',
-  'benchmark.detail.reason.withinSla': '满足 SLA',
-  'benchmark.detail.reason.peakExceedsSla':
-    '更高吞吐峰值在 {rate} {unit},但在此运行会突破 SLA,故推荐停在 SLA 边界。',
+  'benchmark.detail.reason.requestsSucceeded': '{total} 个请求中 {ok} 个成功',
+  'benchmark.detail.reason.withinSlo': '满足 SLO',
+  'benchmark.detail.reason.peakExceedsSlo':
+    '更高吞吐峰值在 {rate} {unit},但在此运行会突破 SLO,故推荐停在 SLO 边界。',
   'benchmark.detail.reason.matchesPeak': '可持续的最高吞吐',
   'benchmark.detail.validity.title': '测试覆盖度',
   'benchmark.detail.validity.ok': '充分',
@@ -211,14 +225,14 @@ export default {
     '最佳工作点落在最高采样 rate,真实最优可能更高。建议向上扩大范围(更大并发/rate)后重测。',
   'benchmark.detail.validity.fewPoints':
     '测得的点太少,曲线不可信——检查上界 / 预算设置。',
-  'benchmark.detail.validity.slaNeverMet':
-    '没有任何测得的点满足延迟目标——服务器对该 SLA 太慢;请放宽目标或更换部署。',
-  'benchmark.detail.validity.slaNotBinding':
-    'SLA 阈值从未真正起作用——最高测得的那一档只用掉最严格预算的 {used}%,而吞吐在 {rate} 就已见顶。限制这次测试的是容量,不是延迟目标:{rate} 是吞吐上限,不是 SLA 边界,因此它就是最佳工作点(继续加负载只会排队:吞吐不再增加,延迟持续变差)。想找出真正的 SLA 边界,请收紧阈值后重测。',
+  'benchmark.detail.validity.sloNeverMet':
+    '没有任何测得的点满足延迟目标——服务器对该 SLO 太慢;请放宽目标或更换部署。',
+  'benchmark.detail.validity.sloNotBinding':
+    'SLO 阈值从未真正起作用——最高测得的那一档只用掉最严格预算的 {used}%,而吞吐在 {rate} 就已见顶。限制这次测试的是容量,不是延迟目标:{rate} 是吞吐上限,不是 SLO 边界,因此它就是最佳工作点(继续加负载只会排队:吞吐不再增加,延迟持续变差)。想找出真正的 SLO 边界,请收紧阈值后重测。',
   'benchmark.detail.validity.notSaturated':
     '最佳工作点落在最高测得的点,且没有点过载——真实最优可能更高。调大搜索范围上界后重测。',
   'benchmark.detail.validity.budgetExhausted':
-    '吞吐尚未掉头,测量预算就用完了,所以最佳点只是最后测到的那个点。请调大{which, select, seconds{最大总时长} other{最大测试点数}}后重测。',
+    '搜索尚未完成就耗尽了测量预算。请调大{which, select, seconds{最大总时长} other{最大测试点数}}后重测。',
   'benchmark.detail.validity.saturatedAtLowerBound':
     '搜索范围的下界已高于该部署能承载的水平（约 {ceiling} req/s），范围内任何负载都不可能是最优点。请调小搜索范围下界后重测。',
   'benchmark.detail.validity.peakAtFloor':
@@ -236,6 +250,7 @@ export default {
   'benchmark.detail.avg.reqLatency': '请求延迟 均值',
   'benchmark.detail.avg.ttft': 'TTFT 均值',
   'benchmark.detail.avg.tpot': 'TPOT 均值',
+  'benchmark.detail.avg.itl': 'ITL 均值',
   'benchmark.detail.throughput.totalToken': '总吞吐量',
   'benchmark.detail.throughput.inputToken': '输入吞吐量',
   'benchmark.detail.throughput.outputToken': '输出吞吐量',
@@ -255,31 +270,40 @@ export default {
   'benchmark.detail.percentile.title': '百分位数',
   'benchmark.detail.modelName': '模型名称',
   'benchmark.detail.instanceName': '实例名称',
+  'benchmark.detail.members.title': '成员',
+  'benchmark.detail.members.role': '角色',
+  'benchmark.detail.members.injected': '注入参数',
+  'benchmark.detail.members.endpoint': '入口',
   'benchmark.detail.configure': '测试配置',
   'benchmark.detail.config.deployment': '部署',
   'benchmark.detail.config.benchmark': '压测配置',
   'benchmark.detail.best.peak': '吞吐峰值',
-  'benchmark.detail.best.sla': 'SLA 内最大',
-  'benchmark.detail.sla.target': 'SLA 目标',
-  'benchmark.detail.sla.capacity': 'SLA 容量',
-  'benchmark.detail.sla.capacity.locatedHint':
-    '在它之上有实测点破了 SLA,所以这就是真正的边界。',
-  'benchmark.detail.sla.capacity.floorHint':
+  'benchmark.detail.best.slo': 'SLO 内最大',
+  'benchmark.detail.slo.target': 'SLO 目标',
+  'benchmark.detail.slo.capacity': 'SLO 容量',
+  'benchmark.detail.slo.capacity.locatedHint':
+    '在它之上有实测点破了 SLO,所以这就是真正的边界。',
+  'benchmark.detail.slo.capacity.floorHint':
     '它之上没有任何实测点(搜索先结束了),所以只能读作「至少这么多」。真正的破线位置在更高处,本次没有测到。',
   'benchmark.detail.tpot.tip':
     'TPOT：仅解码阶段的每 token 耗时 =（末 token 时刻 − 首 token 时刻）/（输出 token 数 − 1），不含首字延迟。对应 guidellm 的 inter_token_latency_ms，也是 vLLM 等工具口径下的 TPOT。若服务端未增量流式返回（整段输出一次给出，低负载下常见），该口径无从测量，此处回落为含首字的每 token 耗时。',
-  'benchmark.detail.chart.slaBreached': 'SLA 不达标',
+  'benchmark.detail.itl.tip':
+    'ITL（Inter-Token Latency）：流式输出中相邻两次返回之间的实测间隔，每个间隔一个样本、跨请求汇总，不含首字延迟。与 TPOT 的差别在样本粒度：TPOT 每个请求只有一个平均值，单次卡顿会被该请求其余间隔摊平；ITL 保留每一次间隔，尾部才看得见卡顿。与 vLLM / SGLang 的 ITL 同口径。一个返回块内含多个 token 时（如投机解码）仍只计一个间隔。',
+  'benchmark.detail.chart.sloBreached': 'SLO 不达标',
   'benchmark.detail.chart.success': '成功率',
   'benchmark.detail.reason.peakTradeoff':
     '压到峰值 {rate} {unit} 只多 {gain}% 吞吐，延迟多 {cost}',
   'benchmark.detail.unit.avg': '均值',
   'benchmark.detail.p99.ttft': 'TTFT p99',
+  'benchmark.detail.p99.tpot': 'TPOT p99',
+  'benchmark.detail.p99.itl': 'ITL p99',
+  'benchmark.detail.max.itl': 'ITL 最大',
   'benchmark.detail.lowSample':
-    '该档 {count} 个样本,p99 之上只有 {tail} 个 —— 尾部由极少数请求决定。只能当参考,不能作为 SLA 结论(p99 要约 1000 个样本才像一个估计)。',
+    '该档 {count} 个样本,p99 之上只有 {tail} 个 —— 尾部由极少数请求决定。只能当参考,不能作为 SLO 结论(p99 要约 1000 个样本才像一个估计)。',
   'benchmark.detail.successPill': '成功率 {pct}% · {ok} / {total} 请求',
   'benchmark.detail.summary.stagesHint': '点击任意行查看明细',
-  'benchmark.detail.chart.operatingCurve': '运行曲线',
-  'benchmark.detail.chart.operatingCurve.note': '吞吐与 P99 TTFT 随负载的变化',
+  'benchmark.detail.chart.loadSweep': '负载扫描',
+  'benchmark.detail.chart.loadSweep.note': '吞吐与 P99 TTFT 随负载的变化',
   'benchmark.detail.chart.dualAxisHint':
     '左轴（吞吐）是等距刻度，每格加固定值；右轴（TTFT p99）每格是上一格的 10 倍 —— 延迟跨度上千倍，等距刻度看不出拐点后的爆发。',
   'benchmark.detail.chart.logHint':
@@ -311,6 +335,9 @@ export default {
   'benchmark.detail.chart.tpotPercentiles': 'TPOT 分位',
   'benchmark.detail.chart.tpotPercentiles.note':
     '解码阶段每 token 耗时（不含首字）· 每个请求一个取值，看的是负载升高后解码变慢，不是单次卡顿',
+  'benchmark.detail.chart.itlPercentiles': 'ITL 分位',
+  'benchmark.detail.chart.itlPercentiles.note':
+    '相邻两次流式返回的实测间隔 · 每个间隔一个样本，尾部能看见单次卡顿',
   'benchmark.detail.chart.success.note': '因存在失败请求才显示',
   'benchmark.detail.chart.legend.shortfall': '缺口',
   'benchmark.detail.chart.legend.attainment': '达成率',
@@ -324,6 +351,10 @@ export default {
   'benchmark.detail.chart.axis.inFlight': '并发请求数',
   'benchmark.detail.chart.axis.shortfall': '缺口（请求数）',
   'benchmark.detail.chart.axis.successRate': '成功率 (%)',
+  'benchmark.detail.chart.axis.load.rate': '请求速率 (req/s)',
+  'benchmark.detail.chart.axis.load.concurrency': '并发数 (请求)',
+  'benchmark.detail.chart.axis.throughput': '总吞吐 (tok/s)',
+  'benchmark.detail.chart.axis.concurrencyAvg': '平均并发 (请求)',
   'benchmark.detail.reason.peakTradeoffPlain':
     '压到峰值 {rate} {unit} 只多 {gain}% 吞吐',
   'benchmark.detail.summary.showMore': '展开其余 {n} 张',
@@ -342,20 +373,24 @@ export default {
   'benchmark.detail.stopReason.upperBound': '范围上界',
   'benchmark.detail.stopReason.budgetPoints': '点数预算用尽',
   'benchmark.detail.stopReason.budgetSeconds': '时长预算用尽',
-  'benchmark.detail.stopReason.slaFailed': '延迟阈值被打破',
+  'benchmark.detail.stopReason.sloFailed': '延迟阈值被打破',
   'benchmark.detail.stopReason.converged': '搜索收敛',
   'benchmark.detail.stopReason.overloaded': '服务过载',
   'benchmark.detail.stopReason.pointFailed': '某个点未产出结果',
+  'benchmark.detail.stopReason.probeBound': '饱和探测上限',
   'benchmark.detail.recommend.text':
-    '最佳:并发 {rate} —— 吞吐达峰值的 {pct}%({tps} tok/s),TTFT {ttft} ms{sla, select, yes{,在 SLA 内} other{}}。',
+    '最佳:并发 {rate} —— 吞吐达峰值的 {pct}%({tps} tok/s),TTFT {ttft} ms{slo, select, yes{,在 SLO 内} other{}}。',
   'benchmark.detail.analysis.text':
-    '并发 {rate} 可稳定输出 {tps} tok/s{prev, select, yes{,相比 {prevRate} 吞吐 +{prevUp}%} other{}}{next, select, yes{;继续加到 {nextRate} 吞吐仅 +{nextUp}% 而 TTFT +{nextTtftUp}%} other{}}。因此 {rate} 是最佳运行点{sla, select, yes{,且满足 SLA} other{}}。',
+    '并发 {rate} 可稳定输出 {tps} tok/s{prev, select, yes{,相比 {prevRate} 吞吐 +{prevUp}%} other{}}{next, select, yes{;继续加到 {nextRate} 吞吐仅 +{nextUp}% 而 TTFT +{nextTtftUp}%} other{}}。因此 {rate} 是最佳运行点{slo, select, yes{,且满足 SLO} other{}}。',
+  'benchmark.detail.specDigest': '配置版本',
   'benchmark.detail.modelFile': '模型文件',
   'benchmark.detail.kvCache': '扩展 KV 缓存',
+  'benchmark.detail.cacheService': '缓存服务',
   'benchmark.detail.speculativeDecoding': '推测解码',
   'benchmark.detail.inputOutputTokenLength': 'Token 长度 (输入/输出)',
   'benchmark.env.gpuName': 'GPU 名称',
   'benchmark.env.workerName': '节点名称',
+  'benchmark.env.hostedMembers': '承载成员',
   'benchmark.env.index': '序号',
   'benchmark.env.system': '系统',
   'benchmark.env.runtimeVersion': '运行时版本',
@@ -364,5 +399,24 @@ export default {
   'benchmark.table.export.results': '导出结果',
   'benchmark.form.nonLlmModel.tips': '基准测试目前仅支持 LLM 模型',
   'benchmark.detail.result.duration': '耗时',
+  'benchmark.form.pdGroup.tips':
+    '分离部署的组整体压测：所有请求都经 router 进入，因此不需要也无法指定成员。服务端会把压力发往 router，并把压测容器放在持有模型权重的节点上。',
+  'benchmark.detail.monitoring': '监控',
+  'benchmark.detail.monitoring.tips':
+    '打开这次运行对应时间范围的监控面板。分离部署的组会跳转到 PD 面板，那里分别展示 prefill 队列、decode 队列与 KV 传输。',
+  'benchmark.form.targetMode': '压测目标形态',
+  'benchmark.form.targetMode.instance': '实例（测引擎）',
+  'benchmark.form.targetMode.route': '路由（测部署）',
+  'benchmark.form.targetMode.tips.instance':
+    '压力直接打到单个引擎 —— 分离组的 router，或普通模型的某一个副本 —— 链路里除了引擎没有别的东西。',
+  'benchmark.form.targetMode.tips.route':
+    '从客户端调用的入口进去，普通模型的每个副本都会参与；对比分离部署与聚合部署在同样卡数下的性能，要用这一档。',
+  'benchmark.form.targetMode.tips.results.title': '解读路由结果',
+  'benchmark.form.targetMode.tips.results':
+    '路由模式把 server 的代理算进链路：高并发下代理可能先于部署成为瓶颈并丢请求，而被丢掉的请求不计入延迟，会让 TTFT / TPOT 看起来更好。读路由模式的结果必须连同错误数和未完成数一起看。',
+  'benchmark.detail.targetMode.route': '路由（测部署）· {route}',
+  'benchmark.form.target.route': '路由',
+  'benchmark.form.target.route.empty':
+    '该集群下没有指向可服务 LLM 的路由。先部署一条路由，或改用实例形态。',
   'benchmark.detail.result.basic': '基础信息'
 };

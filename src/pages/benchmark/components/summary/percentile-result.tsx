@@ -1,10 +1,10 @@
+import { IconFont } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
-import { Table, Tooltip } from 'antd';
+import { Flex, Table, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { round } from 'lodash';
 import React from 'react';
 import { useDetailContext } from '../../config/detail-context';
-import { LOW_SAMPLE_THRESHOLD, tailSamples } from './metrics';
 
 // The table sits in its own bordered box inside the Stage detail card: it is a
 // secondary read, and a tinted header keeps it from competing with the metric
@@ -12,7 +12,7 @@ import { LOW_SAMPLE_THRESHOLD, tailSamples } from './metrics';
 const useStyles = createStyles(({ css }) => ({
   box: css`
     border: 1px solid var(--ant-color-border-secondary);
-    border-radius: var(--ant-border-radius);
+    border-radius: var(--ant-border-radius-lg);
     overflow: hidden;
     .ant-table-thead > tr > th {
       background: var(--ant-color-fill-quaternary) !important;
@@ -49,14 +49,16 @@ const PercentileResult: React.FC<{ data?: any }> = (props) => {
   // Feed the selected stage's data when provided (Overview drill-down).
   const data = props.data ?? detailData;
   const metrics = data?.raw_metrics?.benchmarks?.[0]?.metrics || {};
-  // Below ~100 samples the tail percentiles collapse onto max (p999 == p99 ==
-  // max), so a single outlier would be read as an SLA conclusion. Say so instead
-  // of presenting the number bare.
-  const sampleCount: number =
-    metrics?.time_to_first_token_ms?.successful?.count ??
-    metrics?.request_totals?.successful ??
-    0;
-  const lowSample = sampleCount > 0 && sampleCount < LOW_SAMPLE_THRESHOLD;
+
+  // The low-sample caveat is NOT repeated here. It lives on the stage table,
+  // where it is a `?` next to each stage's own request count — the same text,
+  // bound to the same number, without a paragraph under every drill-down.
+  //
+  // Repeating it below this table also became wrong once the ITL column
+  // landed: that caveat counts REQUESTS, which is the sample size of the
+  // per-request columns (TTFT, TPOT) but not of ITL, whose samples are the
+  // individual gaps and number in the tens of thousands. A warning that
+  // undercut the one column it did not apply to.
 
   const columns = [
     {
@@ -68,19 +70,37 @@ const PercentileResult: React.FC<{ data?: any }> = (props) => {
       // Decode-only TPOT, which guidellm files under `inter_token_latency_ms`.
       // `fallbackIndex` is its includes-TTFT metric, used only when the response
       // was not streamed incrementally and the decode-only reading collapsed to 0
-      // — the same rule as metrics.ts `decodeMs` and the server's SLA fallback.
+      // — the same rule as metrics.ts `decodeMs` and the server's SLO fallback.
       title: (
         <Tooltip
           title={intl.formatMessage({ id: 'benchmark.detail.tpot.tip' })}
         >
-          <span style={{ borderBottom: '1px dashed currentColor' }}>
-            TPOT (ms)
-          </span>
+          <Flex align="center" gap={4}>
+            <span>TPOT (ms)</span>
+            <IconFont type="icon-help" style={{ fontSize: 16 }} />
+          </Flex>
         </Tooltip>
       ),
       dataIndex: 'inter_token_latency_ms',
       fallbackIndex: 'time_per_output_token_ms',
       render: (value: number) => round(value, 2)
+    },
+    {
+      // The measured gaps between streamed outputs — the other per-token
+      // metric, and the one whose tail a decode stall reaches. `optional`
+      // because a run recorded before these were captured has no such field,
+      // and a 0 in this column would read as "no latency between tokens".
+      title: (
+        <Tooltip title={intl.formatMessage({ id: 'benchmark.detail.itl.tip' })}>
+          <Flex align="center" gap={4}>
+            <span>ITL (ms)</span>
+            <IconFont type="icon-help" style={{ fontSize: 16 }} />
+          </Flex>
+        </Tooltip>
+      ),
+      dataIndex: 'inter_token_latency_per_chunk_ms',
+      optional: true,
+      render: (value: number | null) => (value == null ? '-' : round(value, 2))
     },
     {
       title: `${intl.formatMessage({ id: 'benchmark.detail.percentile.latency' })} (s)`,
@@ -122,11 +142,15 @@ const PercentileResult: React.FC<{ data?: any }> = (props) => {
         const v = quantile(c.dataIndex);
         // A non-positive per-token latency means "not measured", so the fallback
         // metric takes over — see the TPOT column above.
-        row[c.dataIndex] =
+        const resolved =
           (typeof v === 'number' && v > 0 ? v : undefined) ??
           quantile((c as { fallbackIndex?: string }).fallbackIndex) ??
-          v ??
-          0;
+          v;
+        // An optional column stays null when nothing was recorded; the rest
+        // keep the historical 0 so an unmeasured count still renders a number.
+        row[c.dataIndex] = (c as { optional?: boolean }).optional
+          ? (resolved ?? null)
+          : (resolved ?? 0);
       });
 
       return row;
@@ -134,45 +158,29 @@ const PercentileResult: React.FC<{ data?: any }> = (props) => {
   };
 
   return (
-    <div>
-      <div className={styles.box}>
-        <Table
-          size="small"
-          columns={[
-            {
-              title: (
-                <span style={{ fontWeight: 500 }}>
-                  {intl.formatMessage({
-                    id: 'benchmark.detail.percentile.title'
-                  })}
-                </span>
-              ),
-              dataIndex: 'percentile',
-              render: (value: string) => (
-                <span style={{ fontWeight: 500 }}>{value}</span>
-              )
-            },
-            ...columns
-          ]}
-          dataSource={buildPercentileTable(metrics)}
-          rowKey="percentile"
-          pagination={false}
-        ></Table>
-      </div>
-      {lowSample && (
-        <div
-          style={{
-            marginTop: 8,
-            fontSize: 12,
-            color: 'var(--ant-color-text-tertiary)'
-          }}
-        >
-          {intl.formatMessage(
-            { id: 'benchmark.detail.lowSample' },
-            { count: sampleCount, tail: tailSamples(sampleCount) }
-          )}
-        </div>
-      )}
+    <div className={styles.box}>
+      <Table
+        size="small"
+        columns={[
+          {
+            title: (
+              <span style={{ fontWeight: 500 }}>
+                {intl.formatMessage({
+                  id: 'benchmark.detail.percentile.title'
+                })}
+              </span>
+            ),
+            dataIndex: 'percentile',
+            render: (value: string) => (
+              <span style={{ fontWeight: 500 }}>{value}</span>
+            )
+          },
+          ...columns
+        ]}
+        dataSource={buildPercentileTable(metrics)}
+        rowKey="percentile"
+        pagination={false}
+      ></Table>
     </div>
   );
 };

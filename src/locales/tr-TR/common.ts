@@ -80,6 +80,7 @@ export default {
   'common.title.config': 'Yapılandırma',
   'common.message.fail': 'Başarısız!',
   'common.message.success': 'Başarılı!',
+  'common.message.downloadFailed': 'İndirme başarısız',
   'common.delete.tips': 'Silmek istediğinizden emin misiniz?',
   'common.button.close': 'Kapat',
   'common.button.done': 'Tamam',
@@ -221,6 +222,7 @@ export default {
   'common.button.help': 'Yardım',
   'common.button.feedback': 'Geri Bildirim',
   'common.button.docs': 'Dokümantasyon',
+  'common.button.imageSelector': 'İmaj Seçici',
   'common.button.version': 'Sürüm',
   'common.title.delete.confirm': 'Silme onayı',
   'common.title.stop.confirm': 'Durdurma onayı',
@@ -265,8 +267,6 @@ export default {
   'common.appearance.description':
     'Arayüzün cihazınızdaki görünümünü özelleştirin.',
   'common.security': 'Güvenlik',
-  'common.security.description':
-    'Hesabınıza giriş yapmak için kullanılan parolayı yönetin.',
   'common.page.wentwrong': 'Bir şeyler ters gitti.',
   'common.page.refresh.tips':
     'Sayfanın güncellenmesi gerekebilir. Yenilemeyi deneyin!',
@@ -307,13 +307,63 @@ export default {
   'common.status.disabled': 'Devre dışı',
   'common.button.duplicate': 'Çoğalt',
   'common.option.other': 'Diğer',
-  'common.file.size.limit': 'File size must not exceed {size}.',
-  'common.file.format.limit': 'Invalid file format. Allowed: {formats}.',
-  'common.image.limit.width': 'Image width must be {width}.',
-  'common.image.limit.height': 'Image height must be {height}.',
+  'common.file.size.limit': 'Dosya boyutu {size} değerini aşmamalıdır.',
+  'common.file.format.limit':
+    'Geçersiz dosya biçimi. İzin verilenler: {formats}.',
+  'common.image.limit.width': 'Görsel genişliği {width} olmalıdır.',
+  'common.image.limit.height': 'Görsel yüksekliği {height} olmalıdır.',
   'common.remaining': 'Kalan {count}',
   'common.max': 'Maks. {count}',
   'common.max.count': '{label} Sayısı',
-  'common.validate.group': 'Please complete the {group} configuration',
-  'common.preferences': 'Tercihler'
+  'common.validate.group': 'Lütfen {group} yapılandırmasını tamamlayın',
+  'common.preferences': 'Tercihler',
+  // Shared by the single-slot source config drawer (src/pages/_components/source-config)
+  'common.source.manage': 'Kaynakları Yönet',
+  'common.source.type.builtin': 'Gömülü',
+  'common.source.type.builtin.desc':
+    'Yalnızca mevcut sürümle gelen içeriği kullanır, başka kaynak kullanmaz.',
+  'common.source.type.url': 'URL',
+  'common.source.type.url.desc':
+    'Sunucu tarafından çekilir, kendini güncelleyebilir.',
+  'common.source.type.file': 'YAML Dosyası',
+  'common.source.type.file.desc':
+    'İçeriği doğrudan yapıştırın; hiçbir zaman kendini güncellemez.',
+  'common.source.url': 'Kaynak URL',
+  'common.source.url.scheme': 'URL http:// veya https:// ile başlamalıdır',
+  'common.source.url.credentials': 'URL kimlik bilgileri içermemelidir',
+  'common.source.url.host': 'URL bir ana bilgisayar adı içermelidir',
+  'common.source.content': 'İçerik',
+  'common.source.content.hint':
+    'YAML içeriğini buraya yapıştırın veya bir dosya içe aktararak düzenleyiciye yükleyin. Yalnızca bu metin gönderilir — sunucu hiçbir dosya saklamaz.',
+  'common.source.save': 'Kaydet ve Eşitle',
+  'common.source.sync.unchanged': 'Uzak içerik değişmedi.',
+  'common.source.lastSync': 'İçerik {time} tarihinde alındı',
+  'common.source.tag.custom': 'Özel',
+  'common.source.tag.official': 'Resmi',
+  'common.source.empty.hint':
+    "Kendi URL'niz resmi kaynağın tamamen yerine geçer.",
+  'common.source.empty.hint.builtin':
+    'Kendi kaynağınız yerleşik içeriğin tamamen yerine geçer. Yerleşik içeriği korumak için boş bırakın.',
+  'common.source.empty.hint.file':
+    'Resmi kaynağı izlemek için içeriği boş bırakın — {description}',
+  'common.source.empty.hint.file.builtin':
+    'Yerleşik içeriği korumak için içeriği boş bırakın — {description}',
+  'common.source.reset': 'Resmi Kaynağa Sıfırla',
+  'common.source.reset.tip':
+    'Yeniden resmi kaynağı izler, kaydettiğinizde uygulanır — {description}',
+  'common.source.autoUpdate': 'Otomatik Güncelleme',
+  'common.source.autoUpdate.interval': 'Güncelleme Aralığı (saat)',
+  'common.source.autoUpdate.official.tip':
+    'Resmi OTA sunucusunda yeni içerik olup olmadığının hangi sıklıkta denetleneceği. Kapalıyken, siz kendiniz eşitleyene kadar kayıtlı içerik olduğu gibi kalır.',
+  'common.source.autoUpdate.custom.tip':
+    "URL'nizin hangi sıklıkta yeniden çekileceği. Kapalıyken, siz kaydedene veya yeniden yükleyene kadar kaynağınıza dokunulmaz.",
+  'common.source.lastUpdated': 'Son güncelleme {time}',
+  'common.source.official.link': 'Resmi Dosya',
+  'common.source.builtin.link': 'Yerleşik Dosya',
+  'common.source.sync.official': 'Şimdi Güncelle',
+  'common.source.sync.custom': 'Şimdi Güncelle',
+  'common.source.sync.hint.dirty':
+    "Önce kaydedin — Kaydet, yeni URL'yi yazar ve onu çeker. Şimdi Güncelle yalnızca zaten kayıtlı olan URL'yi yeniden çeker.",
+  'common.source.load.failed':
+    'Kayıtlı yapılandırma okunamadı, bu nedenle burada kaydedilecek bir şey yok. Yeniden denemek için kapatıp tekrar açın.'
 };

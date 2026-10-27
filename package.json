@@ -10,13 +10,14 @@
     "prepare": "husky",
     "preview": "max preview",
     "setup": "max setup",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "test": "node scripts/test.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@ant-design/pro-components": "3.1.0-0",
     "@braintree/sanitize-url": "^7.1.1",
-    "@gpustack/core-ui": "^1.1.4",
+    "@gpustack/core-ui": "^1.1.23",
     "@huggingface/gguf": "^0.1.7",
     "@huggingface/hub": "^0.15.1",
     "@huggingface/tasks": "^0.11.6",
@@ -81,6 +82,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^25.0.3",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
@@ -104,6 +106,7 @@
     "file-loader": "^6.2.0",
     "globals": "^17.4.0",
     "husky": "^9.0.11",
+    "jsdom": "^26.1.0",
     "less-loader": "^12.2.0",
     "lint-staged": "^15.2.2",
     "mini-css-extract-plugin": "^2.9.0",
@@ -123,6 +126,7 @@
   "pnpm": {
     "overrides": {
       "@umijs/plugins>axios": "^0.33.0",
+      "@xmldom/xmldom": "^0.8.14",
       "elliptic": "^6.6.1",
       "js-cookie": "^3.0.7"
     }

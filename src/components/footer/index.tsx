@@ -1,6 +1,7 @@
 import { GPUStackVersionAtom } from '@/atoms/user';
 import VersionInfo, { modalConfig } from '@/components/version-info';
-import externalLinks from '@/constants/external-links';
+import { documentationPaths } from '@/constants/documentation';
+import { getDocumentationUrl } from '@/utils/documentation';
 import { useIntl } from '@umijs/max';
 import { Button, Divider, Modal, Typography } from 'antd';
 import { createStyles } from 'antd-style';
@@ -21,7 +22,7 @@ const useStyles = createStyles(({ token, css }) => ({
     background-color: transparent;
     padding: 20px 0;
     text-align: center;
-    font-size: var(--font-size-middle);
+    font-size: var(--font-size-base);
     color: ${token.colorTextTertiary};
   `,
   'footer-content-left-text': {
@@ -67,7 +68,7 @@ const Footer: React.FC = () => {
               <Button
                 type="link"
                 size="small"
-                href={externalLinks.documentation}
+                href={getDocumentationUrl(documentationPaths.home, intl.locale)}
                 target="_blank"
               >
                 {intl.formatMessage({ id: 'common.button.help' })}

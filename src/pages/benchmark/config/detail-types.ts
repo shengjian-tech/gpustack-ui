@@ -22,6 +22,9 @@ export interface InstancesData {
   id: number;
   name: string;
   resolved_path: string;
+  // Which role of its model this member served; absent for a plain deployment.
+  // The only thing that tells a group's members apart in a finished report.
+  role?: string | null;
   state: string;
   state_message: string;
   backend: any;
@@ -33,6 +36,9 @@ export interface InstancesData {
   run_command: any;
   env: any;
   extended_kv_cache: any;
+  // snapshot-stored name of the attached shared cache service; kept so
+  // the benchmark keeps naming it after the service is deleted
+  cache_service_name?: string;
   speculative_config: any;
   subordinate_workers: any[];
 }
@@ -68,6 +74,14 @@ export interface GPUData {
 }
 
 export interface Snapshot {
+  // The route the load entered through, in route mode. Absent for a run aimed
+  // at an instance, which is every run written before the mode existed.
+  route_name?: string | null;
+  // The generation of the deployment spec these numbers came from: a
+  // content hash over the model's definitional fields. Two reports with
+  // different digests measured different configurations, however alike
+  // their names look.
+  spec_digest?: string | null;
   instances: Record<string, InstancesData>;
   workers: Record<string, WorkerData>;
   gpus: Record<string, GPUData>;
@@ -105,31 +119,37 @@ export interface BenchmarkDetail {
   time_per_output_token_mean: number;
   inter_token_latency_mean: number;
   time_to_first_token_mean: number;
+  // Tails, next to the means. Null on points measured before the runner started
+  // writing these columns — the metrics card falls back to the dump's quantile.
+  time_to_first_token_p99?: number | null;
+  inter_token_latency_p99?: number | null;
   tokens_per_second_mean: number;
   output_tokens_per_second_mean: number;
   input_tokens_per_second_mean: number;
-  // load / auto-tune / SLA / best operating points
+  // load / auto-tune / SLO / best operating points
   load_type?: string;
   auto_tune?: boolean;
   lower_bound?: number;
   upper_bound?: number;
   max_points?: number;
   max_total_seconds?: number;
-  sla_avg_ttft_ms?: number;
-  sla_avg_tpot_ms?: number;
-  sla_p95_ttft_ms?: number;
-  sla_p95_tpot_ms?: number;
-  sla_p99_ttft_ms?: number;
-  sla_p99_tpot_ms?: number;
-  sla_avg_latency_ms?: number;
-  sla_p95_latency_ms?: number;
-  sla_p99_latency_ms?: number;
-  sla_met_rate?: number;
+  slo_avg_ttft_ms?: number;
+  slo_avg_tpot_ms?: number;
+  slo_p95_ttft_ms?: number;
+  slo_p95_tpot_ms?: number;
+  slo_p99_ttft_ms?: number;
+  slo_p99_tpot_ms?: number;
+  slo_avg_latency_ms?: number;
+  slo_p95_latency_ms?: number;
+  slo_p99_latency_ms?: number;
+  slo_met_rate?: number;
   peak_rate?: number;
   recommended_rate?: number;
   // Test-coverage validity, computed on the backend (language-neutral codes +
   // params; the UI localizes them).
   validity?: {
+    // Manual stages have measurement findings but no search coverage verdict.
+    coverage_applicable?: boolean;
     // Absent while `in_progress`: mid-sweep there is no verdict to give.
     sufficient?: boolean;
     warnings?: { code: string; params?: Record<string, unknown> }[];
@@ -137,9 +157,9 @@ export interface BenchmarkDetail {
     // stage / legacy runs and for rows written before the runner reported it).
     stop_reason?: string;
     stopped_at?: number;
-    // Whether `sla_met_rate` is a measured boundary ("257 breaks it") or only a
-    // floor (">= 256, the search ended first"). Absent when no SLA was set.
-    sla_boundary_located?: boolean;
+    // Whether `slo_met_rate` is a measured boundary ("257 breaks it") or only a
+    // floor (">= 256, the search ended first"). Absent when no SLO was set.
+    slo_boundary_located?: boolean;
     // The saturation probe's reading, the soft cap it produced, and how many times
     // that cap gave way. Together they say whether the probe earned its cost:
     // relaxed > 0 = it read low; stopped_at == bound = it clamped the overshoot
@@ -155,8 +175,8 @@ export interface BenchmarkDetail {
   description: string;
   labels: Record<string, any>;
   dataset_name: string;
-  dataset_input_tokens: number;
-  dataset_output_tokens: number;
+  dataset_input_tokens: number | null;
+  dataset_output_tokens: number | null;
   cluster_id: number;
   model_id: number;
   model_name: string;

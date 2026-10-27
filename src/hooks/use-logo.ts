@@ -1,4 +1,4 @@
-import GpustackLogo from '@/assets/images/gpustack-logo.png';
+import GpustackLogo from '@/assets/images/ai-computing power-cloud-logo.svg';
 import SmallLogo from '@/assets/images/small-logo-200x200.png';
 import useUserSettings from '@/hooks/use-user-settings';
 import { getGPUStackPlugin } from '@/plugins';

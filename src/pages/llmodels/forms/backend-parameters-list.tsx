@@ -1,3 +1,4 @@
+import { getDocumentationUrl } from '@/utils/documentation';
 import { ListInput } from '@gpustack/core-ui';
 import { useIntl } from '@umijs/max';
 import { Form } from 'antd';
@@ -5,22 +6,59 @@ import _ from 'lodash';
 import { useMemo } from 'react';
 import { backendParamsHolderTips, getBackendParamsTips } from '../config';
 import { useFormContext } from '../config/form-context';
-import { FormData } from '../config/types';
+import { FormData, PDMode } from '../config/types';
 import BackendParameters, {
   backendOptionsMap
 } from '../constants/backend-parameters';
+import { getRouterParameterConfig } from '../constants/backend-parameters/router';
 
-const BackendParametersList: React.FC = () => {
+interface BackendParametersListProps {
+  /**
+   * Renders the same field at a nested Form path (e.g. `['roles', 0]`).
+   * Absent means the model-level path, byte-for-byte what it was.
+   */
+  namePrefix?: (string | number)[];
+  /** Undefined selects engine hints; null identifies a router without a recipe. */
+  router?: PDMode['router'];
+}
+
+const BackendParametersList: React.FC<BackendParametersListProps> = ({
+  namePrefix,
+  router
+}) => {
   const intl = useIntl();
   const { onValuesChange, flatBackendOptions } = useFormContext();
   const form = Form.useFormInstance();
-  const backend = Form.useWatch('backend', form);
+  const path = (...field: (string | number)[]) =>
+    namePrefix ? [...namePrefix, ...field] : field;
+  // The engine is context here, not this section's own field: it only picks
+  // which parameter catalog to offer. A role that overrides its parameters
+  // without overriding its engine has no `backend` of its own, and it is the
+  // model's engine it will actually run — so fall back to it, otherwise the
+  // role's list would offer no suggestions at all. Without a prefix both
+  // watches read the same field and the fallback is a no-op.
+  const roleBackend = Form.useWatch(path('backend'), form);
+  const modelBackend = Form.useWatch('backend', form);
+  const backend = roleBackend ?? modelBackend;
+  const routerConfig = useMemo(
+    () => (router === undefined ? undefined : getRouterParameterConfig(router)),
+    [router]
+  );
 
   const backendParamsTips = useMemo(() => {
-    return getBackendParamsTips(backend);
-  }, [backend]);
+    return routerConfig ?? getBackendParamsTips(backend);
+  }, [backend, routerConfig]);
+  const backendParamsLink =
+    'documentationPath' in backendParamsTips
+      ? getDocumentationUrl(backendParamsTips.documentationPath, intl.locale)
+      : backendParamsTips.link;
+  const holder =
+    routerConfig?.holder ?? backendParamsHolderTips[backend]?.holder;
 
   const paramsConfig = useMemo(() => {
+    if (routerConfig) {
+      return routerConfig.options;
+    }
     const builtIn = _.get(BackendParameters, backend, []) as Array<{
       label: string;
       value: string;
@@ -32,7 +70,7 @@ const BackendParametersList: React.FC = () => {
       value: v
     }));
     return _.uniqBy([...extra, ...builtIn], 'value');
-  }, [backend, flatBackendOptions]);
+  }, [backend, flatBackendOptions, routerConfig]);
 
   const handleBackendParametersOnBlur = () => {
     onValuesChange?.({}, form.getFieldsValue());
@@ -43,13 +81,13 @@ const BackendParametersList: React.FC = () => {
   };
 
   return (
-    <Form.Item<FormData> name="backend_parameters">
+    <Form.Item<FormData> name={path('backend_parameters')}>
       <ListInput
         trim={false}
         placeholder={
-          backendParamsHolderTips[backend]
+          holder
             ? intl.formatMessage({
-                id: backendParamsHolderTips[backend].holder
+                id: holder
               })
             : ''
         }
@@ -61,7 +99,7 @@ const BackendParametersList: React.FC = () => {
         onDelete={handleDeleteBackendParameters}
         options={paramsConfig}
         description={
-          backendParamsTips.link && (
+          backendParamsLink && (
             <span>
               <span
                 style={{
@@ -72,7 +110,7 @@ const BackendParametersList: React.FC = () => {
                     { id: 'models.form.backend_parameters.vllm.tips' },
                     {
                       backend: backendParamsTips.backend || '',
-                      link: backendParamsTips.link
+                      link: backendParamsLink
                     }
                   )
                 }}

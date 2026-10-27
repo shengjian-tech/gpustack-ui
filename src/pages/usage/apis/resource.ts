@@ -48,6 +48,14 @@ export interface ResourceBreakdownSummary {
   gpu_hours: number;
   gpu_minutes: number;
   instance_hours: number;
+  // Uptime x sku_count — the quantity an invoice multiplies by the unit price.
+  //
+  // It exists because the other two cannot describe a CPU instance's cost:
+  // ``instance_hours`` is unweighted wall clock and ``gpu_hours`` is 0 for a CPU
+  // row, so a 4-unit instance used to look identical to a 1-unit one (or even
+  // smaller, if it ran for less time). On a GPU row this EQUALS ``gpu_hours``,
+  // so it is a generalization rather than a competing number.
+  unit_hours: number;
   cpu_hours: number;
   memory_gb_hours: number;
   ephemeral_gb_hours: number;
@@ -70,10 +78,17 @@ export interface ResourceBreakdownItem extends ResourceBreakdownSummary {
   volume_name?: string;
   user_id?: number;
   user_name?: string;
-  // Organization grouping (platform-wide "All" view). ``organization_name``
-  // is resolved live server-side; a gone Org sets ``deleted``.
+  // The organization, in either of its two roles: the GROUPED entity (an
+  // Organization table), or an ATTRIBUTE of a per-instance / per-volume row in
+  // the platform-wide "All" view, naming which tenant owns it. ``*_name`` is
+  // resolved live server-side.
   organization_id?: number;
   organization_name?: string;
+  // ``org`` / ``user`` / ``group`` — which kind of principal the consumer is.
+  organization_kind?: string;
+  // Only meaningful in the attribute role: the ORGANIZATION is gone, which is
+  // a different fact from the row's own ``deleted`` (the instance/volume).
+  organization_deleted?: boolean;
   // The grouped entity (instance / volume / user) no longer exists. The name
   // fields keep the clean (stale) name; the tables show a DeletedTag off this
   // flag plus the id, matching the Tokens tab.
@@ -106,6 +121,39 @@ export interface ResourceBreakdownItem extends ResourceBreakdownSummary {
   // Storage volume rows: provisioned capacity + storage type.
   storage_type?: string;
   capacity_mib?: number;
+  // The priced unit's identity. For instances this is the instance type's
+  // snapshot hash ("sha1:<40hex>") — an opaque reference key, joinable back to
+  // the type catalog. NEVER render it: it carries no readable information. The
+  // label is ``instance_type_name`` (below), the card pool is ``gpu_type``.
+  sku?: string;
+  // Per-cluster instance type name, snapshotted at metering time — the readable
+  // label behind the opaque sku.
+  instance_type_name?: string;
+  // Billed unit multiplier: card count, fractional for a sliced card (0.5 = half
+  // a card). Instance-type rows are grouped by ``(sku, sku_count)``, so BOTH are
+  // needed to identify a row — keying on the display label alone collides
+  // whenever one type name appears twice (the same definition on two clusters,
+  // or a whole-card row next to a sliced row of the same type).
+  sku_count?: number;
+  // How the card is carved up, so a sliced row is distinguishable from a
+  // whole-card row of the same type.
+  //
+  // The wire also carries ``definition_snapshot`` (cross-cluster type identity)
+  // and ``slice_share_milli`` (the billed share in thousandths) — see
+  // ResourceBreakdownRawItem. They are NOT flattened onto the row: no column,
+  // cell or export reads them, and this type is the set of fields the page
+  // actually renders, not a mirror of the payload.
+  slice_mode?: 'whole' | 'ratio' | 'profile';
+  sliced_memory_percentage?: number;
+  partitioned_profile?: string;
+  // Per-instance rows: every billed shape this instance held during the period.
+  // The server emits it for EVERY such row (one entry minimum), not only for
+  // reconfigured ones — the usage cell states each shape's composition, so it
+  // needs the count and per-unit spec of every row. Optional on the wire all the
+  // same: a server predating the field sends nothing, so treat absence as "no
+  // breakdown available" and fall back to the bare total. Parts are rounded
+  // server-side so they sum exactly to the row's totals.
+  shapes?: InstanceShape[];
 }
 
 export interface ResourceBreakdownResponse {
@@ -183,6 +231,9 @@ export interface UsageSummaryResponse {
   output_tokens: number;
   token_active_users: number;
   gpu_hours: number;
+  // The billed quantity across every instance kind. ``gpu_hours`` is the same
+  // expression filtered to GPU rows, so it reports 0 for a CPU-only fleet.
+  unit_hours: number;
   instance_hours: number;
   active_instances: number;
   storage_gb_days: number;
@@ -196,6 +247,11 @@ const URL = {
   RESOURCE_BREAKDOWN: '/usage/resource/breakdown',
   GPU_BREAKDOWN: '/usage/gpu-instances/breakdown',
   STORAGE_BREAKDOWN: '/usage/storage/breakdown',
+  GPU_BREAKDOWN_EXPORT: '/usage/gpu-instances/breakdown/export',
+  GPU_BREAKDOWN_EXPORT_ESTIMATE:
+    '/usage/gpu-instances/breakdown/export/estimate',
+  STORAGE_BREAKDOWN_EXPORT: '/usage/storage/breakdown/export',
+  STORAGE_BREAKDOWN_EXPORT_ESTIMATE: '/usage/storage/breakdown/export/estimate',
   EVENTS: '/usage/resource-events',
   SUMMARY: '/usage/summary',
   RESOURCE_META: '/usage/resource/meta'
@@ -206,11 +262,40 @@ const URL = {
 interface ServerMetrics {
   instance_hours?: number;
   gpu_hours?: number;
+  // The billed quantity: uptime x sku_count, for every instance kind. Equals
+  // gpu_hours on a GPU row; it is the only metric that reflects a CPU row's
+  // unit count. See ResourceBreakdownSummary.unit_hours.
+  unit_hours?: number;
   gb_days?: number;
   gb_hours?: number;
   resources?: number;
   active_users?: number;
   last_active?: string;
+}
+
+// One billed shape an instance held during the queried period. Emitted for every
+// per-instance row, one entry minimum — not only for reconfigured ones, whose
+// single Instance Type cell cannot tell the truth on its own but which are not
+// the only rows that need their composition stated.
+export interface InstanceShape {
+  sku?: string | null;
+  sku_count?: number | null;
+  instance_hours?: number | null;
+  unit_hours?: number | null;
+  product?: string | null;
+  gpu_count?: number | null;
+  vram_mib?: number | null;
+  cpu_milli?: number | null;
+  memory_mib?: number | null;
+  // The spec of ONE unit — the usage formula's multiplicand (`1c2g × 4 × …`).
+  // Each shape carries its OWN: changing the instance type gives the shapes
+  // different per-unit specs, and the row-level dimensions only has the latest.
+  // Absent when the type declares no ``unitResources``.
+  unit_cpu_milli?: number | null;
+  unit_memory_mib?: number | null;
+  slice_mode?: 'whole' | 'ratio' | 'profile' | null;
+  sliced_memory_percentage?: number | null;
+  partitioned_profile?: string | null;
 }
 
 // gpu_type / type both mean the sku (Type) on the server.
@@ -230,6 +315,23 @@ interface ServerBreakdownItem {
   creator_id?: number | null;
   creator_name?: string | null;
   creator_deleted?: boolean | null;
+  // The consumer principal, sent in two situations: as the grouped entity's
+  // kind when grouping BY organization, and as the full id/name/kind/deleted
+  // set on a per-instance / per-volume row in the platform-wide view, where it
+  // names the tenant the resource belongs to.
+  organization_id?: number | null;
+  organization_name?: string | null;
+  organization_kind?: string | null;
+  organization_deleted?: boolean | null;
+  // Readable label + cross-cluster definition id for the opaque ``sku``. Absent
+  // on rows metered before the server carried them.
+  instance_type_name?: string | null;
+  definition_snapshot?: string | null;
+  // Present on instance-type rows: the other half of their grouping key.
+  sku_count?: number | null;
+  // Per-instance rows: one entry per billed shape, one minimum (see
+  // InstanceShape). Absent from a server that predates the field.
+  shapes?: InstanceShape[] | null;
   dimensions?: {
     product?: string | null;
     unit_cpu_milli?: number | null;
@@ -243,6 +345,13 @@ interface ServerBreakdownItem {
     persistent_mib?: number | null;
     storage_type?: string | null;
     capacity_mib?: number | null;
+    // Card-pool key (the accelerator group, e.g. "nvidia-a100") + slicing
+    // facets. See ResourceBreakdownItem for what slice_share_milli means.
+    gpu_type?: string | null;
+    slice_mode?: 'whole' | 'ratio' | 'profile' | null;
+    sliced_memory_percentage?: number | null;
+    partitioned_profile?: string | null;
+    slice_share_milli?: number | null;
   } | null;
   metrics: ServerMetrics;
 }
@@ -282,6 +391,7 @@ function flattenMetrics(m: ServerMetrics): ResourceBreakdownSummary {
     gpu_hours: gpuHours,
     gpu_minutes: gpuHours * 60,
     instance_hours: num(m.instance_hours),
+    unit_hours: num(m.unit_hours),
     // not metered under the whole-machine SKU model → 0
     cpu_hours: 0,
     memory_gb_hours: 0,
@@ -330,7 +440,13 @@ function flattenItem(
       break;
     case 'gpu_type':
     case 'type':
-      flat.gpu_type = key;
+      // The instance-type grouping keys on the opaque sku, and the server swaps
+      // in the readable name only when it can still resolve a representative row
+      // for the shape. When it can't, the raw "sha1:<40hex>" arrives as the key —
+      // so prefer the name snapshotted onto the usage row, which survives the
+      // type itself being gone. ``type`` (storage) carries no such name and falls
+      // through to the key unchanged.
+      flat.gpu_type = it.instance_type_name ?? key;
       break;
     case 'instance':
       flat.instance_name = rawKey;
@@ -347,14 +463,31 @@ function flattenItem(
     case 'organization':
       flat.organization_name = rawKey;
       flat.organization_id = id;
+      // Carried through for the export preview's Organization Type column —
+      // the exported file has one, so the preview must be able to fill it.
+      if (it.organization_kind != null) {
+        flat.organization_kind = it.organization_kind;
+      }
       break;
     default:
       break;
   }
-  // Per-resource rows (instance / volume) carry their sku → surface it as the
+  flat.sku = it.sku ?? undefined;
+  flat.instance_type_name = it.instance_type_name ?? undefined;
+  if (it.sku_count != null) flat.sku_count = it.sku_count;
+  if (it.shapes?.length) flat.shapes = it.shapes;
+  // Per-resource rows (instance / volume) carry their type → surface it as the
   // Instance Type / Type column when not already the group key.
-  if (!flat.gpu_type && it.sku) {
-    flat.gpu_type = it.sku ?? undefined;
+  //
+  // Deliberately NOT ``it.sku``: for instances the sku is an opaque
+  // "sha1:<40hex>" reference key, so using it here would print a hash in the
+  // Instance Type column. Prefer the snapshotted type name, then the card-pool
+  // key from dimensions. A volume's sku IS readable ("volume--nfs--aws"), so it
+  // stays the last resort — which is also what pre-upgrade instance rows, whose
+  // sku is the old flavor name, need.
+  if (!flat.gpu_type) {
+    flat.gpu_type =
+      it.instance_type_name ?? it.dimensions?.gpu_type ?? it.sku ?? undefined;
   }
   // Instance-type rows carry flavor display fields (pretty product + per-card
   // specs) so the UI can render them like the GPU Instances list.
@@ -374,6 +507,21 @@ function flattenItem(
     if (dims.persistent_mib != null) flat.persistent_mib = dims.persistent_mib;
     if (dims.storage_type) flat.storage_type = dims.storage_type;
     if (dims.capacity_mib != null) flat.capacity_mib = dims.capacity_mib;
+    if (dims.slice_mode) flat.slice_mode = dims.slice_mode;
+    if (dims.sliced_memory_percentage != null)
+      flat.sliced_memory_percentage = dims.sliced_memory_percentage;
+    if (dims.partitioned_profile)
+      flat.partitioned_profile = dims.partitioned_profile;
+  }
+  // The tenant a per-instance / per-volume row belongs to, sent only in the
+  // platform-wide view. Copied through rather than derived: when organization
+  // is the GROUPING these came from ``key``/``id`` above, and this branch must
+  // not overwrite that with an absent attribute.
+  if (groupBy !== 'organization' && it.organization_name != null) {
+    flat.organization_id = it.organization_id ?? undefined;
+    flat.organization_name = it.organization_name;
+    flat.organization_kind = it.organization_kind ?? undefined;
+    flat.organization_deleted = !!it.organization_deleted;
   }
   // Owner (creator) of a per-instance / per-volume row — the grouped entity is
   // the instance/volume (``key``/``deleted``), so the owner sits at the item
@@ -508,6 +656,19 @@ async function _breakdown(
   };
 }
 
+// Export endpoints per resource tab. Exported so the tabs reference URL's
+// entries instead of re-typing the same paths in a local constant, which is
+// how one of two copies gets missed when a path changes.
+export const GPU_INSTANCES_EXPORT_ENDPOINTS = {
+  exportUrl: URL.GPU_BREAKDOWN_EXPORT,
+  estimateUrl: URL.GPU_BREAKDOWN_EXPORT_ESTIMATE
+};
+
+export const STORAGE_EXPORT_ENDPOINTS = {
+  exportUrl: URL.STORAGE_BREAKDOWN_EXPORT,
+  estimateUrl: URL.STORAGE_BREAKDOWN_EXPORT_ESTIMATE
+};
+
 export async function queryResourceBreakdown(
   data: ResourceBreakdownRequest,
   options?: {
@@ -632,6 +793,7 @@ export async function queryUsageSummary(
     output_tokens: number;
     token_active_users: number;
     gpu_hours: number;
+    unit_hours: number;
     instance_hours: number;
     storage_gb_days: number;
     active_users: number;
@@ -651,9 +813,10 @@ export async function queryUsageSummary(
     cancelToken: options?.token
   });
 
-  // Resource Distribution donut — by GPU type, using GPU-Hours (a single,
-  // well-defined unit). Built from the GPU-instances breakdown grouped by
-  // instance type. (A true cross-resource split needs a common unit.)
+  // Resource Distribution donut — by instance type, using Usage. NOT GPU-Hours:
+  // that is 0 on every CPU-only shape, so those slices vanished and a CPU-only
+  // deployment rendered an empty ring while its tables showed hundreds of hours.
+  // Usage is defined for every kind, which is what makes one ring possible.
   let distribution: SummaryResourceDistributionItem[] = [];
   try {
     const byType = await queryGpuInstancesBreakdown(
@@ -678,16 +841,27 @@ export async function queryUsageSummary(
       },
       { token: options?.token }
     );
-    const total = byType.items.reduce((s, i) => s + (i.gpu_hours || 0), 0);
-    distribution = byType.items
-      .filter((i) => (i.gpu_hours || 0) > 0)
-      .map((i) => ({
-        // Pretty product name (e.g. "NVIDIA-GeForce-RTX-5090-D") when known,
-        // else the raw flavor slug — matches the GPU Instances list.
-        label: i.product || i.gpu_type || 'unknown',
-        value: i.gpu_hours,
-        percentage: total > 0 ? (i.gpu_hours / total) * 100 : 0
-      }));
+    // Rows are per SHAPE (the breakdown groups by ``(sku, sku_count)``), so a
+    // pool that runs whole cards and quarter cards produces several rows. Label
+    // each by its shape — the same label the Instance Types table uses — rather
+    // than by the bare product name: identical labels made the ring show four
+    // slices against a two-entry legend, and the raw flavor slug
+    // (``gpustack--generic-linux-amd64``) was what a CPU shape fell back to.
+    const merged = new Map<string, number>();
+    byType.items.forEach((i) => {
+      const value = i.unit_hours || 0;
+      if (value <= 0) return;
+      const label = instanceTypeSeriesLabel(i);
+      merged.set(label, (merged.get(label) ?? 0) + value);
+    });
+    const total = Array.from(merged.values()).reduce((s, v) => s + v, 0);
+    distribution = Array.from(merged, ([label, value]) => ({
+      label,
+      value,
+      percentage: total > 0 ? (value / total) * 100 : 0
+      // Largest first: the ring is drawn in array order, so an unsorted list
+      // scatters the big slices and makes the legend hard to read against it.
+    })).sort((a, b) => b.value - a.value);
   } catch {
     distribution = [];
   }
@@ -698,6 +872,7 @@ export async function queryUsageSummary(
     output_tokens: num(res.output_tokens),
     token_active_users: num(res.token_active_users),
     gpu_hours: num(res.gpu_hours),
+    unit_hours: num(res.unit_hours),
     instance_hours: num(res.instance_hours),
     active_instances: 0,
     storage_gb_days: num(res.storage_gb_days),
@@ -729,3 +904,47 @@ export async function queryGpuInstancesMeta(): Promise<ResourceUsageMetaResponse
 export async function queryStorageMeta(): Promise<ResourceUsageMetaResponse> {
   return STATIC_META;
 }
+
+// --- Export -----------------------------------------------------------------
+
+/**
+ * Build the export payload from a breakdown request.
+ *
+ * Reuses ``toServerRequest`` so the exported set is narrowed by exactly the
+ * predicate the table was showing, then drops pagination (an export is the
+ * whole set) and swaps in the export-only knobs. ``sheets`` group_by values go
+ * through the same ``GROUP_BY_MAP`` as the single-table form — the UI's
+ * ``gpu_type`` is the backend's ``instance_type``.
+ */
+export function toResourceExportRequest(
+  data: ResourceBreakdownRequest,
+  options: {
+    sheets?: { key: string; group_by: string[]; name?: string }[];
+    format?: 'csv' | 'xlsx';
+  } = {}
+) {
+  const { body } = toServerRequest(data);
+  const { page, perPage, group_by, ...shared } = body as Record<string, any>;
+  return {
+    ...shared,
+    ...(options.sheets
+      ? {
+          sheets: options.sheets.map((sheet) => ({
+            ...sheet,
+            // Map the KEY as well as group_by. The key names the CSV member
+            // (`by_<key>.csv`) that customer scripts match on, so it has to be
+            // the backend's vocabulary everywhere — the Tokens tab already
+            // emits `by_route.csv`, and this tab must not emit the UI's
+            // `by_gpu_type.csv` for the same kind of thing.
+            key: GROUP_BY_MAP[sheet.key] ?? sheet.key,
+            group_by: sheet.group_by.map((g) => GROUP_BY_MAP[g] ?? g)
+          }))
+        }
+      : { group_by }),
+    ...(options.format ? { format: options.format } : {})
+  };
+}
+
+// The resource tabs share the token tabs' export helpers now
+// (``downloadUsageExport`` / ``queryUsageExportEstimate`` in ./index), which
+// take the url and so need no per-tab duplicate.
